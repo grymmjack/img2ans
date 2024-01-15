@@ -102,7 +102,7 @@ SUB __UI_Click (id AS LONG)
         CASE ConvertBT
             DIM stuff AS STRING
             stuff$ = GetImageFilesAsString$
-            _MessageBox "Debug", "Images:" + stuff$, "info"
+            _MessageBox "Debug", "Images:\n\n" + stuff$, "info"
 
         CASE ImagesList
 

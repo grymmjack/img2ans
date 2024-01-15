@@ -24,8 +24,8 @@ SUB BrowseForImageFiles
                 IF CHR$(ch%) = "|" THEN ' File found
                     DIM fn AS STRING
                     fn$ = MID$(filename$, _INSTRREV(filename$, slash$) + 1)
-                    _ECHO "Filename: [" + filename$ + "]"
-                    _ECHO "File: [" + fn$ + "]"
+                    echo "Filename: [" + filename$ + "]"
+                    echo "File: [" + fn$ + "]"
                     AddItem ImagesList&, fn$
                     ImageListFilenames$(i%) = filename$
                     filename$ = ""
@@ -50,11 +50,22 @@ FUNCTION GetImageFilesAsString$()
     i% = 1
     WHILE listValue$ <> ""
         listValue$ = GetItem$(ImagesList&, i%)
-        _ECHO "i:" + STR$(i%) + ", listValue$: [" + listValue$ + "]"
         IF listValue$ <> "" THEN
-            ImageFiles$ = ImageFiles$ + listValue$
+            echo "i:" + STR$(i%) + ", listValue$: [" + listValue$ + "]"
+            ImageFiles$ = ImageFiles$ + listValue$ + "\n"
             i% = i% + 1
         END IF
     WEND
     GetImageFilesAsString$ = ImageFiles$
 END FUNCTION
+
+
+''
+' Wrap _ECHO if debugging enabled
+' @param STRING s$
+'
+SUB echo(s$)
+    $IF IMG2ANS_DEBUG = DEFINED THEN
+        _ECHO s$
+    $END IF
+END SUB
