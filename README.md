@@ -1,6 +1,20 @@
 # IMG2ANS
 
-WIP GUI Front-end Conversion for IMG2ANS
+IMG2ANS converts pixels into textmode art using ANSI codes.
+
+WIP GUI Front-end for `IMG2ANS`
+
+### Cross Platform:
+- Linux
+- OSX
+- Windows
+
+### Input Image Formats Supported:
+- jpg, png, tga, bmp, psd, gif, pcx, svg, qoi
+
+### Output Image Formats Supported:
+- 16 color ANSI (8px and 16px fonts)
+- 24 Bit ANSI (8px and 16px fonts)
 
 ![IMG2ANS GUI](img2ans-screenshot.png)
 
