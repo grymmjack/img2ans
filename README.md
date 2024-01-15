@@ -45,7 +45,7 @@ Also since I know this will be helpful for BBS SysOps I have created a method wh
 The GUI in the screenshot is a WIP front-end for `IMG2ANS` and is created using [InForm-PE](https://github.com/a740g/InForm-PE/). The `IMG2ANS` GUI is not done, but I will chip away at it. InForm-PE is done and ready for use however. :) Thanks @a740g!
 
 ## TL;DR
-The end goal is to have one big GUI program that has options that make the separate `.BAS`` file programs unnecessary. 
+The end goal is to have one big GUI program that has options that make the separate `.BAS` file programs unnecessary. 
 
 -----
 
