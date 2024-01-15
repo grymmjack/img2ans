@@ -74,7 +74,11 @@ SUB UpdateImagesListToolTip
     index% = Control(ImagesList&).Value
     newVal = ImageListFilenames$(index%)
     echo "Index: " + STR$(index%) + ", Value:" + newVal$
-    ToolTip(ImagesList&) = newVal$
+    IF index% > 0 THEN
+        ToolTip(ImagesList&) = newVal$
+    ELSE
+        ToolTip(ImagesList&) = "Click Browse to select images to convert"
+    END IF
 END SUB
 
 

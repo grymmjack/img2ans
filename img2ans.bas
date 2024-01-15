@@ -66,6 +66,7 @@ SUB __UI_Click (id AS LONG)
         CASE ClearBT
             ResetList ImagesList&
             REDIM ImageListFilenames(1 TO 1) AS STRING
+            ToolTip(ImagesList&) = "Click Browse to select images to convert"
 
         CASE ImagesToConvert
 
