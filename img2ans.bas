@@ -46,7 +46,7 @@ SUB __UI_BeforeInit
 END SUB
 
 SUB __UI_OnLoad
-
+    __UI_ValueChanged(UseFilenameForTitleCB&)   ' Update to reflect state
 END SUB
 
 SUB __UI_BeforeUpdateDisplay
@@ -65,6 +65,7 @@ SUB __UI_Click (id AS LONG)
     SELECT CASE id
         CASE ClearBT
             ResetList ImagesList&
+            REDIM ImageListFilenames(1 TO 1) AS STRING
 
         CASE ImagesToConvert
 
@@ -105,6 +106,7 @@ SUB __UI_Click (id AS LONG)
             _MessageBox "Debug", "Images:\n\n" + stuff$, "info"
 
         CASE ImagesList
+            UpdateImagesListToolTip
 
         CASE BrowseBT
             BrowseForImageFiles
@@ -489,6 +491,13 @@ END SUB
 SUB __UI_ValueChanged (id AS LONG)
     SELECT CASE id
         CASE UseFilenameForTitleCB
+            IF Control(id&).Value THEN
+                Control(TitleLB&).Hidden = True
+                Control(TitleTB&).Hidden = True
+            ELSE
+                Control(TitleLB&).Hidden = False
+                Control(TitleTB&).Hidden = False
+            END IF
 
         CASE pxFont80X50ModeRB
 

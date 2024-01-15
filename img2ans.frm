@@ -188,6 +188,7 @@ SUB __UI_LoadForm
     ToolTip(__UI_NewID) = "Includes file extension for reference"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
+    Control(__UI_NewID).Value = -1    
 
     __UI_NewID = __UI_NewControl(__UI_Type_Button, "ClearBT", 80, 25, 124, 10, __UI_GetID("ImagesToConvert"))
     __UI_RegisterResult = 0

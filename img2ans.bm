@@ -4,8 +4,9 @@
 '
 SUB BrowseForImageFiles
     DIM AS STRING SRC_FILE, filename, slash
-    DIM AS INTEGER i, l, ch
-    slash$ = "/" : IF _OS$ = "WINDOWS" THEN slash$ = "\"            
+    DIM AS INTEGER i, n, l, ch
+    slash$ = "/" : IF _OS$ = "WINDOWS" THEN slash$ = "\"
+    n% = UBOUND(ImageListFilenames$)
 
     ' Choose an image file with dialog
     SRC_FILE$ = _OPENFILEDIALOG$( _
@@ -22,13 +23,16 @@ SUB BrowseForImageFiles
             IF i%+1 <= l% THEN ' At end of file list, do nothing
                 ch% = ASC(SRC_FILE$, i%+1)
                 IF CHR$(ch%) = "|" THEN ' File found
+                    REDIM _PRESERVE ImageListFilenames(1 TO UBOUND(ImageListFilenames$)+1) AS STRING
+                    ImageListFilenames$(n%) = filename$
+                    echo "ImageListFilenames$(" + _TRIM$(STR$(n%)) + ")=" + filename$
                     DIM fn AS STRING
                     fn$ = MID$(filename$, _INSTRREV(filename$, slash$) + 1)
                     echo "Filename: [" + filename$ + "]"
                     echo "File: [" + fn$ + "]"
                     AddItem ImagesList&, fn$
-                    ImageListFilenames$(i%) = filename$
                     filename$ = ""
+                    n% = n% + 1
                 ELSE ' Not at end of filename yet concat...
                     filename$ = filename$ + CHR$(ch%)
                 END IF
@@ -58,6 +62,20 @@ FUNCTION GetImageFilesAsString$()
     WEND
     GetImageFilesAsString$ = ImageFiles$
 END FUNCTION
+
+
+
+''
+' Updates the ImagesList control tooltip with the full filename of selected image
+'
+SUB UpdateImagesListToolTip
+    DIM newVal as STRING
+    DIM index AS INTEGER
+    index% = Control(ImagesList&).Value
+    newVal = ImageListFilenames$(index%)
+    echo "Index: " + STR$(index%) + ", Value:" + newVal$
+    ToolTip(ImagesList&) = newVal$
+END SUB
 
 
 ''
