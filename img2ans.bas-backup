@@ -25,10 +25,9 @@ DIM SHARED CheckBox1 AS LONG
 DIM SHARED TitleTB AS LONG
 DIM SHARED AuthorTB AS LONG
 DIM SHARED GroupTB AS LONG
-DIM SHARED TextBox1 AS LONG
+DIM SHARED CommentsTB AS LONG
 DIM SHARED ConvertBT AS LONG
-DIM SHARED ListBox1 AS LONG
-DIM SHARED ImagesToConvertLB AS LONG '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+DIM SHARED ImagesList AS LONG
 DIM SHARED BrowseBT AS LONG
 DIM SHARED SauceRecordLB AS LONG
 DIM SHARED TitleLB AS LONG
@@ -36,7 +35,6 @@ DIM SHARED AuthorLB AS LONG
 DIM SHARED GroupLB AS LONG
 DIM SHARED CommentsLB AS LONG
 DIM SHARED IMG2ANSLB AS LONG
-DIM SHARED IMG2ANS AS LONG
 
 ': External modules: ---------------------------------------------------------------
 '$INCLUDE:'InForm\InForm.bi'
@@ -73,6 +71,7 @@ SUB __UI_Click (id AS LONG)
         CASE pxFont80X50ModeRB
 
         CASE ExitBT
+            SYSTEM
 
         CASE Sauce
 
@@ -104,13 +103,11 @@ SUB __UI_Click (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -171,13 +168,11 @@ SUB __UI_MouseEnter (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -238,13 +233,11 @@ SUB __UI_MouseLeave (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -293,11 +286,11 @@ SUB __UI_FocusIn (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -334,11 +327,11 @@ SUB __UI_FocusOut (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -385,13 +378,11 @@ SUB __UI_MouseDown (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -452,13 +443,11 @@ SUB __UI_MouseUp (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -509,11 +498,11 @@ SUB __UI_KeyPress (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -528,7 +517,7 @@ SUB __UI_TextChanged (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
     END SELECT
 END SUB
@@ -553,7 +542,7 @@ SUB __UI_ValueChanged (id AS LONG)
 
         CASE CheckBox1
 
-        CASE ListBox1
+        CASE ImagesList
 
     END SELECT
 END SUB

@@ -13,21 +13,17 @@ DIM SHARED ExitBT AS LONG
 DIM SHARED Sauce AS LONG
 DIM SHARED IMG2ANS AS LONG
 DIM SHARED IncludeSauceCB AS LONG
-DIM SHARED ListBox1RB AS LONG
 DIM SHARED ColorOptions AS LONG
 DIM SHARED iCEColorsHighIntensityBGNoBlinCB AS LONG
 DIM SHARED RGB24BitColorCB AS LONG
 DIM SHARED FontOptions AS LONG
-DIM SHARED radioFontSize AS LONG
 DIM SHARED pxFont80X25ModeRB AS LONG
-DIM SHARED ListBox12 AS LONG
-DIM SHARED CheckBox1 AS LONG
 DIM SHARED TitleTB AS LONG
 DIM SHARED AuthorTB AS LONG
 DIM SHARED GroupTB AS LONG
-DIM SHARED TextBox1 AS LONG
+DIM SHARED CommentsTB AS LONG
 DIM SHARED ConvertBT AS LONG
-DIM SHARED ListBox1 AS LONG
+DIM SHARED ImagesList AS LONG
 DIM SHARED BrowseBT AS LONG
 DIM SHARED SauceRecordLB AS LONG
 DIM SHARED TitleLB AS LONG
@@ -71,14 +67,13 @@ SUB __UI_Click (id AS LONG)
         CASE pxFont80X50ModeRB
 
         CASE ExitBT
+            SYSTEM
 
         CASE Sauce
 
         CASE IMG2ANS
 
         CASE IncludeSauceCB
-
-        CASE ListBox1RB
 
         CASE ColorOptions
 
@@ -92,23 +87,20 @@ SUB __UI_Click (id AS LONG)
 
         CASE pxFont80X25ModeRB
 
-        CASE ListBox12
-
-        CASE CheckBox1
-
         CASE TitleTB
 
         CASE AuthorTB
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
+            DIM stuff AS STRING
+            stuff$ = GetItem$(ImagesList&, 0)
+            _MessageBox "Debug", "Images:" + stuff$, "info"
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -145,8 +137,6 @@ SUB __UI_MouseEnter (id AS LONG)
 
         CASE IncludeSauceCB
 
-        CASE ListBox1RB
-
         CASE ColorOptions
 
         CASE iCEColorsHighIntensityBGNoBlinCB
@@ -155,13 +145,7 @@ SUB __UI_MouseEnter (id AS LONG)
 
         CASE FontOptions
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
-
-        CASE ListBox12
-
-        CASE CheckBox1
 
         CASE TitleTB
 
@@ -169,13 +153,11 @@ SUB __UI_MouseEnter (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -212,8 +194,6 @@ SUB __UI_MouseLeave (id AS LONG)
 
         CASE IncludeSauceCB
 
-        CASE ListBox1RB
-
         CASE ColorOptions
 
         CASE iCEColorsHighIntensityBGNoBlinCB
@@ -222,13 +202,7 @@ SUB __UI_MouseLeave (id AS LONG)
 
         CASE FontOptions
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
-
-        CASE ListBox12
-
-        CASE CheckBox1
 
         CASE TitleTB
 
@@ -236,13 +210,11 @@ SUB __UI_MouseLeave (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -279,11 +251,7 @@ SUB __UI_FocusIn (id AS LONG)
 
         CASE RGB24BitColorCB
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
-
-        CASE CheckBox1
 
         CASE TitleTB
 
@@ -291,11 +259,11 @@ SUB __UI_FocusIn (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -314,17 +282,11 @@ SUB __UI_FocusOut (id AS LONG)
 
         CASE IncludeSauceCB
 
-        CASE ListBox1RB
-
         CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
-
-        CASE CheckBox1
 
         CASE TitleTB
 
@@ -332,11 +294,11 @@ SUB __UI_FocusOut (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -359,8 +321,6 @@ SUB __UI_MouseDown (id AS LONG)
 
         CASE IncludeSauceCB
 
-        CASE ListBox1RB
-
         CASE ColorOptions
 
         CASE iCEColorsHighIntensityBGNoBlinCB
@@ -369,13 +329,7 @@ SUB __UI_MouseDown (id AS LONG)
 
         CASE FontOptions
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
-
-        CASE ListBox12
-
-        CASE CheckBox1
 
         CASE TitleTB
 
@@ -383,13 +337,11 @@ SUB __UI_MouseDown (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -426,8 +378,6 @@ SUB __UI_MouseUp (id AS LONG)
 
         CASE IncludeSauceCB
 
-        CASE ListBox1RB
-
         CASE ColorOptions
 
         CASE iCEColorsHighIntensityBGNoBlinCB
@@ -436,13 +386,7 @@ SUB __UI_MouseUp (id AS LONG)
 
         CASE FontOptions
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
-
-        CASE ListBox12
-
-        CASE CheckBox1
 
         CASE TitleTB
 
@@ -450,13 +394,11 @@ SUB __UI_MouseUp (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
-
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -489,17 +431,11 @@ SUB __UI_KeyPress (id AS LONG)
 
         CASE IncludeSauceCB
 
-        CASE ListBox1RB
-
         CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
-
-        CASE CheckBox1
 
         CASE TitleTB
 
@@ -507,11 +443,11 @@ SUB __UI_KeyPress (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
         CASE ConvertBT
 
-        CASE ListBox1
+        CASE ImagesList
 
         CASE BrowseBT
 
@@ -526,7 +462,7 @@ SUB __UI_TextChanged (id AS LONG)
 
         CASE GroupTB
 
-        CASE TextBox1
+        CASE CommentsTB
 
     END SELECT
 END SUB
@@ -539,19 +475,13 @@ SUB __UI_ValueChanged (id AS LONG)
 
         CASE IncludeSauceCB
 
-        CASE ListBox1RB
-
         CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
 
-        CASE CheckBox1
-
-        CASE ListBox1
+        CASE ImagesList
 
     END SELECT
 END SUB

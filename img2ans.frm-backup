@@ -6,7 +6,6 @@
 '-----------------------------------------------------------
 SUB __UI_LoadForm
 
-    $RESIZE:ON
     DIM __UI_NewID AS LONG, __UI_RegisterResult AS LONG
 
     __UI_NewID = __UI_NewControl(__UI_Type_Form, "IMG2ANS", 652, 457, 0, 0, 0)
@@ -15,7 +14,6 @@ SUB __UI_LoadForm
     Control(__UI_NewID).Font = SetFont("InForm/resources/NotoMono-Regular.ttf", 12)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CenteredWindow = True
-    Control(__UI_NewID).CanResize = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_Frame, "FontOptions", 214, 66, 10, 323, 0)
     __UI_RegisterResult = 0
@@ -62,7 +60,7 @@ SUB __UI_LoadForm
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_ListBox, "ListBox1", 191, 201, 13, 40, __UI_GetID("ImagesToConvert"))
+    __UI_NewID = __UI_NewControl(__UI_Type_ListBox, "ImagesList", 191, 201, 13, 40, __UI_GetID("ImagesToConvert"))
     __UI_RegisterResult = 0
     __UI_DefaultButtonID = __UI_NewID
     ToolTip(__UI_NewID) = "Click Browse to select images to convert"
@@ -105,9 +103,9 @@ SUB __UI_LoadForm
     Control(__UI_NewID).VAlign = __UI_Middle
     Control(__UI_NewID).AutoSize = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "TextBox1", 308, 124, 85, 118, __UI_GetID("Sauce"))
+    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "CommentsTB", 308, 124, 85, 118, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "TextBox1"
+    SetCaption __UI_NewID, "Comments"
     ToolTip(__UI_NewID) = "Comments are optional"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Max = 500
@@ -147,7 +145,7 @@ SUB __UI_LoadForm
     Control(__UI_NewID).Value = -1
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "pxFont80X50ModeRB", 180, 23, 13, 13, __UI_GetID("FontOptions"))
+    __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "pxFont80X50ModeRB", 180, 26, 13, 14, __UI_GetID("FontOptions"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "&8px Font  (80x50 mode)"
     ToolTip(__UI_NewID) = "Solid block 8x8 characters"
@@ -201,13 +199,13 @@ SUB __UI_AssignIDs
     ImagesToConvert = __UI_GetID("ImagesToConvert")
     IMG2ANSLB = __UI_GetID("IMG2ANSLB")
     ConvertBT = __UI_GetID("ConvertBT")
-    ListBox1 = __UI_GetID("ListBox1")
+    ImagesList = __UI_GetID("ImagesList")
     BrowseBT = __UI_GetID("BrowseBT")
     TitleLB = __UI_GetID("TitleLB")
     AuthorLB = __UI_GetID("AuthorLB")
     GroupLB = __UI_GetID("GroupLB")
     CommentsLB = __UI_GetID("CommentsLB")
-    TextBox1 = __UI_GetID("TextBox1")
+    CommentsTB = __UI_GetID("CommentsTB")
     TitleTB = __UI_GetID("TitleTB")
     AuthorTB = __UI_GetID("AuthorTB")
     GroupTB = __UI_GetID("GroupTB")
