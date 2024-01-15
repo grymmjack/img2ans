@@ -1,0 +1,289 @@
+''
+' Initialiaze the SaucePacket
+' @return BYREF Empty SaucePacket filled ready to be filled
+'
+SUB SAUCE.InitPacket
+    SauceRecord.ID$                     = STRING$(5, CHR$(0))
+    SauceRecord.Version$                = STRING$(2, CHR$(0))
+    SauceRecord.Title$                  = STRING$(35, CHR$(0))
+    SauceRecord.Author$                 = STRING$(20, CHR$(0))
+    SauceRecord.Group$                  = STRING$(20, CHR$(0))
+    SauceRecord.Date$                   = STRING$(8, CHR$(0))
+    SauceRecord.FileSize~&              = 0
+    SauceRecord.DataType~%%             = 0
+    SauceRecord.FileType~%%             = 0
+    SauceRecord.Comments~%%             = 0
+    SauceRecord.TInfo1~%                = 0
+    SauceRecord.TInfo2~%                = 0
+    SauceRecord.TInfo3~%                = 0
+    SauceRecord.TInfo4~%                = 0
+    SauceRecord.TFlags~%%               = 0
+    SauceRecord.TInfoS$                 = STRING$(22, CHR$(0))
+    SaucePacket.Comments$               = ""
+    SaucePacket.DataType$               = ""
+    SaucePacket.FileType$               = ""
+    SaucePacket.CharacterWidth~%        = 0
+    SaucePacket.NumberOfLines~%         = 0
+    SaucePacket.CharacterScreenHeight~% = 0
+    SaucePacket.NumberOfColors~%        = 0
+    SaucePacket.IceColors$              = ""
+    SaucePacket.FontName$               = ""
+    SaucePacket.LetterSpacing$          = ""
+    SaucePacket.AspectRatio$            = ""
+    SaucePacket.PixelWidth~%            = 0
+    SaucePacket.PixelHeight~%           = 0
+    SaucePacket.PixelDepth~%            = 0
+    SaucePacket.SampleRate~%            = 0
+END SUB
+
+
+''
+' Fill the SaucePacket with data
+' @return BYREF Filled SaucePacket
+'
+SUB SAUCE.FillPacket
+    DIM AS STRING _
+        DataType, _
+        FileType, _
+        FontName
+    DIM AS _UNSIGNED INTEGER _
+        CharacterWidth, _
+        NumberOfLines, _
+        CharacterScreenHeight, _
+        NumberOfColors, _
+        PixelWidth, _
+        PixelHeight, _
+        PixelDepth, _
+        SampleRate
+
+    DataType$ = SAUCE_DATA_TYPE$(SauceRecord.DataType~%%)
+
+    SELECT CASE SAUCE_DATA_TYPE$(SauceRecord.DataType~%%)
+        CASE "None":
+            DataType$ = "None"
+            FileType$ = "None"
+        CASE "Character":
+            FileType$ = SAUCE_CHARACTER_TYPES$(SauceRecord.FileType~%%)
+            SELECT CASE SAUCE_CHARACTER_TYPES$(SauceRecord.FileType~%%)
+                CASE "ASCII", "ANSI", "PCBoard", "Avatar", "TundraDraw":
+                    CharacterWidth~% = SauceRecord.TInfo1~%
+                    NumberOfLines~%  = SauceRecord.TInfo2~%
+                    FontName$        = SauceRecord.TInfoS$
+                    SAUCE.ParseTFlags
+                CASE "ANSIMation":
+                    CharacterWidth~%        = SauceRecord.TInfo1~%
+                    CharacterScreenHeight~% = SauceRecord.TInfo2~%
+                    FontName$               = SauceRecord.TInfoS$
+                    SAUCE.ParseTFlags
+                CASE "RIP script":
+                    PixelWidth~%     = SauceRecord.TInfo1~%
+                    PixelHeight~%    = SauceRecord.TInfo2~%
+                    NumberOfColors~% = SauceRecord.TInfo3~%
+            END SELECT
+        CASE "Bitmap":
+            FileType$ = SAUCE_BITMAP_TYPES$(SauceRecord.FileType~%%)
+            PixelWidth~%  = SauceRecord.TInfo1~%
+            PixelHeight~% = SauceRecord.TInfo2~%
+            PixelDepth~%  = SauceRecord.TInfo3~%
+        CASE "Vector":
+            FileType$ = SAUCE_VECTOR_TYPES$(SauceRecord.FileType~%%)
+        CASE "Audio":
+            FileType$ = SAUCE_AUDIO_TYPES$(SauceRecord.FileType~%%)
+            SELECT CASE SAUCE_AUDIO_TYPES$(SauceRecord.FileType~%%)
+                CASE "SMP8", "SMP8S", "SMP16", "SMP16S":
+                    SampleRate~% = SauceRecord.TInfo1~%
+            END SELECT
+        CASE "BinaryText":
+            FileType$ = "BinaryText"
+            FontName$ = SauceRecord.TInfoS$
+            SAUCE.ParseTFlags
+        CASE "XBin":
+            FileType$        = "XBin"
+            CharacterWidth~% = SauceRecord.TInfo1~%
+            NumberOfLines~%  = SauceRecord.TInfo2~%
+        CASE "Archive":
+            FileType$ = SAUCE_ARCHIVE_TYPES$(SauceRecord.FileType~%%)
+        CASE "Executable":
+            FileType$ = "Executable"
+    END SELECT
+
+    ' Fill the sauce packet...
+    SaucePacket.DataType$        = DataType$
+    SaucePacket.FileType$        = FileType$
+    SaucePacket.CharacterWidth~% = CharacterWidth~%
+    SaucePacket.NumberOfLines~%  = NumberOfLines~%
+    SaucePacket.IceColors$       = SaucePacket.IceColors$
+    SaucePacket.FontName$        = FontName$
+    SaucePacket.LetterSpacing$   = SaucePacket.LetterSpacing$
+    SaucePacket.AspectRatio$     = SaucePacket.AspectRatio$
+    SaucePacket.PixelWidth~%     = PixelWidth~%
+    SaucePacket.PixelHeight~%    = PixelHeight~%
+    SaucePacket.PixelDepth~%     = PixelDepth~%
+    SaucePacket.SampleRate~%     = SampleRate~%
+END SUB
+
+
+''
+' Print SaucePacket
+' @return void
+'
+SUB SAUCE.PrintPacket
+    PRINT "Sauce ID:      "; SauceRecord.ID$
+    PRINT "Sauce Version: "; SauceRecord.Version$
+    PRINT  
+    PRINT "Title:         "; SauceRecord.Title$
+    PRINT "Author:        "; SauceRecord.Author$
+    PRINT "Group:         "; SauceRecord.Group$
+    PRINT "Date:          "; SauceRecord.Date$
+    PRINT "FileSize:     "; SauceRecord.FileSize~&
+    PRINT "DataType:     "; SauceRecord.DataType~%%; 
+    PRINT "(" + SAUCE_DATA_TYPE$(SauceRecord.DataType~%%) + ")"
+    PRINT "FileType:     "; SauceRecord.FileType~%%
+
+    PRINT 
+
+    SELECT CASE SAUCE_DATA_TYPE$(SauceRecord.DataType~%%)
+        CASE "None":
+            PRINT "No Data Type Detected"
+        CASE "Character":
+            PRINT "Character Data Type Detected: "; 
+            PRINT SAUCE_CHARACTER_TYPES$(SauceRecord.FileType~%%)
+            SELECT CASE SAUCE_CHARACTER_TYPES$(SauceRecord.FileType~%%)
+                CASE "ASCII", "ANSI", "PCBoard", "Avatar", "TundraDraw":
+                    PRINT "Character Width:"; SaucePacket.CharacterWidth~%
+                    PRINT "Number of Lines:"; SaucePacket.NumberOfLines~%
+                    PRINT "Font Name: "; SaucePacket.FontName$
+                    PRINT "iCE Colors: "; SaucePacket.IceColors$
+                    PRINT "Letter Spacing: "; SaucePacket.LetterSpacing$
+                    PRINT "Aspect Ratio: "; SaucePacket.AspectRatio$
+                CASE "ANSIMation":
+                    PRINT "Character Width:"; SaucePacket.CharacterWidth~%
+                    PRINT "Character Screen Height:"; SauceRecord.TInfo2~%
+                    PRINT "Font Name: "; SaucePacket.FontName$
+                    PRINT "iCE Colors: "; SaucePacket.IceColors$
+                    PRINT "Letter Spacing: "; SaucePacket.LetterSpacing$
+                    PRINT "Aspect Ratio: "; SaucePacket.AspectRatio$
+                CASE "RIP script":
+                    PRINT "Pixel Width:"; SaucePacket.PixelWidth~%
+                    PRINT "Pixel Height:"; SaucePacket.PixelHeight~%
+                    PRINT "# Colors:"; SaucePacket.NumberOfColors~%
+            END SELECT
+        CASE "Bitmap":
+            PRINT "Bitmap Data Type Detected: "; 
+            PRINT SAUCE_BITMAP_TYPES$(SauceRecord.FileType~%%)
+            PRINT "Pixel Width:"; SaucePacket.PixelWidth~%
+            PRINT "Pixel Height:"; SaucePacket.PixelHeight~%
+            PRINT "Pixel Depth:"; SaucePacket.PixelDepth~%
+        CASE "Vector":
+            PRINT "Vector Data Type Detected: "; 
+            PRINT SAUCE_VECTOR_TYPES$(SauceRecord.FileType~%%)
+        CASE "Audio":
+            PRINT "Audio Data Type Detected: "; 
+            PRINT SAUCE_AUDIO_TYPES$(SauceRecord.FileType~%%)
+            SELECT CASE SAUCE_AUDIO_TYPES$(SauceRecord.FileType~%%)
+                CASE "SMP8", "SMP8S", "SMP16", "SMP16S":
+                    PRINT "Sample Rate:"; SaucePacket.SampleRate~%
+            END SELECT
+        CASE "BinaryText":
+            PRINT "Binary Text Detected: BIN / RAW"; 
+            PRINT "Font Name: "; SaucePacket.FontName$
+        CASE "XBin":
+            PRINT "XBin Data Type Detected." 
+            PRINT "Character Width:"; SaucePacket.CharacterWidth~%
+            PRINT "Number of Lines:"; SaucePacket.NumberOfLines~%
+        CASE "Archive":
+            PRINT "Archive Data Type Detected: ";
+            PRINT SAUCE_ARCHIVE_TYPES$(SauceRecord.FileType~%%)
+        CASE "Executable":
+            PRINT "Executable Detected."
+    END SELECT
+    IF SauceRecord.Comments~%% > 0 THEN
+        PRINT
+        PRINT "Comments: "
+        PRINT SaucePacket.Comments$
+    END IF
+END SUB
+
+
+''
+' Get Sauce record from file Sauce header
+' @param STRING F$ Filename
+' @return BYREF SaucePacket.SauceRecord
+'
+SUB SAUCE.GetRecord(F$)
+    DIM FileSize AS _UNSIGNED _INTEGER64 
+    DIM i AS INTEGER
+    DIM CommentID AS STRING * 5
+
+    OPEN F$ FOR BINARY AS #1
+    FileSize~&& = LOF(1)
+    ' PRINT FileSize~&&
+    ' SLEEP
+
+    GET #1, FileSize~&& - 127, SauceRecord
+    IF SauceRecord.ID$ = "SAUCE" THEN
+        IF SauceRecord.Comments~%% > 0 THEN
+            ' PRINT "HAS COMMENTS"
+            SEEK #1, _
+                FileSize~&& - 127 - (SauceRecord.Comments~%% * 64) - 5
+            GET #1, _
+                FileSize~&& - 127 - (SauceRecord.Comments~%% * 64) - 5, _
+                CommentID$
+            ' PRINT "CommentID: "; CommentID$
+            IF CommentID$ = "COMNT" THEN
+                ' PRINT "COMMENT FOUND"
+                FOR i% = SauceRecord.Comments~%% TO 1 STEP - 1
+                    DIM Comment AS STRING * 64
+                    GET #1, FileSize~&& - 127 - (i% * 64), Comment$
+                    Comments$ = Comments$ + Comment$ + CHR$(13)
+                NEXT i%
+                SaucePacket.Comments$ = Comments$
+            END IF
+        END IF
+    END IF
+END SUB
+
+
+''
+' Parse Saucee record TFlags field to determine:
+' iCE Colors, Letter Spacing, and Aspect Ratio
+' @return BYREF SaucePacket fields populated
+'
+SUB SAUCE.ParseTFlags
+    ' PRINT _
+    '   "iCE Colors: "; _
+    '   ABS((SauceRecord.TFlags~%% AND 2^0) > 0)
+    IF ABS((SauceRecord.TFlags~%% AND 2^0) = 0) THEN
+        SaucePacket.IceColors$ = "OFF"
+    ELSE
+        SaucePacket.IceColors$ = "ON"
+    END IF
+    ' PRINT _
+    '   "Letter Spacing: "; _
+    '   ABS((SauceRecord.TFlags~%% AND 2^1) > 0); _
+    '   ABS((SauceRecord.TFlags~%% AND 2^2) > 0)
+    IF ABS((SauceRecord.TFlags~%% AND 2^1) = 0) _
+    AND ABS((SauceRecord.TFlags~%% AND 2^2) = 0) THEN
+        SaucePacket.LetterSpacing$ = "Legacy / No preference"
+    ELSEIF ABS((SauceRecord.TFlags~%% AND 2^1) = 0) _
+    AND ABS((SauceRecord.TFlags~%% AND 2^2) > 0) THEN
+        SaucePacket.LetterSpacing$ = "9px"
+    ELSEIF ABS((SauceRecord.TFlags~%% AND 2^1) > 0) _
+    AND ABS((SauceRecord.TFlags~%% AND 2^2) = 0) THEN
+        SaucePacket.LetterSpacing$ = "8px"
+    END IF
+    ' PRINT _
+    '   "Aspect Ratio: "; _
+    '   ABS((SauceRecord.TFlags~%% AND 2^3) > 0); _
+    '   ABS((SauceRecord.TFlags~%% AND 2^4) > 0)
+    IF ABS((SauceRecord.TFlags~%% AND 2^3) = 0) _
+    AND ABS((SauceRecord.TFlags~%% AND 2^4) = 0) THEN
+        SaucePacket.AspectRatio$ = "No preference / legacy"
+    ELSEIF ABS((SauceRecord.TFlags~%% AND 2^3) = 0) _
+    AND ABS((SauceRecord.TFlags~%% AND 2^4) > 0) THEN
+        SaucePacket.AspectRatio$ = "Square Pixels - NOT STRETCHED"
+    ELSEIF ABS((SauceRecord.TFlags~%% AND 2^3) > 0) _
+    AND ABS((SauceRecord.TFlags~%% AND 2^4) = 0) THEN
+        SaucePacket.AspectRatio$ = "Square Pixels - STRETCHED"
+    END IF
+END SUB
