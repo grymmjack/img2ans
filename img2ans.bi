@@ -1,0 +1,2 @@
+'$DYNAMIC 
+DIM SHARED ImageListFilenames(0 TO 500) AS STRING

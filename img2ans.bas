@@ -5,6 +5,8 @@
 ': https://github.com/a740g/InForm-PE
 '-----------------------------------------------------------
 
+'$INCLUDE:'img2ans.bi'
+
 ': Controls' IDs: ------------------------------------------------------------------
 DIM SHARED ImagesToConvert AS LONG
 DIM SHARED UseFilenameForTitleCB AS LONG
@@ -103,7 +105,8 @@ SUB __UI_Click (id AS LONG)
         CASE ImagesList
 
         CASE BrowseBT
-
+            BrowseForImageFiles
+            
         CASE SauceRecordLB
 
         CASE TitleLB
@@ -491,3 +494,4 @@ SUB __UI_FormResized
 END SUB
 
 '$INCLUDE:'InForm/InForm.ui'
+'$INCLUDE:'img2ans.bm'

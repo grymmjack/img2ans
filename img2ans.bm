@@ -1,0 +1,31 @@
+SUB BrowseForImageFiles
+    DIM AS STRING SRC_FILE, filename, slash
+    DIM AS INTEGER i, l, ch
+    slash$ = "/" : IF _OS$ = "WINDOWS" THEN slash$ = "\"            
+
+    ' Choose an image file with dialog
+    SRC_FILE$ = _OPENFILEDIALOG$( _
+        "Choose an image", _
+        , _
+        "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi", _
+        "Image Files", _
+        -1 _
+    )
+    IF SRC_FILE$ = "" THEN SYSTEM ' image is required...
+
+    SRC_FILE$ = SRC_FILE$ + "|"
+    l% = LEN(SRC_FILE$)
+
+    FOR i%=0 TO l%
+        IF i%+1 <= l% THEN ' At end of file list, do nothing
+            ch% = ASC(SRC_FILE$, i%+1)
+            IF CHR$(ch%) = "|" THEN ' File found
+                AddItem ImagesList&, RIGHT$(filename$, _INSTRREV(filename$, slash$))
+                ImageListFilenames(i%) = filename$
+                filename$ = ""
+            ELSE ' Not at end of filename yet concat...
+                filename$ = filename$ + CHR$(ch%)
+            END IF
+        END IF
+    NEXT i%
+END SUB
