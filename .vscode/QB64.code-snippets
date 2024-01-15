@@ -1,0 +1,48 @@
+{
+    "comment": {
+        "prefix": "''B",
+        "body": [
+            "''",
+            "' ${1:block}",
+            "' ${2:description}",
+            "' $0"
+        ],
+        "description": "Block comment"
+    },
+    "header": {
+        "prefix": "''H",
+        "body": [
+            "''",
+            "' ${1|DRAW, |} - ${TM_FILENAME}",
+            "' =============================================================================",
+            "' ${2:description}",
+            "'",
+            "' @author Rick Christy <grymmjack@gmail.com>",
+            "'",
+            "",
+            "\\$IF ${TM_FILENAME/[\\.-]/_/g} = UNDEFINED THEN",
+            "    \\$LET ${TM_FILENAME/[\\.-]/_/g} = 1",
+            "\\$END IF",
+            "",
+            "$0"
+        ],
+        "description": "Header comment"		
+    },
+    "VGA": {
+        "prefix": "''V",
+        "body": [
+            "OPTION _EXPLICIT",
+            "OPTION _EXPLICITARRAY",
+            "",
+            "DIM CANVAS AS LONG",
+            "CANVAS& = _NEWIMAGE(300,200,32)",
+            "SCREEN CANVAS&",
+            "",
+            "DO:",
+            "   _LIMIT 30",
+            "LOOP UNTIL _KEYHIT=27",
+            "",
+            "SYSTEM"
+        ]
+    }
+}

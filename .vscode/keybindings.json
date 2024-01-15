@@ -1,0 +1,31 @@
+// Place your key bindings in this file to override the defaultsauto[]
+[
+    {
+        "key": "shift+alt+cmd+right",
+        "command": "workbench.action.toggleAuxiliaryBar"
+    },
+    {
+        "key": "shift+alt+cmd+down",
+        "command": "workbench.action.togglePanel"
+    },
+    {
+        "key": "cmd+j",
+        "command": "-workbench.action.togglePanel"
+    },
+    {
+        "key": "shift+alt+cmd+up",
+        "command": "workbench.action.toggleMaximizedPanel"
+    },
+    {
+        "key": "shift+alt+cmd+left",
+        "command": "workbench.action.toggleSidebarVisibility"
+    },
+    {
+        "key": "cmd+b",
+        "command": "-workbench.action.toggleSidebarVisibility"
+    },
+    {
+        "key": "F5",
+        "command": "workbench.action.tasks.build"
+    }
+]

@@ -6,7 +6,7 @@
 '-----------------------------------------------------------
 SUB __UI_LoadForm
 
-    $RESIZE:ON
+    $RESIZE:OFF
     DIM __UI_NewID AS LONG, __UI_RegisterResult AS LONG
 
     __UI_NewID = __UI_NewControl(__UI_Type_Form, "IMG2ANS", 652, 457, 0, 0, 0)
@@ -15,7 +15,7 @@ SUB __UI_LoadForm
     Control(__UI_NewID).Font = SetFont("InForm/resources/NotoMono-Regular.ttf", 12)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CenteredWindow = True
-    Control(__UI_NewID).CanResize = True
+    Control(__UI_NewID).CanResize = False
 
     __UI_NewID = __UI_NewControl(__UI_Type_Frame, "FontOptions", 214, 66, 10, 323, 0)
     __UI_RegisterResult = 0

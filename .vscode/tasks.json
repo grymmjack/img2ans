@@ -1,0 +1,97 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run",
+            "dependsOn": "Compile",
+            "type": "shell",
+            "windows": {
+                "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+            },
+            "osx": {
+                "command": "${fileDirname}/${fileBasenameNoExtension}.run",
+            },
+            "linux": {
+                "command": "${fileDirname}/${fileBasenameNoExtension}.run",
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Compile",
+            "dependsOn": "Remove",
+            "type": "shell",
+            "windows": {
+                "command": "${config:qb64.compilerPath}",
+                "args": [
+                    "-x",
+                    "${fileDirname}\\${fileBasename}",
+                    "-o",
+                    "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                ]
+            },
+            "osx": {
+                "command": "${config:qb64.compilerPath}",
+                "args": [
+                    "-x",
+                    "${fileDirname}/${fileBasename}",
+                    "-o",
+                    "${fileDirname}/${fileBasenameNoExtension}.run"
+                ]
+            },
+            "linux": {
+                "command": "${config:qb64.compilerPath}",
+                "args": [
+                    "-x",
+                    "${fileDirname}/${fileBasename}",
+                    "-o",
+                    "${fileDirname}/${fileBasenameNoExtension}.run"
+                ]
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "focus": false
+            }
+        },
+        {
+            "label": "Remove",
+            "type": "shell",
+            "windows": {
+                "command": "del",
+                "args": [
+                    "${fileDirname}\\${fileBasenameNoExtension}.exe"
+                ]
+            },
+            "osx": {
+                "command": "rm",
+                "args": [
+                    "-f",
+                    "${fileDirname}/${fileBasenameNoExtension}.run"
+                ]
+            },
+            "linux": {
+                "command": "rm",
+                "args": [
+                    "-f",
+                    "${fileDirname}/${fileBasenameNoExtension}.run"
+                ]
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "focus": false
+            }
+        }
+    ]
+}

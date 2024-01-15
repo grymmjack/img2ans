@@ -28,7 +28,6 @@ DIM SHARED GroupTB AS LONG
 DIM SHARED TextBox1 AS LONG
 DIM SHARED ConvertBT AS LONG
 DIM SHARED ListBox1 AS LONG
-DIM SHARED ImagesToConvertLB AS LONG '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 DIM SHARED BrowseBT AS LONG
 DIM SHARED SauceRecordLB AS LONG
 DIM SHARED TitleLB AS LONG
@@ -36,7 +35,6 @@ DIM SHARED AuthorLB AS LONG
 DIM SHARED GroupLB AS LONG
 DIM SHARED CommentsLB AS LONG
 DIM SHARED IMG2ANSLB AS LONG
-DIM SHARED IMG2ANS AS LONG
 
 ': External modules: ---------------------------------------------------------------
 '$INCLUDE:'InForm\InForm.bi'
