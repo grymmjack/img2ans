@@ -8,6 +8,7 @@
 '$INCLUDE:'img2ans.bi'
 
 ': Controls' IDs: ------------------------------------------------------------------
+DIM SHARED ClearBT AS LONG
 DIM SHARED ImagesToConvert AS LONG
 DIM SHARED UseFilenameForTitleCB AS LONG
 DIM SHARED pxFont80X50ModeRB AS LONG
@@ -62,6 +63,9 @@ END SUB
 
 SUB __UI_Click (id AS LONG)
     SELECT CASE id
+        CASE ClearBT
+            ResetList ImagesList&
+
         CASE ImagesToConvert
 
         CASE UseFilenameForTitleCB
@@ -85,8 +89,6 @@ SUB __UI_Click (id AS LONG)
 
         CASE FontOptions
 
-        CASE radioFontSize
-
         CASE pxFont80X25ModeRB
 
         CASE TitleTB
@@ -99,14 +101,14 @@ SUB __UI_Click (id AS LONG)
 
         CASE ConvertBT
             DIM stuff AS STRING
-            stuff$ = GetItem$(ImagesList&, 0)
+            stuff$ = GetImageFilesAsString$
             _MessageBox "Debug", "Images:" + stuff$, "info"
 
         CASE ImagesList
 
         CASE BrowseBT
             BrowseForImageFiles
-            
+
         CASE SauceRecordLB
 
         CASE TitleLB
@@ -126,6 +128,8 @@ END SUB
 
 SUB __UI_MouseEnter (id AS LONG)
     SELECT CASE id
+        CASE ClearBT
+
         CASE ImagesToConvert
 
         CASE UseFilenameForTitleCB
@@ -183,6 +187,8 @@ END SUB
 
 SUB __UI_MouseLeave (id AS LONG)
     SELECT CASE id
+        CASE ClearBT
+
         CASE ImagesToConvert
 
         CASE UseFilenameForTitleCB
@@ -240,6 +246,8 @@ END SUB
 
 SUB __UI_FocusIn (id AS LONG)
     SELECT CASE id
+        CASE ClearBT
+
         CASE UseFilenameForTitleCB
 
         CASE pxFont80X50ModeRB
@@ -277,6 +285,8 @@ SUB __UI_FocusOut (id AS LONG)
     'This event occurs right before a control loses focus.
     'To prevent a control from losing focus, set __UI_KeepFocus = True below.
     SELECT CASE id
+        CASE ClearBT
+
         CASE UseFilenameForTitleCB
 
         CASE pxFont80X50ModeRB
@@ -310,6 +320,8 @@ END SUB
 
 SUB __UI_MouseDown (id AS LONG)
     SELECT CASE id
+        CASE ClearBT
+
         CASE ImagesToConvert
 
         CASE UseFilenameForTitleCB
@@ -367,6 +379,8 @@ END SUB
 
 SUB __UI_MouseUp (id AS LONG)
     SELECT CASE id
+        CASE ClearBT
+
         CASE ImagesToConvert
 
         CASE UseFilenameForTitleCB
@@ -426,6 +440,8 @@ SUB __UI_KeyPress (id AS LONG)
     'When this event is fired, __UI_KeyHit will contain the code of the key hit.
     'You can change it and even cancel it by making it = 0
     SELECT CASE id
+        CASE ClearBT
+
         CASE UseFilenameForTitleCB
 
         CASE pxFont80X50ModeRB

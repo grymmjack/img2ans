@@ -41,7 +41,7 @@ SUB __UI_LoadForm
     SetCaption __UI_NewID, "Images to Convert"
     ToolTip(__UI_NewID) = "All of these images will be converted"
     Control(__UI_NewID).HasBorder = True
-    Control(__UI_NewID).Value = 2
+    Control(__UI_NewID).Value = 3
     Control(__UI_NewID).BorderSize = 1
 
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "IMG2ANSLB", 84, 29, 10, 10, 0)
@@ -68,7 +68,7 @@ SUB __UI_LoadForm
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Button, "BrowseBT", 80, 23, 13, 12, __UI_GetID("ImagesToConvert"))
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "BrowseBT", 80, 25, 13, 10, __UI_GetID("ImagesToConvert"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "&Browse"
     Control(__UI_NewID).HasBorder = False
@@ -189,6 +189,12 @@ SUB __UI_LoadForm
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "ClearBT", 80, 25, 124, 10, __UI_GetID("ImagesToConvert"))
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "C&lear"
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).CanHaveFocus = True
+
 END SUB
 
 SUB __UI_AssignIDs
@@ -216,4 +222,5 @@ SUB __UI_AssignIDs
     RGB24BitColorCB = __UI_GetID("RGB24BitColorCB")
     ExitBT = __UI_GetID("ExitBT")
     UseFilenameForTitleCB = __UI_GetID("UseFilenameForTitleCB")
+    ClearBT = __UI_GetID("ClearBT")
 END SUB

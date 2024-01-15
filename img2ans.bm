@@ -1,3 +1,7 @@
+
+''
+' Browses for image files using OS file browser dialog
+'
 SUB BrowseForImageFiles
     DIM AS STRING SRC_FILE, filename, slash
     DIM AS INTEGER i, l, ch
@@ -11,21 +15,46 @@ SUB BrowseForImageFiles
         "Image Files", _
         -1 _
     )
-    IF SRC_FILE$ = "" THEN SYSTEM ' image is required...
-
-    SRC_FILE$ = SRC_FILE$ + "|"
-    l% = LEN(SRC_FILE$)
-
-    FOR i%=0 TO l%
-        IF i%+1 <= l% THEN ' At end of file list, do nothing
-            ch% = ASC(SRC_FILE$, i%+1)
-            IF CHR$(ch%) = "|" THEN ' File found
-                AddItem ImagesList&, RIGHT$(filename$, _INSTRREV(filename$, slash$))
-                ImageListFilenames(i%) = filename$
-                filename$ = ""
-            ELSE ' Not at end of filename yet concat...
-                filename$ = filename$ + CHR$(ch%)
+    IF SRC_FILE$ <> "" THEN
+        SRC_FILE$ = SRC_FILE$ + "|"
+        l% = LEN(SRC_FILE$)
+        FOR i%=0 TO l%
+            IF i%+1 <= l% THEN ' At end of file list, do nothing
+                ch% = ASC(SRC_FILE$, i%+1)
+                IF CHR$(ch%) = "|" THEN ' File found
+                    DIM fn AS STRING
+                    fn$ = MID$(filename$, _INSTRREV(filename$, slash$) + 1)
+                    _ECHO "Filename: [" + filename$ + "]"
+                    _ECHO "File: [" + fn$ + "]"
+                    AddItem ImagesList&, fn$
+                    ImageListFilenames$(i%) = filename$
+                    filename$ = ""
+                ELSE ' Not at end of filename yet concat...
+                    filename$ = filename$ + CHR$(ch%)
+                END IF
             END IF
-        END IF
-    NEXT i%
+        NEXT i%
+    END IF
 END SUB
+
+
+''
+' Returns all image files in the list as a string
+' @return STRING
+'
+FUNCTION GetImageFilesAsString$()
+    DIM AS STRING ImageFiles, listValue
+    DIM i AS INTEGER
+    ImageFiles$ = ""
+    listValue$  = "START"
+    i% = 1
+    WHILE listValue$ <> ""
+        listValue$ = GetItem$(ImagesList&, i%)
+        _ECHO "i:" + STR$(i%) + ", listValue$: [" + listValue$ + "]"
+        IF listValue$ <> "" THEN
+            ImageFiles$ = ImageFiles$ + listValue$
+            i% = i% + 1
+        END IF
+    WEND
+    GetImageFilesAsString$ = ImageFiles$
+END FUNCTION
