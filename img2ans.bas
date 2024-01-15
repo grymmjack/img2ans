@@ -6,8 +6,13 @@
 '-----------------------------------------------------------
 
 ': Controls' IDs: ------------------------------------------------------------------
-DIM SHARED SauceRecord AS LONG
-DIM SHARED SauceRecordCB AS LONG
+DIM SHARED ImagesToConvert AS LONG
+DIM SHARED UseFilenameForTitleCB AS LONG
+DIM SHARED pxFont80X50ModeRB AS LONG
+DIM SHARED ExitBT AS LONG
+DIM SHARED Sauce AS LONG
+DIM SHARED IMG2ANS AS LONG
+DIM SHARED IncludeSauceCB AS LONG
 DIM SHARED ListBox1RB AS LONG
 DIM SHARED ColorOptions AS LONG
 DIM SHARED iCEColorsHighIntensityBGNoBlinkCB AS LONG
@@ -23,7 +28,7 @@ DIM SHARED GroupTB AS LONG
 DIM SHARED TextBox1 AS LONG
 DIM SHARED ConvertBT AS LONG
 DIM SHARED ListBox1 AS LONG
-DIM SHARED ImagesToConvertLB AS LONG
+DIM SHARED ImagesToConvertLB AS LONG '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 DIM SHARED BrowseBT AS LONG
 DIM SHARED SauceRecordLB AS LONG
 DIM SHARED TitleLB AS LONG
@@ -61,9 +66,19 @@ END SUB
 
 SUB __UI_Click (id AS LONG)
     SELECT CASE id
-        CASE SauceRecord
+        CASE ImagesToConvert
 
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE Sauce
+
+        CASE IMG2ANS
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -95,7 +110,7 @@ SUB __UI_Click (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -118,9 +133,19 @@ END SUB
 
 SUB __UI_MouseEnter (id AS LONG)
     SELECT CASE id
-        CASE SauceRecord
+        CASE ImagesToConvert
 
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE Sauce
+
+        CASE IMG2ANS
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -152,7 +177,7 @@ SUB __UI_MouseEnter (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -175,9 +200,19 @@ END SUB
 
 SUB __UI_MouseLeave (id AS LONG)
     SELECT CASE id
-        CASE SauceRecord
+        CASE ImagesToConvert
 
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE Sauce
+
+        CASE IMG2ANS
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -209,7 +244,7 @@ SUB __UI_MouseLeave (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -232,7 +267,13 @@ END SUB
 
 SUB __UI_FocusIn (id AS LONG)
     SELECT CASE id
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -267,7 +308,13 @@ SUB __UI_FocusOut (id AS LONG)
     'This event occurs right before a control loses focus.
     'To prevent a control from losing focus, set __UI_KeepFocus = True below.
     SELECT CASE id
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -300,9 +347,19 @@ END SUB
 
 SUB __UI_MouseDown (id AS LONG)
     SELECT CASE id
-        CASE SauceRecord
+        CASE ImagesToConvert
 
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE Sauce
+
+        CASE IMG2ANS
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -334,7 +391,7 @@ SUB __UI_MouseDown (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -357,9 +414,19 @@ END SUB
 
 SUB __UI_MouseUp (id AS LONG)
     SELECT CASE id
-        CASE SauceRecord
+        CASE ImagesToConvert
 
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE Sauce
+
+        CASE IMG2ANS
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -391,7 +458,7 @@ SUB __UI_MouseUp (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -416,7 +483,13 @@ SUB __UI_KeyPress (id AS LONG)
     'When this event is fired, __UI_KeyHit will contain the code of the key hit.
     'You can change it and even cancel it by making it = 0
     SELECT CASE id
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE ExitBT
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
@@ -462,7 +535,11 @@ END SUB
 
 SUB __UI_ValueChanged (id AS LONG)
     SELECT CASE id
-        CASE SauceRecordCB
+        CASE UseFilenameForTitleCB
+
+        CASE pxFont80X50ModeRB
+
+        CASE IncludeSauceCB
 
         CASE ListBox1RB
 
