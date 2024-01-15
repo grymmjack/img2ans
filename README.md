@@ -2,30 +2,58 @@
 
 IMG2ANS converts pixels into textmode art using ANSI codes.
 
-WIP GUI Front-end for `IMG2ANS`
+> Why did I make this?
+There are no native ANSI editors on iOS at ALL.
+The use of a remote desktop/VNC while on iOS is possible but it's just horribly unergonomic.
+So, I had an idea. What if I used pixel art, and the DOS EGA/CGA 16 color palette to make the pixel art, and then somehow turn it into ANSI? Voila.
 
-### Cross Platform:
+IMG2ANS isn't the first of it's kind, but I am proud of the quality of conversion. It can do a 1:1 conversion for RGB or 16 color EGA/CGA in both 8px font (80x50 mode), and 16px (80x25 mode). 
+
+It's still not perfect, and creates gigantic ANSI files because it does not optimize the codes used. However, opening anything converted with `IMG2ANS` and resaving with Moebius, Pablo, IcyDraw, etc. optimizes the file anyway. I will try to make it less bloated and optimal :)
+
+One neat thing that this does is it actually uses the ANSI block characters intelligently. Being an ANSI artist I am very picky about how I draw, and wanted to make it so that this tool would generate really easy to draw-after kinds of ANSIs. 
+
+Also since I know this will be helpful for BBS SysOps I have created a method which does not use iCE colors as much as possible. It will use a black where the iCE was required (if it can't compensate with lower intensity colors). 
+
+The GUI in the screenshot is a WIP front-end for `IMG2ANS` and is created using InForm-PE. It's not done, but I will chip away at it.
+
+The end goal is to have one big GUI program that has options that make the separate .BAS file programs unnecessary. 
+
+-----
+
+### Cross Platform Support:
+`IMG2ANS` is written using QB64-PE and as a result is 100% cross platform compatible with:
+
 - Linux
 - OSX
 - Windows
 
 ### Input Image Formats Supported:
+`IMG2ANS` supports any QB64-PE supported image formats which includes:
+
 - jpg, png, tga, bmp, psd, gif, pcx, svg, qoi
 
 ### Output Image Formats Supported:
+`IMG2ANS` will save text files according to the following output types (all of which will embed the font and width and height in the sauce record in addition to the standard sauce stuff like group, author, comments, etc. if it is enabled):
 - 16 color ANSI (8px and 16px fonts)
 - 24 Bit ANSI (8px and 16px fonts)
 
 ![IMG2ANS GUI](img2ans-screenshot.png)
 
-### See:
+### Until the GUI is done...
+
+You can use each one of these separately:
+
 - [IMG2ANS-25.BAS](IMG2ANS-25.BAS)
 - [IMG2ANS-50.BAS](IMG2ANS-50.BAS)
 - [IMG2ANS-25-NOICE.BAS](IMG2ANS-25-NOICE.BAS)
 - [IMG2ANS-25-RGB.BAS](IMG2ANS-25-RGB.BAS)
 - [IMG2ANS-50-RGB.BAS](IMG2ANS-50-RGB.BAS)
 
-## USAGE
+# USAGE FOR SEPARATE PROGRAMS
+For each program, just compile it and run it. I will create a release that will have native binaries for Linux, OSX, and Windows soon. Until then, just get QB64-PE, install it, build it, etc.
+
+## USAGE FOR GUI
 - Run the program
 - Browse for image files to convert
 - Enter sauce information (and optionally include it)
