@@ -1,6 +1,6 @@
 # IMG2ANS
 
-`IMG2ANS`` converts pixels into textmode art using [ANSI codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
+`IMG2ANS` converts pixels into textmode art using [ANSI codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
 
 > Why did I make this?
 There are no native ANSI editors on iOS at ALL.
