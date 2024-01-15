@@ -83,6 +83,8 @@ In RGB 24 bit, you can convert any pixel art to ANSI text mode 1:1 regardless of
 
 If you are not using RGB 24 bit mode, the source image must use the DOS CGA/EGA 16 color palette, or colors will not map properly for conversion.
 
+#### KNOWN ISSUES
+The 25 line mode programs omit the final lines of the ANSI. I will fix this later, but meanwhile to compensate just add some blank lines to the end of the pixel art you're converting (2 blank extra rows of pixels at the bottom should work.)
 
 ### SAUCE Support
 Sauce support includes:
