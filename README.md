@@ -143,3 +143,13 @@ You need [InForm-PE](https://github.com/a740g/InForm-PE/). I recommend checking 
 `ln -s ../InForm-PE/InForm`
 
 Now you can build it.
+
+# Thank you and attribution
+
+MASSIVE Thanks:
+
+To [a740g (Samuel Gomes)](https://github.com/a740g/) who I consider a dear friend and has not
+only provided excellent friendship and fellowship but also great guidance and
+mentoring for QB64 and programming in general.
+
+Check out his [Toolbox64](https://github.com/a740g/Toolbox64) and [ANSIPrint](https://github.com/a740g/Toolbox64/blob/main/ANSIPrint.bas) stuff! It's rad!
