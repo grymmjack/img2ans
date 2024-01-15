@@ -9,7 +9,7 @@ SUB __UI_LoadForm
     $RESIZE:ON
     DIM __UI_NewID AS LONG, __UI_RegisterResult AS LONG
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Form, "IMG2ANS", 652, 443, 0, 0, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Form, "IMG2ANS", 652, 457, 0, 0, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "IMG2ANS"
     Control(__UI_NewID).Font = SetFont("InForm/resources/NotoMono-Regular.ttf", 12)
@@ -17,93 +17,98 @@ SUB __UI_LoadForm
     Control(__UI_NewID).CenteredWindow = True
     Control(__UI_NewID).CanResize = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "FontOptions", 214, 66, 10, 307, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "FontOptions", 214, 66, 10, 323, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Font Options"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Value = 2
     Control(__UI_NewID).BorderSize = 1
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "ColorOptions", 405, 66, 238, 307, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "ColorOptions", 405, 66, 238, 323, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Color Options"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Value = 2
     Control(__UI_NewID).BorderSize = 1
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "Sauce", 405, 236, 238, 49, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "Sauce", 405, 252, 238, 49, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Sauce"
     Control(__UI_NewID).HasBorder = True
-    Control(__UI_NewID).Value = 1
+    Control(__UI_NewID).Value = 10
     Control(__UI_NewID).BorderSize = 1
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Label, "IMG2ANSLB", 98, 34, 10, 10, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "ImagesToConvert", 214, 252, 10, 49, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "Images to Convert"
+    ToolTip(__UI_NewID) = "All of these images will be converted"
+    Control(__UI_NewID).HasBorder = True
+    Control(__UI_NewID).Value = 2
+    Control(__UI_NewID).BorderSize = 1
+
+    __UI_NewID = __UI_NewControl(__UI_Type_Label, "IMG2ANSLB", 84, 29, 10, 10, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "IMG2ANS"
-    Control(__UI_NewID).Font = SetFont("InForm/resources/NotoMono-Regular.ttf", 24)
+    Control(__UI_NewID).Font = SetFont("InForm/resources/NotoMono-Regular.ttf", 20)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).Align = __UI_Center
     Control(__UI_NewID).VAlign = __UI_Middle
     Control(__UI_NewID).BorderSize = 1
     Control(__UI_NewID).AutoSize = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Button, "ConvertBT", 82, 38, 561, 391, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "ConvertBT", 82, 38, 561, 407, 0)
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Convert"
+    SetCaption __UI_NewID, "&Convert"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_ListBox, "ListBox1", 214, 200, 10, 85, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_ListBox, "ListBox1", 191, 201, 13, 40, __UI_GetID("ImagesToConvert"))
     __UI_RegisterResult = 0
+    __UI_DefaultButtonID = __UI_NewID
+    ToolTip(__UI_NewID) = "Click Browse to select images to convert"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Label, "ImagesToConvertLB", 150, 23, 10, 49, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "BrowseBT", 80, 23, 13, 12, __UI_GetID("ImagesToConvert"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Images to Convert"
-    Control(__UI_NewID).HasBorder = False
-    Control(__UI_NewID).VAlign = __UI_Middle
-
-    __UI_NewID = __UI_NewControl(__UI_Type_Button, "BrowseBT", 80, 23, 144, 49, 0)
-    __UI_RegisterResult = 0
-    __UI_DefaultButtonID = __UI_NewID
-    SetCaption __UI_NewID, "Browse"
+    SetCaption __UI_NewID, "&Browse"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "TitleLB", 35, 20, 12, 42, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Title"
+    SetCaption __UI_NewID, "&Title"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
     Control(__UI_NewID).AutoSize = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "AuthorLB", 42, 20, 12, 67, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Author"
+    SetCaption __UI_NewID, "&Author"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
     Control(__UI_NewID).AutoSize = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "GroupLB", 35, 20, 12, 92, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Group"
+    SetCaption __UI_NewID, "&Group"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
     Control(__UI_NewID).AutoSize = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "CommentsLB", 56, 20, 12, 117, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Comments"
+    SetCaption __UI_NewID, "Co&mments"
+    ToolTip(__UI_NewID) = "Optional"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
     Control(__UI_NewID).AutoSize = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "TextBox1", 308, 100, 85, 118, __UI_GetID("Sauce"))
+    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "TextBox1", 308, 124, 85, 118, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "TextBox1"
+    ToolTip(__UI_NewID) = "Comments are optional"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Max = 500
     Control(__UI_NewID).CanHaveFocus = True
@@ -112,6 +117,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "TitleTB", 308, 23, 85, 40, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Title"
+    ToolTip(__UI_NewID) = "Enter the title of the piece"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -119,6 +125,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "AuthorTB", 308, 23, 85, 66, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Author"
+    ToolTip(__UI_NewID) = "Enter the author of the piece"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -126,6 +133,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "GroupTB", 308, 23, 85, 92, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Group"
+    ToolTip(__UI_NewID) = "Which group is the author in?"
     Control(__UI_NewID).BackStyle = __UI_Transparent
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
@@ -133,46 +141,53 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "IncludeSauceCB", 156, 20, 12, 12, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Include Sauce"
-    ToolTip(__UI_NewID) = "Include sauce record?"
+    SetCaption __UI_NewID, "Include &Sauce"
+    ToolTip(__UI_NewID) = "Include sauce record - if not width and height will not be available in QB64PE code"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).Value = -1
     Control(__UI_NewID).CanHaveFocus = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "pxFont80X50ModeRB", 180, 23, 13, 13, __UI_GetID("FontOptions"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "8px Font (80x50 mode)"
+    SetCaption __UI_NewID, "&8px Font  (80x50 mode)"
+    ToolTip(__UI_NewID) = "Solid block 8x8 characters"
     Control(__UI_NewID).HasBorder = False
-    Control(__UI_NewID).Value = -1
     Control(__UI_NewID).CanHaveFocus = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "pxFont80X25ModeRB", 180, 23, 13, 36, __UI_GetID("FontOptions"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "9px Font (80x25 mode)"
+    SetCaption __UI_NewID, "1&6px Font (80x25 mode)"
+    ToolTip(__UI_NewID) = "Solid and half block 16x8 characters"
+    Control(__UI_NewID).ForeColor = _RGB32(0, 18, 0)
     Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).Value = -1
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "iCEColorsHighIntensityBGNoBlinkCB", 357, 23, 15, 14, __UI_GetID("ColorOptions"))
+    __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "iCEColorsHighIntensityBGNoBlinCB", 357, 23, 15, 14, __UI_GetID("ColorOptions"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "iCE Colors (High Intensity BG no Blink)"
+    SetCaption __UI_NewID, "&iCE Colors (High Intensity BG no Blink)"
+    ToolTip(__UI_NewID) = "Enabling iCE colors disables blinking"
     Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).Value = -1
     Control(__UI_NewID).CanHaveFocus = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "RGB24BitColorCB", 150, 23, 15, 36, __UI_GetID("ColorOptions"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "RGB 24 Bit Color"
+    SetCaption __UI_NewID, "&RGB 24 Bit Color"
+    ToolTip(__UI_NewID) = "RGB uses CSI[r;g;bt codes"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Button, "ExitBT", 82, 38, 10, 391, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "ExitBT", 82, 38, 10, 407, 0)
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Exit"
+    SetCaption __UI_NewID, "E&xit"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "UseFilenameForTitleCB", 183, 23, 210, 12, __UI_GetID("Sauce"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Use filename for title"
+    SetCaption __UI_NewID, "Use &filename for title"
+    ToolTip(__UI_NewID) = "Includes file extension for reference"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
@@ -182,10 +197,11 @@ SUB __UI_AssignIDs
     IMG2ANS = __UI_GetID("IMG2ANS")
     FontOptions = __UI_GetID("FontOptions")
     ColorOptions = __UI_GetID("ColorOptions")
+    Sauce = __UI_GetID("Sauce")
+    ImagesToConvert = __UI_GetID("ImagesToConvert")
     IMG2ANSLB = __UI_GetID("IMG2ANSLB")
     ConvertBT = __UI_GetID("ConvertBT")
     ListBox1 = __UI_GetID("ListBox1")
-    ImagesToConvertLB = __UI_GetID("ImagesToConvertLB")
     BrowseBT = __UI_GetID("BrowseBT")
     TitleLB = __UI_GetID("TitleLB")
     AuthorLB = __UI_GetID("AuthorLB")
@@ -198,9 +214,8 @@ SUB __UI_AssignIDs
     IncludeSauceCB = __UI_GetID("IncludeSauceCB")
     pxFont80X50ModeRB = __UI_GetID("pxFont80X50ModeRB")
     pxFont80X25ModeRB = __UI_GetID("pxFont80X25ModeRB")
-    iCEColorsHighIntensityBGNoBlinkCB = __UI_GetID("iCEColorsHighIntensityBGNoBlinkCB")
+    iCEColorsHighIntensityBGNoBlinCB = __UI_GetID("iCEColorsHighIntensityBGNoBlinCB")
     RGB24BitColorCB = __UI_GetID("RGB24BitColorCB")
     ExitBT = __UI_GetID("ExitBT")
-    Sauce = __UI_GetID("Sauce")
     UseFilenameForTitleCB = __UI_GetID("UseFilenameForTitleCB")
 END SUB

@@ -15,7 +15,7 @@ DIM SHARED IMG2ANS AS LONG
 DIM SHARED IncludeSauceCB AS LONG
 DIM SHARED ListBox1RB AS LONG
 DIM SHARED ColorOptions AS LONG
-DIM SHARED iCEColorsHighIntensityBGNoBlinkCB AS LONG
+DIM SHARED iCEColorsHighIntensityBGNoBlinCB AS LONG
 DIM SHARED RGB24BitColorCB AS LONG
 DIM SHARED FontOptions AS LONG
 DIM SHARED radioFontSize AS LONG
@@ -28,7 +28,7 @@ DIM SHARED GroupTB AS LONG
 DIM SHARED TextBox1 AS LONG
 DIM SHARED ConvertBT AS LONG
 DIM SHARED ListBox1 AS LONG
-DIM SHARED ImagesToConvertLB AS LONG '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+DIM SHARED ImagesToConvertLB AS LONG '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 DIM SHARED BrowseBT AS LONG
 DIM SHARED SauceRecordLB AS LONG
 DIM SHARED TitleLB AS LONG
@@ -84,7 +84,7 @@ SUB __UI_Click (id AS LONG)
 
         CASE ColorOptions
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -110,7 +110,7 @@ SUB __UI_Click (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -151,7 +151,7 @@ SUB __UI_MouseEnter (id AS LONG)
 
         CASE ColorOptions
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -177,7 +177,7 @@ SUB __UI_MouseEnter (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -218,7 +218,7 @@ SUB __UI_MouseLeave (id AS LONG)
 
         CASE ColorOptions
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -244,7 +244,7 @@ SUB __UI_MouseLeave (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -277,7 +277,7 @@ SUB __UI_FocusIn (id AS LONG)
 
         CASE ListBox1RB
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -318,7 +318,7 @@ SUB __UI_FocusOut (id AS LONG)
 
         CASE ListBox1RB
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -365,7 +365,7 @@ SUB __UI_MouseDown (id AS LONG)
 
         CASE ColorOptions
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -391,7 +391,7 @@ SUB __UI_MouseDown (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -432,7 +432,7 @@ SUB __UI_MouseUp (id AS LONG)
 
         CASE ColorOptions
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -458,7 +458,7 @@ SUB __UI_MouseUp (id AS LONG)
 
         CASE ListBox1
 
-        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
+        CASE ImagesToConvertLB '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024 '<-- "ImagesToConvertLB" deleted from Form on 01-15-2024
 
         CASE BrowseBT
 
@@ -493,7 +493,7 @@ SUB __UI_KeyPress (id AS LONG)
 
         CASE ListBox1RB
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
@@ -543,7 +543,7 @@ SUB __UI_ValueChanged (id AS LONG)
 
         CASE ListBox1RB
 
-        CASE iCEColorsHighIntensityBGNoBlinkCB
+        CASE iCEColorsHighIntensityBGNoBlinCB
 
         CASE RGB24BitColorCB
 
