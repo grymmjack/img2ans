@@ -7,11 +7,13 @@ There are no native ANSI editors on iOS at ALL.
 The use of a remote desktop/VNC while on iOS is possible but it's just horribly unergonomic.
 So, I had an idea. What if I used pixel art, and the DOS EGA/CGA 16 color palette to make the pixel art, and then somehow turn it into ANSI? Voila.
 
-IMG2ANS isn't the first of it's kind, but I am proud of the quality of conversion. It can do a 1:1 conversion for RGB or 16 color EGA/CGA in both 8px font (80x50 mode), and 16px (80x25 mode). 
+`IMG2ANS` isn't the first of it's kind (GIF2ANS, etc. already exist), but I am proud of the quality of conversion. It can do a 1:1 conversion for RGB or 16 color EGA/CGA in both 8px font (80x50 mode), and 16px (80x25 mode). 
 
 It's still not perfect, and creates gigantic ANSI files because it does not optimize the codes used. However, opening anything converted with `IMG2ANS` and resaving with Moebius, Pablo, IcyDraw, etc. optimizes the file anyway. I will try to make it less bloated and optimal :)
 
 One neat thing that this does is it actually uses the ANSI block characters intelligently. Being an ANSI artist I am very picky about how I draw, and wanted to make it so that this tool would generate really easy to draw-after kinds of ANSIs. 
+
+> So as an ANSI artist you can use stuff like `ALT-U` to pickup sensible colors, and it uses normal blocks, vs. just some weird machine-specific converter where everything is iCE colors even when it doesn't have to be, and the blocks don't make a lot of sense when you draw post conversion. Believe me it was a lot less easy to draw after conversion before! Everything used iCE colors and the background and foreground colors were all whacked and inverted. I fixed that.
 
 Also since I know this will be helpful for BBS SysOps I have created a method which does not use iCE colors as much as possible. It will use a black where the iCE was required (if it can't compensate with lower intensity colors). 
 
