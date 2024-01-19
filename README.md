@@ -75,6 +75,11 @@ You can use each one of these separately:
 - [IMG2ANS-25-NOICE.BAS](IMG2ANS-25-NOICE.BAS)
 - [IMG2ANS-25-RGB.BAS](IMG2ANS-25-RGB.BAS)
 - [IMG2ANS-50-RGB.BAS](IMG2ANS-50-RGB.BAS)
+- [IMG2ANS-25-OPT.BAS](IMG2ANS-25-OPT.BAS)
+- [IMG2ANS-50-OPT.BAS](IMG2ANS-50-OPT.BAS)
+- [IMG2ANS-25-NOICE-OPT.BAS](IMG2ANS-25-NOICE-OPT.BAS)
+- [IMG2ANS-25-RGB-OPT.BAS](IMG2ANS-25-RGB-OPT.BAS)
+- [IMG2ANS-50-RGB-OPT.BAS](IMG2ANS-50-RGB-OPT.BAS)
 
 # USAGE FOR SEPARATE PROGRAMS
 For each program, just compile it and run it. I will create a release that will have native binaries for Linux, OSX, and Windows soon. Until then, just get QB64-PE, install it, build it, etc.
@@ -86,6 +91,10 @@ For each program, just compile it and run it. I will create a release that will 
 - Choose Font Options
 - Choose Color Options
 - Click Convert
+
+### OPTimized
+
+These new versions generate optimized and compressed ANSI files.
 
 ### 8px Font (80x50 mode)
 
