@@ -56,6 +56,7 @@ FOR i%=0 TO l%
                         DIM AS _UNSIGNED LONG TopColor, BottomColor
                         DIM AS STRING FG_CODE, BG_CODE
                         DIM AS STRING bR, bG, bB, fR, fG, fB
+                        DIM AS STRING cbR, cbG, cbB, cfR, cfG, cfB
                         TopColor~& = POINT(x%, y%) ' top pixel
                         IF y%+1 < SRC_H% THEN
                             BottomColor~& = POINT(x%, y%+1) ' pixel under
@@ -83,13 +84,31 @@ FOR i%=0 TO l%
                                  + bG$ + ";" _
                                  + bB$ + "t"
 
-                        ' Create ansi escape sequences strings
-                        ans$ = ans$ _
-                            + CHR$(E) _
-                            + FG_CODE$ _
-                            + CHR$(E) _
-                            + BG_CODE$ _
-                            + CHR$(FT)
+                        IF (cbR$ <> bR$ OR cbG$ <> bG$ OR cbB$ <> bB$) _
+                        AND (cfR$ <> fR$ OR cfG$ <> fG$ OR cfB$ <> fB$) THEN
+                            ans$ = ans$ _
+                                + CHR$(E) _
+                                + FG_CODE$ _
+                                + CHR$(E) _
+                                + BG_CODE$ _
+                                + CHR$(FT)
+                            cbR$ = bR$ : cbG$ = bG$ : cbB$ = bB$
+                            cfR$ = fR$ : cfG$ = fG$ : cfB$ = fB$
+                        ELSEIF cbR$ <> bR$ OR cbG$ <> bG$ OR cbB$ <> bB$ THEN
+                            ans$ = ans$ _
+                                + CHR$(E) _
+                                + BG_CODE$ _
+                                + CHR$(FT)
+                            cbR$ = bR$ : cbG$ = bG$ : cbB$ = bB$
+                        ELSEIF cfR$ <> fR$ OR cfG$ <> fG$ OR cfB$ <> fB$ THEN
+                            ans$ = ans$ _
+                                + CHR$(E) _
+                                + FG_CODE$ _
+                                + CHR$(FT)
+                            cfR$ = fR$ : cfG$ = fG$ : cfB$ = fB$
+                        ELSE
+                            ans$ = ans$ + CHR$(FT)
+                        END IF
                     NEXT x%
                 END IF
             NEXT y%
@@ -99,15 +118,15 @@ FOR i%=0 TO l%
 
             ' Write the output.ans file
             PRINT ans$
-            OPEN filename$ + "-25-RGB.ans" FOR OUTPUT AS #1
+            OPEN filename$ + "-25-RGB-OPT.ans" FOR OUTPUT AS #1
             PRINT #1, CHR$(E) + "[0;30m" +  ans$
             CLOSE #1
 
-            OPEN filename$ + "-25-RGB.ans" FOR APPEND AS #1
+            OPEN filename$ + "-25-RGB-OPT.ans" FOR APPEND AS #1
             PRINT #1, CHR$(&H1A) ' EOF
             CLOSE #1 
 
-            OPEN filename$ + "-25-RGB.ans" FOR BINARY AS #1
+            OPEN filename$ + "-25-RGB-OPT.ans" FOR BINARY AS #1
             SEEK #1, LOF(1)
             SAUCE.InitPacket
             SauceRecord.ID$         = "SAUCE"

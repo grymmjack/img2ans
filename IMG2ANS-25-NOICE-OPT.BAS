@@ -29,6 +29,8 @@
 ' @link https://youtube.com/grymmjack
 ' @version 0.1
 '
+$CONSOLE
+_CONSOLE ON
 
 '$INCLUDE:'SAUCE/SAUCE.BI'
 
@@ -93,10 +95,11 @@ IF SRC_FILE$ = "" THEN SYSTEM ' image is required...
 
 SRC_FILE$ = SRC_FILE$ + "|"
 
-DIM AS INTEGER i, l, ch
+DIM AS INTEGER i, l, ch, fg, bg
 DIM AS _UNSIGNED LONG rv, gv, bv
 DIM AS STRING filename, char
 l% = LEN(SRC_FILE$)
+bg% = 0 : fg% = 0
 
 FOR i%=0 TO l%
     IF i%+1 <= l% THEN ' At end of file list, do nothing
@@ -151,17 +154,20 @@ FOR i%=0 TO l%
                             FG_CODE$ = A(bz%).FG_CODE$
                             BG_CODE$ = A(fz%).BG_CODE$
                             char$ = CHR$(FB) ' use bottom 1/2 block (swap)
+                            SWAP bz%, fz%
                             ice~%% = 0
                         END IF
                         IF bz% > 7 AND bz% = fz% THEN ' bg in range and same fg
                             BG_CODE$ = A(0).BG_CODE$
                             char$ = CHR$(B)
+                            bz% = 0
                             ice~%% = 0
                         END IF
                         IF fz% = bz% THEN ' bg same as fg use block on black bg
                             FG_CODE$ = A(fz%).FG_CODE$
                             BG_CODE$ = A(0).BG_CODE$
                             char$ = CHR$(B)
+                            bz% = 0
                             ice~%% = 0
                         END IF
                         IF ice~%% = 1 THEN ' if ice is STILL on, remove it
@@ -170,16 +176,20 @@ FOR i%=0 TO l%
                             BG_CODE$ = A(bz%).BG_CODE$
                         END IF
 
-                        ans$ = ans$ _
-                            + CHR$(E) _
-                            + "[0m" _
-                            + CHR$(E) _
-                            + "[" _
-                            + FG_CODE$ _
-                            + ";" _
-                            + BG_CODE$ _
-                            + "m" _
-                            + char$
+                        IF fg% <> fz% OR bg% <> bz% THEN
+                            ans$ = ans$ + CHR$(E) + "[" + FG_CODE$ + ";"
+                            ans$ = ans$ + BG_CODE$ + "m" + char$
+                            bg% = bz%
+                            fg% = fz%
+                        ELSEIF fg% <> fz% THEN
+                            ans$ = ans$ + CHR$(E) + "[" + FG_CODE$ + "m" + char$
+                            fg% = fz%
+                        ELSEIF bg% <> bz% THEN 
+                            ans$ = ans$ + CHR$(E) + "[" + BG_CODE$ + "m" + char$
+                            bg% = bz%
+                        ELSE
+                            ans$ = ans$ + char$
+                        END IF
                     NEXT x%
                 END IF
             NEXT y%
@@ -189,15 +199,15 @@ FOR i%=0 TO l%
 
             ' Write the output.ans file
             PRINT ans$
-            OPEN filename$ + "-25-NOICE.ans" FOR OUTPUT AS #1
-            PRINT #1, ans$
+            OPEN filename$ + "-25-NOICE-OPT.ans" FOR OUTPUT AS #1
+            PRINT #1, CHR$(E) + "[0;30m" + ans$
             CLOSE #1
 
-            OPEN filename$ + "-25-NOICE.ans" FOR APPEND AS #1
+            OPEN filename$ + "-25-NOICE-OPT.ans" FOR APPEND AS #1
             PRINT #1, CHR$(&H1A) ' EOF
             CLOSE #1 
 
-            OPEN filename$ + "-25-NOICE.ans" FOR BINARY AS #1
+            OPEN filename$ + "-25-NOICE-OPT.ans" FOR BINARY AS #1
             SEEK #1, LOF(1)
             SAUCE.InitPacket
             SauceRecord.ID$         = "SAUCE"
