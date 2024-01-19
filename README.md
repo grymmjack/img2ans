@@ -26,8 +26,6 @@ Now you can use the [EGA/CGA Palette](https://en.wikipedia.org/wiki/Color_Graphi
 
 `IMG2ANS` isn't the first of it's kind (GIF2ANS, etc. already exist), but I am proud of the quality of conversion. It can do a 1:1 conversion for RGB or 16 color EGA/CGA in both 8px font (80x50 mode), and 16px (80x25 mode). 
 
-It's still not perfect, and creates gigantic ANSI files because it does not optimize the codes used. However, opening anything converted with `IMG2ANS` and resaving with [Moebius](https://github.com/grymmjack/moebius), [PabloDraw](https://github.com/cwensley/pablodraw), [IcyDraw](https://github.com/mkrueger/icy_draw), etc. optimizes the file anyway. I will try to make it less bloated and optimal :)
-
 One neat thing that this does is it actually uses the ANSI block characters intelligently. Being an ANSI artist I am very picky about how I draw, and wanted to make it so that this tool would generate really easy to draw-after kinds of ANSIs. 
 
 #### `IMG2ANS` uses the following characters:
@@ -111,8 +109,6 @@ In RGB 24 bit, you can convert any pixel art to ANSI text mode 1:1 regardless of
 
 If you are not using RGB 24 bit mode, the source image must use the DOS CGA/EGA 16 color palette, or colors will not map properly for conversion.
 
-#### KNOWN ISSUES
-The 25 line mode programs omit the final lines of the ANSI. I will fix this later, but meanwhile to compensate just add some blank lines to the end of the pixel art you're converting (2 blank extra rows of pixels at the bottom should work.)
 
 ### [SAUCE](https://github.com/grymmjack/sauce) Support
 Sauce support includes:
