@@ -164,6 +164,7 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_DropdownList, "DP_DestPalPalleteDL", 200, 23, 341, 316, 0)
     __UI_RegisterResult = 0
+    AddItem __UI_NewID, "1 BIT (2)"
     AddItem __UI_NewID, "CGA MODE 1 (4)"
     AddItem __UI_NewID, "CGA MODE 2 (4)"
     AddItem __UI_NewID, "CGA MODE 3 (4)"
