@@ -47,7 +47,7 @@ The end goal is to have one big GUI program that has options that make the separ
 
 -----
 
-![IMG2ANS GUI](img2ans-screenshot.png)
+![IMG2ANS GUI](img2ans-screenshot-v0.2.png)
 
 ### Cross Platform Support:
 `IMG2ANS` is written using [QB64-PE](https://github.com/QB64-Phoenix-Edition/QB64pe) and as a result is 100% cross platform compatible with:
