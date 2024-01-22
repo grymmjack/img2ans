@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run",
+            "label": "RUN: Run",
             "dependsOn": "Compile",
             "type": "shell",
             "windows": {
@@ -17,7 +17,7 @@
             "presentation": {
                 "echo": false,
                 "reveal": "always",
-                "focus": false,
+                "focus": true,
                 "panel": "shared",
                 "showReuseMessage": false,
                 "clear": false
@@ -28,12 +28,384 @@
             }
         },
         {
+            "label": "QB64PE: Open Selected Form in InForm",
+            "type": "shell",
+            "windows": {
+                "command": "C:/Users/Admin/git/InForm-PE/UiEditor.exe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "~/git/InForm-PE/UiEditor",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "~/git/InForm-PE/UiEditor",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "build"
+            }
+        },
+        {
+            "label": "QB64PE: Open Selected File in IDE",
+            "type": "shell",
+            "windows": {
+                "command": "C:/Users/Admin/git/QB64pe/QB64pe.exe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "~/git/QB64pe/QB64pe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "~/git/QB64pe/QB64pe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "build"
+            }
+        },
+        {
+            "label": "RUN: Selected File",
+            "type": "shell",
+            "windows": {
+                "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+            },
+            "osx": {
+                "command": "${fileDirname}/${fileBasenameNoExtension}.run",
+            },
+            "linux": {
+                "command": "${fileDirname}/${fileBasenameNoExtension}.run",
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "build"
+            }
+        },
+        {
+            "label": "IMAGE: Open in GIMP",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\GIMP\\gimp.exe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/GIMP.app/MacOS/gimp",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/usr/bin/gimp-2.10",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
+            "label": "IMAGE: Open in Inkscape",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\Inkscape\\inkscape.exe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/Inkscape.app/MacOS/inkscape",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/usr/bin/inkscape",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
+            "label": "IMAGE: Open in Krita",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\Krita\\krita.exe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/Krita.app/MacOS/krita",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/usr/bin/flatpak",
+                "args": [
+                    "run",
+                    "--branch=stable",
+                    "--arch=x86_64",
+                    "--command=krita",
+                    "--file-forwarding",
+                    "org.kde.krita",
+                    "@@",
+                    "${file}",
+                    "@@"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
+            "label": "IMAGE: Open in Aseprite",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\Aseprite\\aseprite.exe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/Aseprite.app/MacOS/aseprite",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/home/grymmjack/.local/share/Steam/steamapps/common/Aseprite/aseprite",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
+            "label": "ANSI: Open in MoebiusXBIN",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\MoebiusXBIN\\moebius.exe",
+                "args": [
+                    "--no-sandbox",
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/MoebisXBIN.app/MacOS/moebius",
+                "args": [
+                    "--no-sandbox",
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/opt/MoebiusXBIN/moebius",
+                "args": [
+                    "--no-sandbox",
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
+            "label": "ANSI: Open in IcyDraw",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\IcyDraw\\IcyDraw.exe",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/IcyDraw.app/MacOS/IcyDraw",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/usr/bin/icy_draw",
+                "args": [
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
+            "label": "ANSI: Open in PabloDraw",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\PabloDraw\\PabloDraw.exe",
+                "args": [
+                    "--edit",
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/PabloDraw.app/MacOS/PabloDraw",
+                "args": [
+                    "--edit",
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/home/grymmjack/git/pablodraw/artifacts/bin/PabloDraw/Debug/net7.0/linux-x64/PabloDraw",
+                "args": [
+                    "--edit",
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
+            "label": "ANSI: View in PabloDraw",
+            "type": "shell",
+            "windows": {
+                "command": "C:\\Program Files\\PabloDraw\\PabloDraw.exe",
+                "args": [
+                    "--file",
+                    "${file}"
+                ]
+            },
+            "osx": {
+                "command": "/Applications/PabloDraw.app/MacOS/PabloDraw",
+                "args": [
+                    "--file",
+                    "${file}"
+                ]
+            },
+            "linux": {
+                "command": "/home/grymmjack/git/pablodraw/artifacts/bin/PabloDraw/Debug/net7.0/linux-x64/PabloDraw",
+                "args": [
+                    "--file",
+                    "${file}"
+                ]
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": false,
+                "clear": false
+            },
+            "group": {
+                "kind": "none"
+            }
+        },
+        {
             "label": "Compile",
             "dependsOn": "Remove",
             "type": "shell",
             "windows": {
                 "command": "${config:qb64.compilerPath}",
                 "args": [
+                    "-w",
                     "-x",
                     "${fileDirname}\\${fileBasename}",
                     "-o",
@@ -43,6 +415,7 @@
             "osx": {
                 "command": "${config:qb64.compilerPath}",
                 "args": [
+                    "-w",
                     "-x",
                     "${fileDirname}/${fileBasename}",
                     "-o",
@@ -52,6 +425,7 @@
             "linux": {
                 "command": "${config:qb64.compilerPath}",
                 "args": [
+                    "-w",
                     "-x",
                     "${fileDirname}/${fileBasename}",
                     "-o",
@@ -60,6 +434,7 @@
             },
             "presentation": {
                 "reveal": "always",
+                "clear": true,
                 "panel": "shared",
                 "focus": false
             }
