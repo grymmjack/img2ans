@@ -164,6 +164,8 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_DropdownList, "DP_DestPalPalleteDL", 200, 23, 341, 316, 0)
     __UI_RegisterResult = 0
+    'https://en.wikipedia.org/wiki/List_of_video_game_console_palettes
+    'https://en.wikipedia.org/wiki/List_of_color_palettes
     AddItem __UI_NewID, "1 BIT (2)"
     AddItem __UI_NewID, "CGA MODE 1 (4)"
     AddItem __UI_NewID, "CGA MODE 2 (4)"
@@ -171,10 +173,22 @@ SUB __UI_LoadForm
     AddItem __UI_NewID, "CGA MODE 4 (4)"
     AddItem __UI_NewID, "EGA (16)"
     AddItem __UI_NewID, "VGA (256)"
-    AddItem __UI_NewID, "APPLE2 (16)"
-    AddItem __UI_NewID, "C64 (16)"
+    AddItem __UI_NewID, "Teletext (8)"
+    AddItem __UI_NewID, "APPLE ][ (16)"
+    AddItem __UI_NewID, "C=64 (16)"
+    AddItem __UI_NewID, "BBC MICRO (16)"
+    AddItem __UI_NewID, "ZX SPECTRUM (15)"
+    AddItem __UI_NewID, "AMSTRAD CPC (26)"
+    AddItem __UI_NewID, "ATARI 2600 NTSC (128)"
+    AddItem __UI_NewID, "Intellivision (16)"
+    AddItem __UI_NewID, "Fairchild Channel F (4)"
+    AddItem __UI_NewID, "SECAM (8)"
+    AddItem __UI_NewID, "Nintendo NES (54)"
+    AddItem __UI_NewID, "Nintendo Gameboy (4)"
+    AddItem __UI_NewID, "Nintendo SNES (256)"
+    AddItem __UI_NewID, "SEGA Master System (64)"
+    AddItem __UI_NewID, "PICO-8 (16)"
     AddItem __UI_NewID, "ANSI32 (32)"
-    AddItem __UI_NewID, "PICO8 (16)"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
