@@ -6,6 +6,9 @@
 '-----------------------------------------------------------
 
 ': Controls' IDs: ------------------------------------------------------------------
+'WINDOW
+DIM SHARED IMG2ANS AS LONG
+
 'H:HEADER
 DIM SHARED H_IMG2ANSLB AS LONG
 DIM SHARED H_VersionLB AS LONG
@@ -81,8 +84,8 @@ DIM SHARED ST_StatusLB AS LONG
 
 
 ': External modules: ---------------------------------------------------------------
-'$INCLUDE:'InForm\InForm.bi'
-'$INCLUDE:'InForm\xp.uitheme'
+'$INCLUDE:'InForm/InForm.bi'
+'$INCLUDE:'InForm/xp.uitheme'
 '$INCLUDE:'img2ans-v0.2.frm'
 
 ': Event procedures: ---------------------------------------------------------------

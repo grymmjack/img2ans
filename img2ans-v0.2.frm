@@ -9,7 +9,7 @@ SUB __UI_LoadForm
     DIM __UI_NewID AS LONG, __UI_RegisterResult AS LONG
 
     'WINDOW
-    __UI_NewID = __UI_NewControl(__UI_Type_Form, "IMG2ANS", 1300, 668, 0, 0, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Form, "IMG2ANS", 1308, 670, 0, 0, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "IMG2ANS"
     Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 12)
