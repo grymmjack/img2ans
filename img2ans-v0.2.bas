@@ -68,8 +68,8 @@ DIM SHARED S_SauceiCEColorsCB AS LONG
 DIM SHARED S_SauceRGBColorsCB AS LONG
 
 'E:EXPORT
-DIM SHARED E_ExportToImgSrcDirCB AS LONG
-DIM SHARED E_ExportToDirCB AS LONG
+DIM SHARED E_ExportToImgSrcDirRB AS LONG
+DIM SHARED E_ExportToDirRB AS LONG
 DIM SHARED E_ExportToDirTB AS LONG
 DIM SHARED E_ExportAsFileLB AS LONG
 DIM SHARED E_ExportAsFileTB AS LONG
@@ -170,8 +170,8 @@ SUB __UI_Click (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
@@ -247,8 +247,8 @@ SUB __UI_MouseEnter (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
@@ -324,8 +324,8 @@ SUB __UI_MouseLeave (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
@@ -373,8 +373,8 @@ SUB __UI_FocusIn (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileTB
 
@@ -419,8 +419,8 @@ SUB __UI_FocusOut (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileTB
 
@@ -491,8 +491,8 @@ SUB __UI_MouseDown (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
@@ -568,8 +568,8 @@ SUB __UI_MouseUp (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
@@ -619,8 +619,8 @@ SUB __UI_KeyPress (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportAsFileTB
 
@@ -674,8 +674,8 @@ SUB __UI_ValueChanged (id AS LONG)
         CASE S_SauceRGBColorsCB
 
         'E:EXPORT
-        CASE E_ExportToImgSrcDirCB
-        CASE E_ExportToDirCB
+        CASE E_ExportToImgSrcDirRB
+        CASE E_ExportToDirRB
 
         'ST:STATUS
         CASE ST_StatusFrame

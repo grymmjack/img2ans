@@ -387,13 +387,13 @@ SUB __UI_LoadForm
 
 
     'E:EXPORT
-    __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "E_ExportToImgSrcDirCB", 300, 23, 17, 580, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "E_ExportToImgSrcDirRB", 300, 23, 17, 580, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "EXPORT TO IMAGE SOURCE DIRECTORY"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "E_ExportToDirCB", 200, 23, 341, 580, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "E_ExportToDirRB", 200, 23, 341, 580, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "EXPORT TO DIRECTORY"
     Control(__UI_NewID).HasBorder = False
@@ -507,8 +507,8 @@ SUB __UI_AssignIDs
     S_SauceRGBColorsCB = __UI_GetID("S_SauceRGBColorsCB")
 
     'E:EXPORT
-    E_ExportToImgSrcDirCB = __UI_GetID("E_ExportToImgSrcDirCB")
-    E_ExportToDirCB = __UI_GetID("E_ExportToDirCB")
+    E_ExportToImgSrcDirCB = __UI_GetID("E_ExportToImgSrcDirRB")
+    E_ExportToDirCB = __UI_GetID("E_ExportToDirRB")
     E_ExportToDirTB = __UI_GetID("E_ExportToDirTB")
     E_ExportAsFileLB = __UI_GetID("E_ExportAsFileLB")
     E_ExportAsFileTB = __UI_GetID("E_ExportAsFileTB")
