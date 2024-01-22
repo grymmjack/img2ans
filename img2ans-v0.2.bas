@@ -74,8 +74,10 @@ DIM SHARED S_SauceRGBColorsCB AS LONG
 DIM SHARED E_ExportToImgSrcDirRB AS LONG
 DIM SHARED E_ExportToDirRB AS LONG
 DIM SHARED E_ExportToDirTB AS LONG
+DIM SHARED E_ExportToDirBrowseButtonBT AS LONG
 DIM SHARED E_ExportAsFileLB AS LONG
 DIM SHARED E_ExportAsFileTB AS LONG
+DIM SHARED E_ExportBT AS LONG
 
 'ST:STATUS
 DIM SHARED ST_StatusFrame AS LONG
@@ -176,8 +178,10 @@ SUB __UI_Click (id AS LONG)
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
+        CASE E_ExportToDirBrowseButtonBT
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
+        CASE E_ExportBT
 
         'ST:STATUS
         CASE ST_StatusFrame
@@ -253,8 +257,10 @@ SUB __UI_MouseEnter (id AS LONG)
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
+        CASE E_ExportToDirBrowseButtonBT
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
+        CASE E_ExportBT        
 
         'ST:STATUS
         CASE ST_StatusFrame
@@ -330,8 +336,10 @@ SUB __UI_MouseLeave (id AS LONG)
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
+        CASE E_ExportToDirBrowseButtonBT
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
+        CASE E_ExportBT        
 
         'ST:STATUS
         CASE ST_StatusFrame
@@ -379,7 +387,9 @@ SUB __UI_FocusIn (id AS LONG)
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
+        CASE E_ExportToDirBrowseButtonBT
         CASE E_ExportAsFileTB
+        CASE E_ExportBT        
 
     END SELECT
 END SUB
@@ -425,7 +435,9 @@ SUB __UI_FocusOut (id AS LONG)
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
+        CASE E_ExportToDirBrowseButtonBT
         CASE E_ExportAsFileTB
+        CASE E_ExportBT        
 
     END SELECT
 END SUB
@@ -497,8 +509,10 @@ SUB __UI_MouseDown (id AS LONG)
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
+        CASE E_ExportToDirBrowseButtonBT
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
+        CASE E_ExportBT        
 
         'ST:STATUS
         CASE ST_StatusFrame
@@ -574,8 +588,10 @@ SUB __UI_MouseUp (id AS LONG)
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
+        CASE E_ExportToDirBrowseButtonBT
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
+        CASE E_ExportBT        
 
         'ST:STATUS
         CASE ST_StatusFrame

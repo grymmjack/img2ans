@@ -414,13 +414,19 @@ SUB __UI_LoadForm
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "E_ExportToDirTB", 375, 23, 507, 580, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "E_ExportToDirTB", 295, 23, 507, 580, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "EXPORT TO DIRECTORY"
     Text(__UI_NewID) = "/home/grymmjack/git/qb64-dungeon"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
+
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "E_ExportToDirBrowseButtonBT", 40, 23, 810, 580, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "..."
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).CanHaveFocus = True    
 
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "E_ExportAsFileLB", 83, 18, 907, 583, 0)
     __UI_RegisterResult = 0
@@ -436,17 +442,24 @@ SUB __UI_LoadForm
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
 
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "E_ExportBT", 300, 32, 989, 626, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "&EXPORT"
+    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 20)
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).CanHaveFocus = True
+
 
 
     'ST:STATUS
-    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "ST_StatusFrame", 1270, 32, 17, 626, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "ST_StatusFrame", 950, 32, 17, 626, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "STATUS"
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Value = 1
     Control(__UI_NewID).BorderSize = 1
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Label, "ST_StatusLB", 1250, 23, 7, 6, __UI_GetID("ST_StatusFrame"))
+    __UI_NewID = __UI_NewControl(__UI_Type_Label, "ST_StatusLB", 945, 23, 7, 6, __UI_GetID("ST_StatusFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "READY"
     Control(__UI_NewID).HasBorder = False
@@ -525,6 +538,7 @@ SUB __UI_AssignIDs
     E_ExportToImgSrcDirCB = __UI_GetID("E_ExportToImgSrcDirRB")
     E_ExportToDirCB = __UI_GetID("E_ExportToDirRB")
     E_ExportToDirTB = __UI_GetID("E_ExportToDirTB")
+    E_ExportToDirBrowseButtonBT = __UI_GetID("E_ExportToDirBrowseButtonBT")    
     E_ExportAsFileLB = __UI_GetID("E_ExportAsFileLB")
     E_ExportAsFileTB = __UI_GetID("E_ExportAsFileTB")
 
