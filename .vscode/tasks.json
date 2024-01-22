@@ -64,19 +64,19 @@
             "label": "QB64PE: Open Selected File in IDE",
             "type": "shell",
             "windows": {
-                "command": "C:/Users/Admin/git/QB64pe/QB64pe.exe",
+                "command": "C:/Users/Admin/git/QB64pe/qb64pe.exe",
                 "args": [
                     "${file}"
                 ]
             },
             "osx": {
-                "command": "~/git/QB64pe/QB64pe",
+                "command": "~/git/QB64pe/qb64pe",
                 "args": [
                     "${file}"
                 ]
             },
             "linux": {
-                "command": "~/git/QB64pe/QB64pe",
+                "command": "~/git/QB64pe/qb64pe",
                 "args": [
                     "${file}"
                 ]
