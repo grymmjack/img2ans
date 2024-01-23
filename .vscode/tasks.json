@@ -17,7 +17,7 @@
             "presentation": {
                 "echo": false,
                 "reveal": "always",
-                "focus": true,
+                "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
                 "clear": false
@@ -28,7 +28,7 @@
             }
         },
         {
-            "label": "QB64PE: Open Selected Form in InForm",
+            "label": "QB64PE: Open Selected in InForm",
             "type": "shell",
             "windows": {
                 "command": "C:/Users/Admin/git/InForm-PE/UiEditor.exe",
@@ -61,7 +61,7 @@
             }
         },
         {
-            "label": "QB64PE: Open Selected File in IDE",
+            "label": "QB64PE: Open Selected in IDE",
             "type": "shell",
             "windows": {
                 "command": "C:/Users/Admin/git/QB64pe/qb64pe.exe",

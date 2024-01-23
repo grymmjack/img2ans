@@ -26,6 +26,6 @@
     },
     {
         "key": "F5",
-        "command": "extension.runItOn.execute"
+        "command": "workbench.action.tasks.build"
     }
 ]

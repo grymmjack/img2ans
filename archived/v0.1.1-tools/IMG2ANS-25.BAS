@@ -1,41 +1,19 @@
 ''
-' TODO: Add Command Line processing support for multiple files. 
-' IMG2ANS-25-NOICE
-'
-' CLI OPTIONS (WIP)
-'
-'   img2ans input-file {options} 
-'   input-file1, (input-file2, input-file3, ...)
-'
-'   --output-colors     rgb     Output RGB codes
-'   --output-colors     cga     Output CGA palette
-'   --output-height     25      Use 9px font and half blocks
-'   --output-height     50      Use 8px font and full blocks only
-'   --no-ice                    Do not output iCE colors (high intensity bg)
-'   --no-sauce                  Do not include sauce record in output
-'   --verbose                   Show commands and processing
-'   --sauce-title               Title for sauce
-'   --sauce-author              Author for sauce
-'   --sauce-group               Group for sauce
-'   --sauce-comments            Comments for sauce
-'   --sauce-date                YYYYMMDD Date for sauce
+' IMG2ANS-25
 '
 ' Convert any QB64 supported image into ANSI block art
 ' (as long as the image is using EGA palette colors)
-'
-' This version will remove iCE colors.
 '
 ' @author Rick Christy (grymmjack@gmail.com)
 ' @link https://youtube.com/grymmjack
 ' @version 0.1.1
 '
 
-'$INCLUDE:'SAUCE/SAUCE.BI'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BI'
 
 DIM AS LONG CANVAS, SRC_IMAGE
-DIM AS INTEGER SRC_W, SRC_H, x, y, z, fz, bz, xx, yy
+DIM AS INTEGER SRC_W, SRC_H, x, y, z, fz, bz
 DIM AS STRING SRC_FILE, ans
-DIM AS _UNSIGNED LONG c
 CONST E  = 27  ' ESCAPE - The ANSI escape code
 CONST B  = 219 '█ BLOCK CHARACTER - Full block foreground
 CONST FT = 223 '▀ HALF BLOCK Top FG Bottom BG
@@ -45,7 +23,7 @@ CONST FB = 220 '▄ HALF BLOCK Top BG Bottom FG
 TYPE ANSI_MAP
     RGBC    AS _UNSIGNED LONG
     FG_CODE AS STRING
-    BG_CODE AS STRING 
+    BG_CODE AS STRING
 END TYPE
 DIM A(15) AS ANSI_MAP
 ' BLACK
@@ -94,7 +72,6 @@ IF SRC_FILE$ = "" THEN SYSTEM ' image is required...
 SRC_FILE$ = SRC_FILE$ + "|"
 
 DIM AS INTEGER i, l, ch
-DIM AS _UNSIGNED LONG rv, gv, bv
 DIM AS STRING filename, char
 l% = LEN(SRC_FILE$)
 
@@ -107,18 +84,17 @@ FOR i%=0 TO l%
             SRC_W% = _WIDTH(SRC_IMAGE&) : SRC_H% = _HEIGHT(SRC_IMAGE&)
             CANVAS& = _NEWIMAGE(SRC_W%, SRC_H%, 32)
             SCREEN CANVAS&
-            _SOURCE SRC_IMAGE& : _DEST CANVAS&
-            _PUTIMAGE
+            _SOURCE SRC_IMAGE& : _DEST CANVAS& : _PUTIMAGE
 
             ' Parse the image into ansi color blocks
             ans$ = ""
             FOR y% = 0 TO SRC_H%
-                IF (y% = 0) OR (y% MOD 2 = 0) THEN ' do every other row
+                IF (y% = 0) OR (y% MOD 2 = 0) THEN
+                    ans$ = ans$ + CHR$(E) + "[0m" ' reset on each line
                     FOR x% = 0 TO SRC_W% - 1
-                        char$ = CHR$(FT) ' default to top 1/2 block
+                        char$ = CHR$(FT)
                         DIM AS _UNSIGNED LONG TopColor, BottomColor
-                        ' Extract colors
-                        TopColor~&    = POINT(x%, y%) ' top pixel
+                        TopColor~& = POINT(x%, y%) ' top pixel
                         IF y%+1 < SRC_H% THEN
                             BottomColor~& = POINT(x%, y%+1) ' pixel under
                         ELSE
@@ -143,7 +119,6 @@ FOR i%=0 TO l%
                                 EXIT FOR
                             END IF            
                         NEXT z%
-
                         ' Check if iCE colors needed if not, make non-iCE
                         DIM ice AS _UNSIGNED _BYTE
                         ice~%% = 1
@@ -164,24 +139,19 @@ FOR i%=0 TO l%
                             char$ = CHR$(B)
                             ice~%% = 0
                         END IF
-                        IF ice~%% = 1 THEN ' if ice is STILL on, remove it
-                            IF bz% >= 8 THEN bz% = bz% - 8
-                            IF bz% < 0 THEN bz% = 0
-                            BG_CODE$ = A(bz%).BG_CODE$
-                        END IF
-
                         ans$ = ans$ _
-                            + CHR$(E) _
-                            + "[0m" _
-                            + CHR$(E) _
-                            + "[" _
-                            + FG_CODE$ _
-                            + ";" _
-                            + BG_CODE$ _
-                            + "m" _
-                            + char$
+                             + CHR$(E) _
+                             + "[0m" _
+                             + CHR$(E) _
+                             + "[" _
+                             + FG_CODE$ _
+                             + ";" _
+                             + BG_CODE$ _
+                             + "m" _
+                             + char$
                     NEXT x%
                 END IF
+                ans$ = ans$ + CHR$(E) + "[0m" ' reset on each line
             NEXT y%
 
             SCREEN 0
@@ -189,15 +159,15 @@ FOR i%=0 TO l%
 
             ' Write the output.ans file
             PRINT ans$
-            OPEN filename$ + "-25-NOICE.ans" FOR OUTPUT AS #1
+            OPEN filename$ + "-25.ans" FOR OUTPUT AS #1
             PRINT #1, ans$
             CLOSE #1
 
-            OPEN filename$ + "-25-NOICE.ans" FOR APPEND AS #1
+            OPEN filename$ + "-25.ans" FOR APPEND AS #1
             PRINT #1, CHR$(&H1A) ' EOF
             CLOSE #1 
 
-            OPEN filename$ + "-25-NOICE.ans" FOR BINARY AS #1
+            OPEN filename$ + "-25.ans" FOR BINARY AS #1
             SEEK #1, LOF(1)
             SAUCE.InitPacket
             SauceRecord.ID$         = "SAUCE"
@@ -220,7 +190,7 @@ FOR i%=0 TO l%
             SauceRecord.TInfo3~%    = 0
             SauceRecord.TInfo4~%    = 0
             SauceRecord.Comments~%% = 0
-            SauceRecord.TFlags~%%   = 2 '8px iCE Color
+            SauceRecord.TFlags~%%   = 3 '8px iCE Color
             s$ = "IBM VGA"
             MID$(SauceRecord.TInfoS$, 1, LEN(s$)) = s$
             SAUCE.FillPacket
@@ -236,6 +206,6 @@ NEXT i%
 
 ' Clean up
 _FREEIMAGE SRC_IMAGE&
-_FREEIMAGE CANVAS&                   
+_FREEIMAGE CANVAS&
 
-'$INCLUDE:'SAUCE/SAUCE.BM'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BM'

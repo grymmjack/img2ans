@@ -1,6 +1,5 @@
 ''
-' TODO: Add Command Line processing support for multiple files. 
-' IMG2ANS-25-RGB
+' IMG2ANS-25-RGB-OPT
 '
 ' Convert any QB64 supported image into ANSI block art
 '
@@ -11,12 +10,11 @@
 ' @version 0.1.1
 '
 
-'$INCLUDE:'SAUCE/SAUCE.BI'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BI'
 
 DIM AS LONG CANVAS, SRC_IMAGE
-DIM AS INTEGER SRC_W, SRC_H, x, y, z
+DIM AS INTEGER SRC_W, SRC_H, x, y
 DIM AS STRING SRC_FILE, ans
-DIM AS _UNSIGNED LONG c
 CONST E  = 27  ' ESCAPE - The ANSI escape code
 CONST B  = 219 '█ BLOCK CHARACTER - Full block foreground
 CONST FT = 223 '▀ HALF BLOCK Top FG Bottom BG
@@ -167,4 +165,4 @@ NEXT i%
 _FREEIMAGE SRC_IMAGE&
 _FREEIMAGE CANVAS&
 
-'$INCLUDE:'SAUCE/SAUCE.BM'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BM'

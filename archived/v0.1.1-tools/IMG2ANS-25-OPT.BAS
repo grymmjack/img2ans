@@ -1,6 +1,5 @@
 ''
-' TODO: Add Command Line processing support for multiple files. 
-' IMG2ANS-25
+' IMG2ANS-25-OPT
 '
 ' Convert any QB64 supported image into ANSI block art
 ' (as long as the image is using EGA palette colors)
@@ -10,12 +9,11 @@
 ' @version 0.1.1
 '
 
-'$INCLUDE:'SAUCE/SAUCE.BI'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BI'
 
 DIM AS LONG CANVAS, SRC_IMAGE
-DIM AS INTEGER SRC_W, SRC_H, x, y, z, fz, bz, xx, yy
+DIM AS INTEGER SRC_W, SRC_H, x, y, z, fz, bz
 DIM AS STRING SRC_FILE, ans
-DIM AS _UNSIGNED LONG c
 CONST E  = 27  ' ESCAPE - The ANSI escape code
 CONST B  = 219 '█ BLOCK CHARACTER - Full block foreground
 CONST FT = 223 '▀ HALF BLOCK Top FG Bottom BG
@@ -73,10 +71,10 @@ IF SRC_FILE$ = "" THEN SYSTEM ' image is required...
 
 SRC_FILE$ = SRC_FILE$ + "|"
 
-DIM AS INTEGER i, l, ch
-DIM AS _UNSIGNED LONG rv, gv, bv
+DIM AS INTEGER i, l, ch, fg, bg
 DIM AS STRING filename, char
 l% = LEN(SRC_FILE$)
+bg% = 0 : fg% = 0
 
 FOR i%=0 TO l%
     IF i%+1 <= l% THEN ' At end of file list, do nothing
@@ -93,7 +91,6 @@ FOR i%=0 TO l%
             ans$ = ""
             FOR y% = 0 TO SRC_H%
                 IF (y% = 0) OR (y% MOD 2 = 0) THEN
-                    ans$ = ans$ + CHR$(E) + "[0m" ' reset on each line
                     FOR x% = 0 TO SRC_W% - 1
                         char$ = CHR$(FT)
                         DIM AS _UNSIGNED LONG TopColor, BottomColor
@@ -122,39 +119,47 @@ FOR i%=0 TO l%
                                 EXIT FOR
                             END IF            
                         NEXT z%
-                        ' Check if iCE colors needed if not, make non-iCE
+                       ' Check if iCE colors needed if not, make non-iCE
                         DIM ice AS _UNSIGNED _BYTE
                         ice~%% = 1
                         IF bz% > 7 AND fz% < 8 THEN ' bg and fg can swap
                             FG_CODE$ = A(bz%).FG_CODE$
                             BG_CODE$ = A(fz%).BG_CODE$
                             char$ = CHR$(FB) ' use bottom 1/2 block (swap)
+                            SWAP bz%, fz%
                             ice~%% = 0
                         END IF
                         IF bz% > 7 AND bz% = fz% THEN ' bg in range and same fg
                             BG_CODE$ = A(0).BG_CODE$
                             char$ = CHR$(B)
+                            bz% = 0
                             ice~%% = 0
                         END IF
                         IF fz% = bz% THEN ' bg same as fg use block on black bg
                             FG_CODE$ = A(fz%).FG_CODE$
                             BG_CODE$ = A(0).BG_CODE$
                             char$ = CHR$(B)
+                            bz% = 0
                             ice~%% = 0
                         END IF
-                        ans$ = ans$ _
-                             + CHR$(E) _
-                             + "[0m" _
-                             + CHR$(E) _
-                             + "[" _
-                             + FG_CODE$ _
-                             + ";" _
-                             + BG_CODE$ _
-                             + "m" _
-                             + char$
+
+                        IF fg% <> fz% OR bg% <> bz% THEN
+                            ans$ = ans$ + CHR$(E) + "[0m"
+                            ans$ = ans$ + CHR$(E) + "[" + FG_CODE$ + ";"
+                            ans$ = ans$ + BG_CODE$ + "m" + char$
+                            bg% = bz%
+                            fg% = fz%
+                        ELSEIF fg% <> fz% THEN
+                            ans$ = ans$ + CHR$(E) + "[" + FG_CODE$ + "m" + char$
+                            fg% = fz%
+                        ELSEIF bg% <> bz% THEN 
+                            ans$ = ans$ + CHR$(E) + "[" + BG_CODE$ + "m" + char$
+                            bg% = bz%
+                        ELSE
+                            ans$ = ans$ + char$
+                        END IF
                     NEXT x%
                 END IF
-                ans$ = ans$ + CHR$(E) + "[0m" ' reset on each line
             NEXT y%
 
             SCREEN 0
@@ -162,15 +167,15 @@ FOR i%=0 TO l%
 
             ' Write the output.ans file
             PRINT ans$
-            OPEN filename$ + "-25.ans" FOR OUTPUT AS #1
-            PRINT #1, ans$
+            OPEN filename$ + "-25-OPT.ans" FOR OUTPUT AS #1
+            PRINT #1, CHR$(E) + "[0;30m" +  ans$
             CLOSE #1
 
-            OPEN filename$ + "-25.ans" FOR APPEND AS #1
+            OPEN filename$ + "-25-OPT.ans" FOR APPEND AS #1
             PRINT #1, CHR$(&H1A) ' EOF
             CLOSE #1 
 
-            OPEN filename$ + "-25.ans" FOR BINARY AS #1
+            OPEN filename$ + "-25-OPT.ans" FOR BINARY AS #1
             SEEK #1, LOF(1)
             SAUCE.InitPacket
             SauceRecord.ID$         = "SAUCE"
@@ -211,4 +216,4 @@ NEXT i%
 _FREEIMAGE SRC_IMAGE&
 _FREEIMAGE CANVAS&
 
-'$INCLUDE:'SAUCE/SAUCE.BM'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BM'

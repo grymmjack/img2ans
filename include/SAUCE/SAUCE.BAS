@@ -20,7 +20,7 @@
 ' @see https://github.com/grymmjack/sauce
 ' @author Rick Christy <grymmjack@gmail.com>
 '
-'$INCLUDE:'SAUCE.BI'
+'$INCLUDE:'./SAUCE.BI'
 
 ' Choose an image file with dialog
 DIM file_exts(1 TO 6) AS STRING
@@ -74,4 +74,4 @@ END IF
 SLEEP
 SYSTEM
 
-'$INCLUDE:'SAUCE.BM'
+'$INCLUDE:'./SAUCE.BM'

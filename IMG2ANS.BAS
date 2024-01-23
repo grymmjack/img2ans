@@ -5,6 +5,8 @@
 ': https://github.com/a740g/InForm-PE
 '-----------------------------------------------------------
 
+'$INCLUDE:'IMG2ANS.BI'
+
 ': Controls' IDs: ------------------------------------------------------------------
 'WINDOW
 DIM SHARED IMG2ANS AS LONG
@@ -86,9 +88,9 @@ DIM SHARED ST_StatusLB AS LONG
 
 
 ': External modules: ---------------------------------------------------------------
-'$INCLUDE:'InForm/InForm.bi'
-'$INCLUDE:'InForm/xp.uitheme'
-'$INCLUDE:'img2ans-v0.2.frm'
+'$INCLUDE:'include/InForm/InForm.bi'
+'$INCLUDE:'include/InForm/xp.uitheme'
+'$INCLUDE:'IMG2ANS.FRM'
 
 ': Event procedures: ---------------------------------------------------------------
 SUB __UI_BeforeInit
@@ -123,6 +125,9 @@ SUB __UI_Click (id AS LONG)
         'SI:SOURCE IMAGE
         CASE SI_SourceImgLB
         CASE SI_SourceImgBrowseButtonBT
+            DIM stuff AS STRING
+            stuff$ = GetImageFilesAsString$
+            _MessageBox "Debug", "Images:\n\n" + stuff$, "info"        
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
@@ -707,4 +712,5 @@ SUB __UI_FormResized
 
 END SUB
 
-'$INCLUDE:'InForm/InForm.ui'
+'$INCLUDE:'include/InForm/InForm.ui'
+'$INCLUDE:'IMG2ANS.BM'

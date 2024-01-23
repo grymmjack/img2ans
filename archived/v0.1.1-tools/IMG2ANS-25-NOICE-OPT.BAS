@@ -1,24 +1,5 @@
 ''
-' TODO: Add Command Line processing support for multiple files. 
-' IMG2ANS-25-NOICE
-'
-' CLI OPTIONS (WIP)
-'
-'   img2ans input-file {options} 
-'   input-file1, (input-file2, input-file3, ...)
-'
-'   --output-colors     rgb     Output RGB codes
-'   --output-colors     cga     Output CGA palette
-'   --output-height     25      Use 9px font and half blocks
-'   --output-height     50      Use 8px font and full blocks only
-'   --no-ice                    Do not output iCE colors (high intensity bg)
-'   --no-sauce                  Do not include sauce record in output
-'   --verbose                   Show commands and processing
-'   --sauce-title               Title for sauce
-'   --sauce-author              Author for sauce
-'   --sauce-group               Group for sauce
-'   --sauce-comments            Comments for sauce
-'   --sauce-date                YYYYMMDD Date for sauce
+' IMG2ANS-25-NOICE-OPT
 '
 ' Convert any QB64 supported image into ANSI block art
 ' (as long as the image is using EGA palette colors)
@@ -32,12 +13,11 @@
 $CONSOLE
 _CONSOLE ON
 
-'$INCLUDE:'SAUCE/SAUCE.BI'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BI'
 
 DIM AS LONG CANVAS, SRC_IMAGE
-DIM AS INTEGER SRC_W, SRC_H, x, y, z, fz, bz, xx, yy
+DIM AS INTEGER SRC_W, SRC_H, x, y, z, fz, bz
 DIM AS STRING SRC_FILE, ans
-DIM AS _UNSIGNED LONG c
 CONST E  = 27  ' ESCAPE - The ANSI escape code
 CONST B  = 219 '█ BLOCK CHARACTER - Full block foreground
 CONST FT = 223 '▀ HALF BLOCK Top FG Bottom BG
@@ -96,7 +76,6 @@ IF SRC_FILE$ = "" THEN SYSTEM ' image is required...
 SRC_FILE$ = SRC_FILE$ + "|"
 
 DIM AS INTEGER i, l, ch, fg, bg
-DIM AS _UNSIGNED LONG rv, gv, bv
 DIM AS STRING filename, char
 l% = LEN(SRC_FILE$)
 bg% = 0 : fg% = 0
@@ -248,4 +227,4 @@ NEXT i%
 _FREEIMAGE SRC_IMAGE&
 _FREEIMAGE CANVAS&                   
 
-'$INCLUDE:'SAUCE/SAUCE.BM'
+'$INCLUDE:'../../include/SAUCE/SAUCE.BM'

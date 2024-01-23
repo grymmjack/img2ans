@@ -8,19 +8,19 @@ The use of a remote desktop/VNC while on iOS is possible but it's just horribly 
 So, I had an idea. What if I used pixel art, and the DOS EGA/CGA [16 color palette](https://16colo.rs/artist/grymmjack) to make the pixel art, and then somehow turn it into ANSI? Voila.
 
 #### Example Pixel Art created on iPad laying in bed because I'm old:
-![Alt text](stormtrooper-pixel-art.png)
+![Alt text](assets/images/stormtrooper-pixel-art.png)
 
 #### Post conversion to ANSI (Left = after conversion | Right = after refining):
-![Alt text](stromtrooper-conversion-example.png)
+![Alt text](assets/images/stromtrooper-conversion-example.png)
 
 #### Foodies pixel art
-![Alt text](<All Foodies-ANSI32.png>)
+![Alt text](assets/images/All-Foodies-ANSI32.png)
 
 #### Example of Foodies (RGB 8px) conversion
-![Alt text](foodies-in-moebius.png)
+![Alt text](assets/images/foodies-in-moebius.png)
 
 #### Close-up of how to refine with shading, etc:
-![Alt text](foodies-refining-eggplant-why.png)
+![Alt text](assets/images/foodies-refining-eggplant-why.png)
 
 Now you can use the [EGA/CGA Palette](https://en.wikipedia.org/wiki/Color_Graphics_Adapter) and any pixel art editor on your devices, then convert the pixel art into text mode, and finish and refine it in editors.
 
@@ -47,7 +47,7 @@ The end goal is to have one big GUI program that has options that make the separ
 
 -----
 
-![IMG2ANS GUI](img2ans-screenshot-v0.2.png)
+![IMG2ANS GUI](assets/images/img2ans-screenshot-v0.2.png)
 
 ### Cross Platform Support:
 `IMG2ANS` is written using [QB64-PE](https://github.com/QB64-Phoenix-Edition/QB64pe) and as a result is 100% cross platform compatible with:
@@ -70,16 +70,16 @@ The end goal is to have one big GUI program that has options that make the separ
 
 You can use each one of these separately:
 
-- [IMG2ANS-25.BAS](IMG2ANS-25.BAS)
-- [IMG2ANS-50.BAS](IMG2ANS-50.BAS)
-- [IMG2ANS-25-NOICE.BAS](IMG2ANS-25-NOICE.BAS)
-- [IMG2ANS-25-RGB.BAS](IMG2ANS-25-RGB.BAS)
-- [IMG2ANS-50-RGB.BAS](IMG2ANS-50-RGB.BAS)
-- [IMG2ANS-25-OPT.BAS](IMG2ANS-25-OPT.BAS)
-- [IMG2ANS-50-OPT.BAS](IMG2ANS-50-OPT.BAS)
+- [IMG2ANS-25.BAS](archived/v0.1.1-tools/IMG2ANS-25.BAS)
+- [IMG2ANS-50.BAS](archived/v0.1.1-tools/IMG2ANS-50.BAS)
+- [IMG2ANS-25-NOICE.BAS](archived/v0.1.1-tools/IMG2ANS-25-NOICE.BAS)
+- [IMG2ANS-25-RGB.BAS](archived/v0.1.1-tools/IMG2ANS-25-RGB.BAS)
+- [IMG2ANS-50-RGB.BAS](archived/v0.1.1-tools/IMG2ANS-50-RGB.BAS)
+- [IMG2ANS-25-OPT.BAS](archived/v0.1.1-tools/IMG2ANS-25-OPT.BAS)
+- [IMG2ANS-50-OPT.BAS](archived/v0.1.1-tools/IMG2ANS-50-OPT.BAS)
 - [IMG2ANS-25-NOICE-OPT.BAS](IMG2ANS-25-NOICE-OPT.BAS)
-- [IMG2ANS-25-RGB-OPT.BAS](IMG2ANS-25-RGB-OPT.BAS)
-- [IMG2ANS-50-RGB-OPT.BAS](IMG2ANS-50-RGB-OPT.BAS)
+- [IMG2ANS-25-RGB-OPT.BAS](archived/v0.1.1-tools/IMG2ANS-25-RGB-OPT.BAS)
+- [IMG2ANS-50-RGB-OPT.BAS](archived/v0.1.1-tools/IMG2ANS-50-RGB-OPT.BAS)
 
 # USAGE FOR SEPARATE PROGRAMS
 For each program, just compile it and run it. I will create a release that will have native binaries for Linux, OSX, and Windows soon. Until then, just get QB64-PE, install it, build it, etc.
@@ -87,10 +87,53 @@ For each program, just compile it and run it. I will create a release that will 
 ## USAGE FOR GUI
 - Run the program
 - Browse for image files to convert
+- Optionally convert the source image colors to a palette
+- Optionally resize / crop the image
 - Enter sauce information (and optionally include it)
 - Choose Font Options
 - Choose Color Options
-- Click Convert
+- Decide where you want to save exported converted file
+- Click Export
+
+### NEW FEATURES COMING SOON (AS PART OF GUI):
+- Choose 9PX Width
+- Conversion Pipeline: Open -> Palletize -> Crop/Resize
+- Palettize can use any GPL palette and user palettes
+- Resize / Crop nudge with arrows, resize with SHIFT
+- Source Image: Brightness, Contrast, and Posterize in-line edits
+- Pannable image boxes, zoomable with mousewheel
+- Optional image format export using different export filename extensions
+- Palette colors preview for loaded palettes
+- Multiple Palette Support including user palettes in GPL format
+    - 1 BIT (2)
+    - CGA MODE 1 (4)
+    - CGA MODE 2 (4)
+    - CGA MODE 3 (4)
+    - CGA MODE 4 (4)
+    - EGA (16) [DEFAULT]
+    - VGA (256)
+    - Teletext (8)
+    - APPLE ][ (16)
+    - C=64 (16)
+    - BBC MICRO (16)
+    - ZX SPECTRUM (15)
+    - AMSTRAD CPC (26)
+    - ATARI 2600 NTSC (128)
+    - Intellivision (16)
+    - Fairchild Channel F (4)
+    - SECAM (8)
+    - Nintendo NES (54)
+    - Nintendo Gameboy (4)
+    - Nintendo SNES (256)
+    - SEGA Master System (64)
+    - PICO-8 (16)
+    - ANSI32 (32)
+    - CGA32 (32)
+- Configuration:
+    - Image Editor - used to edit the images in each phase of pipeline
+    - ANSI Editor - used to edit the end result ANSI
+    - User Palettes Directory
+    - User Favorite Directories
 
 ### OPTimized
 
