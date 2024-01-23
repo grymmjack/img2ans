@@ -59,26 +59,22 @@ DIM AS STRING k, img_file, pal_file
 
 orig~%% = 0 : palettized~%% = 0
 
+_DEST CANVAS&
+COLOR _RGB32(255, 255, 255)
+PRINT "L=LOAD IMAGE, P=LOAD PALETTE, ESC=QUIT"
+
 DO:
     _LIMIT 30
     k$ = INKEY$
     IF k$ = CHR$(27) THEN END
-    _DEST CANVAS&
-    COLOR _RGB32(255, 255, 255)
-    PRINT "SPACE=TOGGLE ORIGINAL/PALETTE, L=LOAD IMAGE, P=LOAD PALETTE, ESC=QUIT"
     SELECT CASE LCASE$(k$)
-        CASE " ":
-            IF orig~%% = 0 THEN
-                display_paletted
-            ELSE
-                display_original
-            END IF
         CASE "l":
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
                 "Choose an image", _
                 , _
-                "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi", _
+                "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi" _
+                + "*.JPG|*.JPEG|*.PNG|*.TGA|*.BMP|*.PSD|*.GIF|*.PCX|*.SVG|*.QOI", _
                 "Image Files", _
                 0 _
             )
@@ -92,18 +88,27 @@ DO:
             pal_file$ = _OPENFILEDIALOG$( _
                 "Choose a GPL (GIMP) palette", _
                 , _
-                "*.gpl", _
+                "*.gpl|*.GPL", _
                 "GPL (GIMP) Palette", _
                 0 _
             )
             IF pal_file$ <> "" THEN
                 CALL load_gpl_palette_to_array(pal_file$, indexedColors~%%())
-                display_paletted
             END IF
     END SELECT
+    display_original
+    display_paletted
+    COLOR _RGB32(255, 255, 255)
+    PRINT "L=LOAD IMAGE, P=LOAD PALETTE, ESC=QUIT"
     SLEEP
     CLS
 LOOP
+
+SCREEN 0
+_FREEIMAGE img_orig&
+_FREEIMAGE img_pal&
+_FREEIMAGE CANVAS&
+SYSTEM
 
 
 
@@ -124,10 +129,10 @@ END SUB
 SUB display_paletted()
     orig~%% = 0
     IF paletted~%% = 0 THEN
-        palettize(img_orig&)
+        palettize
     END IF
     _DEST CANVAS
-    _PUTIMAGE (0, 16), img_pal&
+    _PUTIMAGE (_WIDTH(img_orig&) + 10, 16), img_pal&
 END SUB
 
 
@@ -135,9 +140,10 @@ END SUB
 ''
 ' Palletize an image using indexedColors~%%
 '
-SUB palettize(img&)
+SUB palettize
     _SOURCE img_orig&
-    _DEST img&
+    _DEST img_pal&
+    CLS
     DIM AS INTEGER w, h, y, x, closest, cr, cg, cb
     w% = _WIDTH(img_orig&)
     h% = _HEIGHT(img_orig&)
@@ -147,7 +153,7 @@ SUB palettize(img&)
             cg% = _GREEN32(POINT(x%, y%))
             cb% = _BLUE32(POINT(x%, y%))
             closest% = closest_color_index%(cr%, cg%, cb%, indexedColors~%%())
-            PSET(x%+1, y%+1), _RGB32( _
+            PSET(x%, y%), _RGB32( _
                 indexedColors~%%(closest%, 0), _
                 indexedColors~%%(closest%, 1), _
                 indexedColors~%%(closest%, 2) _
