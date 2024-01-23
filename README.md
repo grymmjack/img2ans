@@ -187,8 +187,8 @@ You need [InForm-PE](https://github.com/a740g/InForm-PE/). I recommend checking 
 > Read the README for setup of InForm-PE: https://github.com/a740g/InForm-PE/blob/master/README.md
 
 > Symlink InForm-PE to `~/git/img2ans`:
-
-`ln -s ../InForm-PE/InForm`
+`cd ~/git/img2ans/include`
+`ln -s ../../InForm-PE/InForm`
 
 Now you can build it.
 
