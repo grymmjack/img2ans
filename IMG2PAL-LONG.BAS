@@ -91,7 +91,7 @@ DO:
                 "*.gpl|*.GPL", _
                 "GPL (GIMP) Palette", _
                 0 _
-       pp     )
+            )
             IF pal_file$ <> "" THEN
                 CALL load_gpl_palette_to_array(pal_file$, indexedColors&())
             END IF
@@ -216,14 +216,14 @@ FUNCTION closest_color_index%(r&, g&, b&, pal&())
     DIM AS INTEGER i, found, first
     DIM AS LONG rr, gg, bb
     DIM AS SINGLE dist, mindist
-    dist# = 0 : mindist# = 0 : first% = 1
+    dist! = 0 : mindist! = 0 : first% = 1
     FOR i% = LBOUND(pal&) TO UBOUND(pal&)
         rr& = pal&(i%, 0) - r&
         gg& = pal&(i%, 1) - g&
         bb& = pal&(i%, 2) - b&
-        dist# = rr& * rr& + gg& * gg& + bb& * bb&
-        IF first% OR (dist# < mindist#) THEN
-            mindist# = dist#
+        dist! = rr& * rr& + gg& * gg& + bb& * bb&
+        IF first% OR (dist! < mindist!) THEN
+            mindist! = dist!
             found% = i%
             first% = 0
         END IF
