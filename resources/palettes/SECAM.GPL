@@ -1,0 +1,12 @@
+GIMP Palette
+#Palette Name: SECAM
+#Description: <a target="_blank" href="https://en.wikipedia.org/wiki/SECAM">SECAM</a> was a color television released in France, 1967. The palette is a 3-bit RGB made by mapping the luminance to color and ignoring the hue.
+#Colors: 8
+0	0	0	000000
+33	33	255	2121ff
+240	60	121	f03c79
+255	80	255	ff50ff
+127	255	0	7fff00
+127	255	255	7fffff
+255	255	63	ffff3f
+255	255	255	ffffff

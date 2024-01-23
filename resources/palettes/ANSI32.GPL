@@ -1,7 +1,7 @@
 GIMP Palette
-Name: ANSI32
-Columns: 1
-#Colors: 32
+Name: ANSI32 
+Columns: 16
+#Colors: 32 https://lospec.com/palette-list/ansi32
 0	0	0	000000
 0	0	163	0000a3
 0	55	209	0037d1
