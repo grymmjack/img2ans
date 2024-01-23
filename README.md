@@ -8,19 +8,19 @@ The use of a remote desktop/VNC while on iOS is possible but it's just horribly 
 So, I had an idea. What if I used pixel art, and the DOS EGA/CGA [16 color palette](https://16colo.rs/artist/grymmjack) to make the pixel art, and then somehow turn it into ANSI? Voila.
 
 #### Example Pixel Art created on iPad laying in bed because I'm old:
-![Alt text](assets/images/stormtrooper-pixel-art.png)
+![Alt text](resources/images/stormtrooper-pixel-art.png)
 
 #### Post conversion to ANSI (Left = after conversion | Right = after refining):
-![Alt text](assets/images/stromtrooper-conversion-example.png)
+![Alt text](resources/images/stromtrooper-conversion-example.png)
 
 #### Foodies pixel art
-![Alt text](assets/images/All-Foodies-ANSI32.png)
+![Alt text](resources/images/All-Foodies-ANSI32.png)
 
 #### Example of Foodies (RGB 8px) conversion
-![Alt text](assets/images/foodies-in-moebius.png)
+![Alt text](resources/images/foodies-in-moebius.png)
 
 #### Close-up of how to refine with shading, etc:
-![Alt text](assets/images/foodies-refining-eggplant-why.png)
+![Alt text](resources/images/foodies-refining-eggplant-why.png)
 
 Now you can use the [EGA/CGA Palette](https://en.wikipedia.org/wiki/Color_Graphics_Adapter) and any pixel art editor on your devices, then convert the pixel art into text mode, and finish and refine it in editors.
 
@@ -47,7 +47,7 @@ The end goal is to have one big GUI program that has options that make the separ
 
 -----
 
-![IMG2ANS GUI](assets/images/img2ans-screenshot-v0.2.png)
+![IMG2ANS GUI](resources/images/img2ans-screenshot-v0.2.png)
 
 ### Cross Platform Support:
 `IMG2ANS` is written using [QB64-PE](https://github.com/QB64-Phoenix-Edition/QB64pe) and as a result is 100% cross platform compatible with:
