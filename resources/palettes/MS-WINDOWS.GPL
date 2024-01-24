@@ -1,0 +1,20 @@
+GIMP Palette
+#Palette Name: Microsoft Windows
+#Description: Use by early versions of windows for UI and icons.
+#Colors: 16
+0	0	0	000000
+126	126	126	7e7e7e
+190	190	190	bebebe
+255	255	255	ffffff
+126	0	0	7e0000
+254	0	0	fe0000
+4	126	0	047e00
+6	255	4	06ff04
+126	126	0	7e7e00
+255	255	4	ffff04
+0	0	126	00007e
+0	0	255	0000ff
+126	0	126	7e007e
+254	0	255	fe00ff
+4	126	126	047e7e
+6	255	255	06ffff
