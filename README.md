@@ -201,3 +201,7 @@ only provided excellent friendship and fellowship but also great guidance and
 mentoring for QB64 and programming in general.
 
 Check out his [Toolbox64](https://github.com/a740g/Toolbox64) and [ANSIPrint](https://github.com/a740g/Toolbox64/blob/main/ANSIPrint.bas) stuff! It's rad!
+
+
+GIMP Color Palette spec:
+https://testing.developer.gimp.org/core/standards/gpl/
