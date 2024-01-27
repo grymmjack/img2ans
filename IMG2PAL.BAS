@@ -21,7 +21,7 @@ OPTION _EXPLICIT
 '$DYNAMIC
 
 ' Set this to FALSE to enable debugging output to the console
-$LET NDEBUG = FALSE
+$LET NDEBUG = TRUE
 
 $IF NDEBUG = FALSE THEN
         $DEBUG
@@ -51,12 +51,12 @@ DO
         CASE CHR$(27)
             EXIT DO
         CASE CHR$(0) + CHR$(72) 'up arrow
-            _echo "Up"
+            _ASSERT 1, "Up"
             zoom = zoom + zoom_adj
             IF (zoom > zoom_max) THEN zoom = zoom_max
             draw_output
         CASE CHR$(0) + CHR$(80) 'down arrow
-            _echo "Down"
+            _ASSERT 1, "Down"
             zoom = zoom - zoom_adj
             IF (zoom < zoom_min) THEN zoom = zoom_min
             draw_output
@@ -89,8 +89,8 @@ DO
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
+                draw_output
             END IF
-            draw_output
 
         CASE LCASE$("p")
             ' Only allow to load a palette if the main image is loaded
@@ -106,8 +106,8 @@ DO
                 IF LEN(pal_file$) <> 0 THEN
                     load_gpl_palette pal_file$, img_pal
                 END IF
+                draw_output
             END IF
-            draw_output
 
         CASE LCASE$("d")
             no_dithering = NOT no_dithering
@@ -131,8 +131,8 @@ DO
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
+                draw_output
             END IF
-            draw_output
     END SELECT
 LOOP
 
@@ -156,14 +156,14 @@ SUB draw_output
 
     ' Draw the images if they are loaded
     IF img_orig < -1 THEN
-        _echo "bh="+_TRIM$(STR$(_HEIGHT(img_orig)))
-        _echo "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
+        _ASSERT 1, "bh="+_TRIM$(STR$(_HEIGHT(img_orig)))
+        _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
         dy1_orig = 16
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
-        _echo "(" _
+        _ASSERT 1, "(" _
             + _TRIM$(STR$(dx1_orig)) + "," _
             + _TRIM$(STR$(dy1_orig)) + ")-(" _
             + _TRIM$(STR$(dx2_orig)) + "," _ 
@@ -178,17 +178,17 @@ SUB draw_output
             dy1_pal = 16
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
-        _echo "(" _
+        _ASSERT 1, "(" _
             + _TRIM$(STR$(dx1_pal)) + "," _
             + _TRIM$(STR$(dy1_pal)) + ")-(" _
             + _TRIM$(STR$(dx2_pal)) + "," _ 
             + _TRIM$(STR$(dy2_pal)) + ")"
             _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), img_pal
         END IF
-        _echo "ah="+_TRIM$(STR$(_HEIGHT(img_orig)))
-        _echo "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
+        _ASSERT 1, "ah="+_TRIM$(STR$(_HEIGHT(img_orig)))
+        _ASSERT 1, "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
     END IF
-    _echo "ZOOM=" + _TRIM$(STR$(zoom))
+    _ASSERT 1, "ZOOM=" + _TRIM$(STR$(zoom))
 END SUB
 
 
@@ -252,7 +252,7 @@ SUB load_default_ega_palette (dst AS LONG)
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
 
     $IF NDEBUG = FALSE THEN
-            _ECHO "Clearing dst palette..."
+            _ASSERT 1, "Clearing dst palette..."
     $END IF
 
     ' Clear the palette
@@ -261,7 +261,7 @@ SUB load_default_ega_palette (dst AS LONG)
     NEXT i
 
     $IF NDEBUG = FALSE THEN
-            _ECHO "Loading default palette..."
+            _ASSERT 1, "Loading default palette..."
     $END IF
 
     ' Load our palette
@@ -273,12 +273,12 @@ SUB load_default_ega_palette (dst AS LONG)
         _PALETTECOLOR i, _RGB32(VAL("&h" + r), VAL("&h" + g), VAL("&h" + b)), dst
 
         $IF NDEBUG = FALSE THEN
-                _ECHO "Color" + STR$(i) + "=" + STR$(VAL("&h" + r)) + "," + STR$(VAL("&h" + g)) + "," + STR$(VAL("&h" + b))
+                _ASSERT 1, "Color" + STR$(i) + "=" + STR$(VAL("&h" + r)) + "," + STR$(VAL("&h" + g)) + "," + STR$(VAL("&h" + b))
         $END IF
     NEXT i
 
     $IF NDEBUG = FALSE THEN
-            _ECHO "Done!"
+            _ASSERT 1, "Done!"
     $END IF
 
     'EGA palette is easy to use in hex color value format
@@ -321,7 +321,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
 
     IF lin = "GIMP Palette" THEN
         $IF NDEBUG = FALSE THEN
-                _ECHO "Clearing dst palette..."
+                _ASSERT 1, "Clearing dst palette..."
         $END IF
 
         ' Clear the palette
@@ -332,7 +332,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
         DIM c AS LONG
 
         $IF NDEBUG = FALSE THEN
-                _ECHO "Loading palette from " + gpl_file + "..."
+                _ASSERT 1, "Loading palette from " + gpl_file + "..."
         $END IF
 
         WHILE NOT EOF(fh)
@@ -346,7 +346,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
                 ' Skip comments and other junk (i.e. first character is not a digit)
                 IF char >= 48 AND char <= 57 THEN
                     $IF NDEBUG = FALSE THEN
-                            _ECHO "Parsing text: " + lin
+                            _ASSERT 1, "Parsing text: " + lin
                     $END IF
 
                     ' Parse and read the 3 color components
@@ -369,7 +369,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
                             _PALETTECOLOR c, _RGB32(clr(0), clr(1), clr(2)), dst
 
                             $IF NDEBUG = FALSE THEN
-                                    _ECHO "Color" + STR$(c) + "=" + STR$(clr(0)) + "," + STR$(clr(1)) + "," + STR$(clr(2))
+                                    _ASSERT 1, "Color" + STR$(c) + "=" + STR$(clr(0)) + "," + STR$(clr(1)) + "," + STR$(clr(2))
                             $END IF
 
                             c = c + 1
@@ -384,7 +384,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
         WEND
 
         $IF NDEBUG = FALSE THEN
-                _ECHO "Done!"
+                _ASSERT 1, "Done!"
         $END IF
 
         ' load the default palette if no color was loaded
