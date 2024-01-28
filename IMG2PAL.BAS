@@ -1,18 +1,13 @@
 ''
 ' IMG2PAL
 '
-' Converts any QB64 supported image to a fixed color palette by calculating
-' the closest Euclidean Distance matching indexed color to RGB components.
+' Converts any QB64 supported image to a fixed color palette
 '
 ' EGA is currently used to support conversion of pixel art with IMG2ANS, but
-' I will also support loading .PAL files for indexed palettes besides EGA.
+' I will also support loading .GPL files for indexed palettes besides EGA.
 '
 ' @author Rick Christy <grymmjack@gmail.com> - original crappy version :) 
 ' @author Samuel Gomes <a740g@github> - QB64PE _RGB conversion, GPL loader fixes
-'
-' @see https://en.wikipedia.org/wiki/Euclidean_distance
-' @see https://stackoverflow.com/questions/57862060/finding-the-closest-indexed-color-value-to-the-current-color-in-javascript-p5
-' @see https://github.com/libgd/libgd/blob/58d25665be1c146e7284f253fa679e8256afa6cb/src/gd.c#L460
 '
 ' @version 0.1
 '
@@ -21,7 +16,7 @@ OPTION _EXPLICIT
 '$DYNAMIC
 
 ' Set this to FALSE to enable debugging output to the console
-$LET NDEBUG = TRUE
+$LET NDEBUG = FALSE
 
 $IF NDEBUG = FALSE THEN
         $DEBUG
@@ -33,6 +28,7 @@ $END IF
 DIM SHARED CANVAS AS LONG
 CANVAS = _NEWIMAGE(3000, 2000, 32)
 SCREEN CANVAS
+_FULLSCREEN _SQUAREPIXELS
 
 DIM SHARED AS LONG img_orig, img_pal
 DIM SHARED AS STRING k, img_file, pal_file
@@ -47,7 +43,7 @@ draw_output
 DO
     _LIMIT 30
     k$ = INKEY$
-    SELECT CASE k$
+    SELECT CASE k
         CASE CHR$(27)
             EXIT DO
         CASE CHR$(0) + CHR$(72) 'up arrow

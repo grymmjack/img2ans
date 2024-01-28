@@ -1,8 +1,64 @@
 {
     "version": "2.0.0",
-    "tasks": [
+    "inputs": [
         {
-            "label": "RUN: Run",
+            "id": "QB64PEwiki",
+            "type": "command",
+            "command": "simpleBrowser.show",
+            "args": [
+                "https://qb64phoenix.com/qb64wiki"
+            ]
+        },
+        {
+            "id": "QB64PEforums",
+            "type": "command",
+            "command": "simpleBrowser.show",
+            "args": [
+                "https://qb64phoenix.com"
+            ]
+        }
+    ],    
+    "tasks": [                
+        {
+            "label": "HELP: QB64PE Wiki",
+            "command": "${input:QB64PEwiki}"
+        },
+        {
+            "label": "HELP: QB64PE Forums",
+            "command": "${input:QB64PEforums}"
+        },
+        {
+            "label": "HELP: QB64 Archived Forums",
+            "type": "shell",
+            "windows": {
+                "command": "start",
+                "args": [
+                    "\"https://qb64forum.alephc.xyz/index.php\""
+                ]
+                
+            },
+            "osx": {
+                "command": "open",
+                "args": [
+                    "'https://qb64forum.alephc.xyz/index.php'"
+                ]
+            
+            },
+            "linux": {
+                "problemMatcher": [],
+                "command": "open",
+                "options": {
+                    "shell": {
+                        "executable": "xdg-open",
+                        "args": [
+                            "'https://qb64forum.alephc.xyz/index.php'"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "label": "EXECUTE: Run",
             "dependsOn": "Compile",
             "type": "shell",
             "windows": {
@@ -94,7 +150,7 @@
             }
         },
         {
-            "label": "RUN: Selected File",
+            "label": "EXECUTE: Selected File",
             "type": "shell",
             "windows": {
                 "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
@@ -258,7 +314,7 @@
             }
         },
         {
-            "label": "ANSI: Open in MoebiusXBIN",
+            "label": "TEXTMODE: Open in MoebiusXBIN",
             "type": "shell",
             "windows": {
                 "command": "C:\\Program Files\\MoebiusXBIN\\moebius.exe",
@@ -294,7 +350,7 @@
             }
         },
         {
-            "label": "ANSI: Open in IcyDraw",
+            "label": "TEXTMODE: Open in IcyDraw",
             "type": "shell",
             "windows": {
                 "command": "C:\\Program Files\\IcyDraw\\IcyDraw.exe",
@@ -327,7 +383,7 @@
             }
         },
         {
-            "label": "ANSI: Open in PabloDraw",
+            "label": "TEXTMODE: Open in PabloDraw",
             "type": "shell",
             "windows": {
                 "command": "C:\\Program Files\\PabloDraw\\PabloDraw.exe",
@@ -363,7 +419,7 @@
             }
         },
         {
-            "label": "ANSI: View in PabloDraw",
+            "label": "TEXTMODE: View in PabloDraw",
             "type": "shell",
             "windows": {
                 "command": "C:\\Program Files\\PabloDraw\\PabloDraw.exe",
@@ -399,8 +455,8 @@
             }
         },
         {
-            "label": "Compile",
-            "dependsOn": "Remove",
+            "label": "BUILD: Compile",
+            "dependsOn": "BUILD: Remove",
             "type": "shell",
             "windows": {
                 "command": "${config:qb64.compilerPath}",
@@ -440,7 +496,7 @@
             }
         },
         {
-            "label": "Remove",
+            "label": "BUILD: Remove",
             "type": "shell",
             "windows": {
                 "command": "del",
