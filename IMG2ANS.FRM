@@ -535,8 +535,8 @@ SUB __UI_AssignIDs
     S_SauceRGBColorsCB = __UI_GetID("S_SauceRGBColorsCB")
 
     'E:EXPORT
-    E_ExportToImgSrcDirCB = __UI_GetID("E_ExportToImgSrcDirRB")
-    E_ExportToDirCB = __UI_GetID("E_ExportToDirRB")
+    E_ExportToImgSrcDirRB = __UI_GetID("E_ExportToImgSrcDirRB")
+    E_ExportToDirRB = __UI_GetID("E_ExportToDirRB")
     E_ExportToDirTB = __UI_GetID("E_ExportToDirTB")
     E_ExportToDirBrowseButtonBT = __UI_GetID("E_ExportToDirBrowseButtonBT")    
     E_ExportAsFileLB = __UI_GetID("E_ExportAsFileLB")

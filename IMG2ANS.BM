@@ -1,4 +1,3 @@
-
 ''
 ' Browses for image files using OS file browser dialog
 '
@@ -25,12 +24,12 @@ SUB BrowseForImageFiles
                 IF CHR$(ch%) = "|" THEN ' File found
                     REDIM _PRESERVE ImageListFilenames(1 TO UBOUND(ImageListFilenames$)+1) AS STRING
                     ImageListFilenames$(n%) = filename$
-                    echo "ImageListFilenames$(" + _TRIM$(STR$(n%)) + ")=" + filename$
+                    console.info "ImageListFilenames$(" + _TRIM$(STR$(n%)) + ")=" + filename$
                     DIM fn AS STRING
                     fn$ = MID$(filename$, _INSTRREV(filename$, slash$) + 1)
-                    echo "Filename: [" + filename$ + "]"
-                    echo "File: [" + fn$ + "]"
-                    AddItem ImagesList&, fn$
+                    console.log "Filename: [" + filename$ + "]"
+                    console.log "File: [" + fn$ + "]"
+                    ' AddItem ImagesList&, fn$
                     filename$ = ""
                     n% = n% + 1
                 ELSE ' Not at end of filename yet concat...
@@ -53,9 +52,9 @@ FUNCTION GetImageFilesAsString$()
     listValue$  = "START"
     i% = 1
     WHILE listValue$ <> ""
-        listValue$ = GetItem$(ImagesList&, i%)
+        ' listValue$ = GetItem$(ImagesList&, i%)
         IF listValue$ <> "" THEN
-            echo "i:" + STR$(i%) + ", listValue$: [" + listValue$ + "]"
+            console.info "i:" + STR$(i%) + ", listValue$: [" + listValue$ + "]"
             ImageFiles$ = ImageFiles$ + listValue$ + "\n"
             i% = i% + 1
         END IF
@@ -64,30 +63,72 @@ FUNCTION GetImageFilesAsString$()
 END FUNCTION
 
 
-
 ''
 ' Updates the ImagesList control tooltip with the full filename of selected image
 '
 SUB UpdateImagesListToolTip
     DIM newVal as STRING
     DIM index AS INTEGER
-    index% = Control(ImagesList&).Value
+    ' index% = Control(ImagesList&).Value
     newVal = ImageListFilenames$(index%)
-    echo "Index: " + STR$(index%) + ", Value:" + newVal$
+    console.info "Index: " + STR$(index%) + ", Value:" + newVal$
     IF index% > 0 THEN
-        ToolTip(ImagesList&) = newVal$
+        ' ToolTip(ImagesList&) = newVal$
     ELSE
-        ToolTip(ImagesList&) = "Click Browse to select images to convert"
+        ' ToolTip(ImagesList&) = "Click Browse to select images to convert"
     END IF
 END SUB
 
 
 ''
-' Wrap _ECHO if debugging enabled
-' @param STRING s$
+' Log to console if DEBUGGING
+' @param STRING msg message to send
 '
-SUB echo(s$)
-    $IF IMG2ANS_DEBUG = DEFINED THEN
-        _ECHO s$
+SUB console.log(msg$)
+    $IF DEBUGGING = TRUE THEN
+        _ECHO msg$
     $END IF
+    msg$ = ""
+END SUB
+
+
+''
+' Log to console as info if DEBUGGING
+' @param STRING msg message to send
+'
+SUB console.info(msg$)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        _ECHO e$ + "[1;36m" + msg$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
+END SUB
+
+
+''
+' Log to console as warning if DEBUGGING
+' @param STRING msg message to send
+'
+SUB console.warn(msg$)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        _ECHO e$ + "[1;33m" + msg$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
+END SUB
+
+
+''
+' Log to console as error if DEBUGGING
+' @param STRING msg message to send
+'
+SUB console.error(msg$)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        _ECHO e$ + "[1;31m" + msg$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
 END SUB

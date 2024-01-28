@@ -59,7 +59,7 @@
         },
         {
             "label": "EXECUTE: Run",
-            "dependsOn": "Compile",
+            "dependsOn": "BUILD: Compile",
             "type": "shell",
             "windows": {
                 "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",

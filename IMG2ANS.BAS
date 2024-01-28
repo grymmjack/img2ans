@@ -124,10 +124,11 @@ SUB __UI_Click (id AS LONG)
 
         'SI:SOURCE IMAGE
         CASE SI_SourceImgLB
-        CASE SI_SourceImgBrowseButtonBT
-            DIM stuff AS STRING
-            stuff$ = GetImageFilesAsString$
-            _MessageBox "Debug", "Images:\n\n" + stuff$, "info"        
+        CASE SI_SourceImgBrowseButtonBT 
+            SourceImgBrowseButton:
+                DIM stuff AS STRING
+                stuff$ = GetImageFilesAsString$
+                _MessageBox "Debug", "Images:\n\n" + stuff$, "info"        
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
