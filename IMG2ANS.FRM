@@ -75,7 +75,7 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_PictureBox, "SI_SourceImgPB", 301, 217, 17, 78, 0)
     __UI_RegisterResult = 0
-    Control(__UI_NewID).Stretch = True
+    Control(__UI_NewID).Stretch = False
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Align = __UI_Center
     Control(__UI_NewID).VAlign = __UI_Middle

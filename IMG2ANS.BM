@@ -1,7 +1,35 @@
 ''
+' Load Image into PictureBox
+' @param IMAGE img to load
+' @param LONG pb Control ID of PictueBox
+'
+SUB LoadImageIntoPB(img AS IMAGE, pb&)
+    img.file_path$ = BrowseForImageFile$
+    img.file_name$ = MID$(img.file_path$, _INSTRREV(img.file_path$, SLASH$) + 1)
+    img.file_ext$  = MID$(img.file_name$, _INSTRREV(img.file_name$, "."))
+    img.ID&        = pb&
+    LoadImage Control(img.ID&), img.file_path$
+    img.handle&    = Control(img.ID&).HelperCanvas&
+    img.src_w%     = _WIDTH(img.handle&)
+    img.src_h%     = _HEIGHT(img.handle&)
+    img.src_x%     = 1
+    img.src_y%     = 1
+    img.dst_w%     = _WIDTH(img.handle&)
+    img.dst_h%     = _HEIGHT(img.handle&)
+    img.dst_x%     = 1
+    img.dst_y%     = 1
+    img.x_offset%  = 0
+    img.y_offset%  = 0
+    img.zoom!      = 1
+    CALL console.dir_image(img)
+END SUB
+
+
+''
 ' Browses for image file using OS file browser dialog
 '
 FUNCTION BrowseForImageFile$
+    console.info "BrowseForImageFile$"
     ' Choose an image file with dialog
     BrowseForImageFile$ = _OPENFILEDIALOG$( _
         "Choose an image", _
@@ -11,6 +39,32 @@ FUNCTION BrowseForImageFile$
         -1 _
     )
 END FUNCTION
+
+
+''
+' Log IMAGE properties if DEBUGGING
+' @param IMAGE image to log properties of
+'
+SUB console.dir_image(img AS IMAGE)
+    console.warn _TRIM$(Control(img.ID&).Name$) + " {"
+    console.log "   ID&        = " + _TRIM$(STR$(img.ID&))
+    console.log "   handle&    = " + _TRIM$(STR$(img.handle&))
+    console.log "   file_name$ = " + img.file_name$
+    console.log "   file_path$ = " + img.file_path$
+    console.log "   file_ext$  = " + img.file_ext$
+    console.log "   src_w%     = " + _TRIM$(STR$(img.src_w%))
+    console.log "   src_h%     = " + _TRIM$(STR$(img.src_h%))
+    console.log "   src_x%     = " + _TRIM$(STR$(img.src_x%))
+    console.log "   src_y%     = " + _TRIM$(STR$(img.src_y%))
+    console.log "   dst_w%     = " + _TRIM$(STR$(img.dst_w%))
+    console.log "   dst_h%     = " + _TRIM$(STR$(img.dst_h%))
+    console.log "   dst_x%     = " + _TRIM$(STR$(img.dst_x%))
+    console.log "   dst_y%     = " + _TRIM$(STR$(img.dst_y%))
+    console.log "   x_offset%  = " + _TRIM$(STR$(img.x_offset%))
+    console.log "   y_offset%  = " + _TRIM$(STR$(img.y_offset%))
+    console.log "   zoom!      = " + _TRIM$(STR$(img.zoom!))
+    console.warn "}"
+END SUB
 
 
 ''

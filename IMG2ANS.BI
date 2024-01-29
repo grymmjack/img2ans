@@ -21,10 +21,22 @@ $ELSE
 $END IF 
 
 TYPE IMAGE
-    ID       AS LONG
-    filename AS STRING
-    path     AS STRING
-    handle   AS LONG
+    ID        AS LONG
+    handle    AS LONG
+    file_name AS STRING
+    file_path AS STRING
+    file_ext  AS STRING
+    src_w     AS INTEGER
+    src_h     AS INTEGER
+    src_x     AS INTEGER
+    src_y     AS INTEGER
+    dst_w     AS INTEGER
+    dst_h     AS INTEGER
+    dst_x     AS INTEGER
+    dst_y     AS INTEGER
+    x_offset  AS INTEGER
+    y_offset  AS INTEGER
+    zoom      AS SINGLE
 END TYPE
 
 DIM SHARED AS IMAGE _

@@ -17,8 +17,8 @@
                 "https://qb64phoenix.com"
             ]
         }
-    ],    
-    "tasks": [                
+    ],
+    "tasks": [
         {
             "label": "HELP: QB64PE Wiki",
             "command": "${input:QB64PEwiki}"
@@ -26,6 +26,20 @@
         {
             "label": "HELP: QB64PE Forums",
             "command": "${input:QB64PEforums}"
+        },
+        {
+            "label": "HELP: InForm-PE Wiki",
+            "command": "OpenWebPage",
+            "type": "shell",
+            "linux": {
+                "command": "setsid xdg-open https://github.com/a740g/InForm-PE/wiki",
+            },
+            "osx": {
+                "command": "open https://github.com/a740g/InForm-PE/wiki",
+            },
+            "windows": {
+                "command": "start https://github.com/a740g/InForm-PE/wiki",
+            },
         },
         {
             "label": "EXECUTE: Run",
