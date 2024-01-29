@@ -14,5 +14,22 @@ $IF FALSE = UNDEFINED AND TRUE = UNDEFINED THEN
     $LET TRUE = TRUE
     CONST FALSE = 0 : CONST TRUE = NOT FALSE
 $END IF
+$IF WIN THEN
+    CONST SLASH$ = "\"
+$ELSE
+    CONST SLASH$ = "/"
+$END IF 
 
-REDIM SHARED ImageListFilenames(1 TO 1) AS STRING
+TYPE IMAGE
+    ID       AS LONG
+    filename AS STRING
+    path     AS STRING
+    handle   AS LONG
+END TYPE
+
+DIM SHARED AS IMAGE _
+    SourceImg, _
+    DestPalImg, _
+    ResizeCropImg, _
+    PreviewImg, _
+    FinalImg

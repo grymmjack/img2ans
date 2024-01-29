@@ -28,36 +28,6 @@
             "command": "${input:QB64PEforums}"
         },
         {
-            "label": "HELP: QB64 Archived Forums",
-            "type": "shell",
-            "windows": {
-                "command": "start",
-                "args": [
-                    "\"https://qb64forum.alephc.xyz/index.php\""
-                ]
-                
-            },
-            "osx": {
-                "command": "open",
-                "args": [
-                    "'https://qb64forum.alephc.xyz/index.php'"
-                ]
-            
-            },
-            "linux": {
-                "problemMatcher": [],
-                "command": "open",
-                "options": {
-                    "shell": {
-                        "executable": "xdg-open",
-                        "args": [
-                            "'https://qb64forum.alephc.xyz/index.php'"
-                        ]
-                    }
-                }
-            }
-        },
-        {
             "label": "EXECUTE: Run",
             "dependsOn": "BUILD: Compile",
             "type": "shell",
