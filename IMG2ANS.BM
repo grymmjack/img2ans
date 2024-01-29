@@ -16,24 +16,24 @@ $END IF
 
 ''
 ' Sets input focus to image
-' @param IMAGE img to set focus to
+' @param LONG pb picturebox control
 '
-SUB SetImgFocus(img AS IMAGE)
+SUB SetImgFocus(pb&)
     console.warn "SetImgFocus"
-    CALL console.dir_image(img)
-    DIM AS INTEGER i
-    FOR i% = 0 TO UBOUND(IMAGES)
-        IMAGES(i%).has_focus%% = FALSE
-        Control(IMAGES(i%).ID&).BorderColor~& = _RGB32(167, 166, 170)
-        Control(IMAGES(i%).ID&).HasBorder = TRUE
-        Control(IMAGES(i%).ID&).BorderSize = 1    
-        Control(IMAGES(i%).ID&).BackColor = Control(__UI_FormID).BackColor
-    NEXT i%
-    img.has_focus%% = TRUE
-    Control(img.ID&).BorderColor~& = _RGB32(255, 0, 0)
-    Control(img.ID&).HasBorder = TRUE
-    Control(img.ID&).BorderSize = 1    
-    Control(img.ID&).BackColor~& = _RGB32(255, 0, 0)
+    ClearImgFocus
+    Control(pb&).BorderColor = _RGB32(255, 0, 0)
+END SUB
+
+
+''
+' Clears ImgFocus
+'
+SUB ClearImgFocus
+    console.warn "ClearImgFocus"
+    Control(SI_SourceImgPB).BorderColor  = _RGB32(167, 166, 170)
+    Control(DP_DestPalPB).BorderColor    = _RGB32(167, 166, 170)
+    Control(RC_ResizeCropPB).BorderColor = _RGB32(167, 166, 170)
+    Control(P_PreviewPB).BorderColor     = _RGB32(167, 166, 170)
 END SUB
 
 

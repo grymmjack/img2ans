@@ -5,8 +5,6 @@
 ': https://github.com/a740g/InForm-PE
 '-----------------------------------------------------------
 
-'$INCLUDE:'IMG2ANS.BI'
-
 ': Controls' IDs: ------------------------------------------------------------------
 'WINDOW
 DIM SHARED IMG2ANS AS LONG
@@ -89,8 +87,10 @@ DIM SHARED ST_StatusLB AS LONG
 
 ': External modules: ---------------------------------------------------------------
 '$INCLUDE:'include/InForm/InForm.bi'
+'$INCLUDE:'IMG2ANS.BI'
 '$INCLUDE:'include/InForm/xp.uitheme'
 '$INCLUDE:'IMG2ANS.FRM'
+
 
 ': Event procedures: ---------------------------------------------------------------
 SUB __UI_BeforeInit
@@ -141,7 +141,7 @@ SUB __UI_Click (id AS LONG)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
             SourceImgClick:
-                SetImgFocus IMAGES(Source)
+                SetImgFocus SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -156,7 +156,7 @@ SUB __UI_Click (id AS LONG)
         CASE DP_DestPalCB
         CASE DP_DestPalPB
             DestPalImgClick:
-                SetImgFocus IMAGES(DestPal)
+                SetImgFocus DP_DestPalPB
         CASE DP_DestPalPalleteDL
         CASE DP_DestPalPalleteBrowseBT
         CASE DP_DestPalPaletteColorsPB
@@ -165,7 +165,7 @@ SUB __UI_Click (id AS LONG)
         CASE RC_ResizeCropCB
         CASE RC_ResizeCropPB
             ResizeCropImgClick:
-                SetImgFocus IMAGES(ResizeCrop)
+                SetImgFocus RC_ResizeCropPB
         CASE RC_ResizeCropXLB
         CASE RC_ResizeCropXTB
         CASE RC_ResizeCropYLB
@@ -179,7 +179,7 @@ SUB __UI_Click (id AS LONG)
         CASE P_PreviewLB
         CASE P_PreviewPB
             PreviewImgClick:
-                SetImgFocus IMAGES(Preview)
+                SetImgFocus P_PreviewPB
 
         'S:SAUCE
         CASE S_SauceFrame
