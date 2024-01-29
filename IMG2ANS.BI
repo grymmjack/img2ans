@@ -2,6 +2,7 @@
 ' IMG2ANS - IMG2ANS_BI (Include)
 ' 
 ' @depends IMG2ANS.BAS
+' @depends include/MOUSE/MOUSE.BI
 '
 $IF IMG2ANS_BI = UNDEFINED THEN
     $LET IMG2ANS_BI = TRUE
@@ -47,12 +48,16 @@ TYPE IMAGE
     dst_y     AS INTEGER
     x_offset  AS INTEGER
     y_offset  AS INTEGER
+    has_mouse AS _BYTE
+    has_focus AS _BYTE
     zoom      AS SINGLE
 END TYPE
 
-DIM SHARED AS IMAGE _
-    SourceImg, _
-    DestPalImg, _
-    ResizeCropImg, _
-    PreviewImg, _
-    FinalImg
+CONST Source     = 0
+CONST DestPal    = 1
+CONST ResizeCrop = 2
+CONST Preview    = 3
+CONST Final      = 4
+DIM SHARED IMAGES(4) AS IMAGE
+
+'$INCLUDE:'./include/MOUSE/MOUSE.BI'

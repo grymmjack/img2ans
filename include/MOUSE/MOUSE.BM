@@ -1,0 +1,43 @@
+''
+' Update MOUSE object properties
+'
+SUB MOUSE_update
+    MOUSE.l_down%%   = _MOUSEBUTTON(1)
+    MOUSE.l_up%%     = NOT _MOUSEBUTTON(1)
+    MOUSE.r_down%%   = _MOUSEBUTTON(2)
+    MOUSE.r_up%%     = NOT _MOUSEBUTTON(2)
+    MOUSE.m_down%%   = _MOUSEBUTTON(3)
+    MOUSE.m_up%%     = NOT _MOUSEBUTTON(3)
+    MOUSE.w_up%%     = _MOUSEWHEEL = -1
+    MOUSE.w_down%%   = _MOUSEWHEEL = 1
+    MOUSE.old_x%     = MOUSE.x%
+    MOUSE.old_y%     = MOUSE.y%
+    MOUSE.x%         = _MOUSEX
+    MOUSE.y%         = _MOUSEY
+    MOUSE.dragging%% = MOUSE.l_down%% AND MOUSE.old_x% <> MOUSE.x% _
+                    OR MOUSE.l_down%% AND MOUSE.old_y% <> MOUSE.y%
+    MOUSE.dropping%% = MOUSE.l_up%% = TRUE AND NOT MOUSE.dragging%%
+END SUB
+
+
+''
+' Log MOUSE properties if DEBUGGING
+'
+SUB console.dir_mouse()
+    console.warn "MOUSE {"
+    console.log "   l_down%%   = " + _TRIM$(STR$(MOUSE.l_down%%))
+    console.log "   l_up%%     = " + _TRIM$(STR$(MOUSE.l_up%%))
+    console.log "   r_down%%   = " + _TRIM$(STR$(MOUSE.r_down%%))
+    console.log "   r_up%%     = " + _TRIM$(STR$(MOUSE.r_up%%))
+    console.log "   m_down%%   = " + _TRIM$(STR$(MOUSE.m_down%%))
+    console.log "   m_up%%     = " + _TRIM$(STR$(MOUSE.m_up%%))
+    console.log "   w_down%%   = " + _TRIM$(STR$(MOUSE.w_down%%))
+    console.log "   w_up%%     = " + _TRIM$(STR$(MOUSE.w_up%%))
+    console.log "   old_x%     = " + _TRIM$(STR$(MOUSE.old_x%))
+    console.log "   old_y%     = " + _TRIM$(STR$(MOUSE.old_y%))
+    console.log "   x%         = " + _TRIM$(STR$(MOUSE.x%))
+    console.log "   y%         = " + _TRIM$(STR$(MOUSE.y%))
+    console.log "   dragging%% = " + _TRIM$(STR$(MOUSE.dragging%%))
+    console.log "   dropping%% = " + _TRIM$(STR$(MOUSE.dropping%%))
+    console.warn "}"
+END SUB

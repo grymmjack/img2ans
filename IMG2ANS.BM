@@ -3,6 +3,7 @@
 ' 
 ' @depends IMG2ANS.BI
 ' @depends IMG2ANS.BAS
+' @depends include/MOUSE/MOUSE.BM
 ' @depends include/InForm/InFormCommon.bi
 ' @depends include/InForm/InForm.bi
 ' @depends include/InForm/InForm.ui
@@ -14,28 +15,53 @@ $END IF
 
 
 ''
+' Sets input focus to image
+' @param IMAGE img to set focus to
+'
+SUB SetImgFocus(img AS IMAGE)
+    console.warn "SetImgFocus"
+    CALL console.dir_image(img)
+    DIM AS INTEGER i
+    FOR i% = 0 TO UBOUND(IMAGES)
+        IMAGES(i%).has_focus%% = FALSE
+        Control(IMAGES(i%).ID&).BorderColor~& = _RGB32(167, 166, 170)
+        Control(IMAGES(i%).ID&).HasBorder = TRUE
+        Control(IMAGES(i%).ID&).BorderSize = 1    
+        Control(IMAGES(i%).ID&).BackColor = Control(__UI_FormID).BackColor
+    NEXT i%
+    img.has_focus%% = TRUE
+    Control(img.ID&).BorderColor~& = _RGB32(255, 0, 0)
+    Control(img.ID&).HasBorder = TRUE
+    Control(img.ID&).BorderSize = 1    
+    Control(img.ID&).BackColor~& = _RGB32(255, 0, 0)
+END SUB
+
+
+''
 ' Load Image into PictureBox
 ' @param IMAGE img to load
 ' @param LONG pb Control ID of PictueBox
 '
 SUB LoadImageIntoPB(img AS IMAGE, pb&)
-    img.file_path$ = BrowseForImageFile$
-    img.file_name$ = MID$(img.file_path$, _INSTRREV(img.file_path$, SLASH$) + 1)
-    img.file_ext$  = MID$(img.file_name$, _INSTRREV(img.file_name$, "."))
-    img.ID&        = pb&
+    img.file_path$  = BrowseForImageFile$
+    img.file_name$  = MID$(img.file_path$, _INSTRREV(img.file_path$, SLASH$) + 1)
+    img.file_ext$   = MID$(img.file_name$, _INSTRREV(img.file_name$, "."))
+    img.ID&         = pb&
     LoadImage Control(img.ID&), img.file_path$
-    img.handle&    = Control(img.ID&).HelperCanvas&
-    img.src_w%     = _WIDTH(img.handle&)
-    img.src_h%     = _HEIGHT(img.handle&)
-    img.src_x%     = 1
-    img.src_y%     = 1
-    img.dst_w%     = _WIDTH(img.handle&)
-    img.dst_h%     = _HEIGHT(img.handle&)
-    img.dst_x%     = 1
-    img.dst_y%     = 1
-    img.x_offset%  = 0
-    img.y_offset%  = 0
-    img.zoom!      = 1
+    img.handle&     = Control(img.ID&).HelperCanvas&
+    img.src_w%      = _WIDTH(img.handle&)
+    img.src_h%      = _HEIGHT(img.handle&)
+    img.src_x%      = 1
+    img.src_y%      = 1
+    img.dst_w%      = _WIDTH(img.handle&)
+    img.dst_h%      = _HEIGHT(img.handle&)
+    img.dst_x%      = 1
+    img.dst_y%      = 1
+    img.x_offset%   = 0
+    img.y_offset%   = 0
+    img.zoom!       = 1
+    img.has_mouse%% = FALSE
+    img.has_focus%% = TRUE
     CALL console.dir_image(img)
 END SUB
 
@@ -62,22 +88,24 @@ END FUNCTION
 '
 SUB console.dir_image(img AS IMAGE)
     console.warn _TRIM$(Control(img.ID&).Name$) + " {"
-    console.log "   ID&        = " + _TRIM$(STR$(img.ID&))
-    console.log "   handle&    = " + _TRIM$(STR$(img.handle&))
-    console.log "   file_name$ = " + img.file_name$
-    console.log "   file_path$ = " + img.file_path$
-    console.log "   file_ext$  = " + img.file_ext$
-    console.log "   src_w%     = " + _TRIM$(STR$(img.src_w%))
-    console.log "   src_h%     = " + _TRIM$(STR$(img.src_h%))
-    console.log "   src_x%     = " + _TRIM$(STR$(img.src_x%))
-    console.log "   src_y%     = " + _TRIM$(STR$(img.src_y%))
-    console.log "   dst_w%     = " + _TRIM$(STR$(img.dst_w%))
-    console.log "   dst_h%     = " + _TRIM$(STR$(img.dst_h%))
-    console.log "   dst_x%     = " + _TRIM$(STR$(img.dst_x%))
-    console.log "   dst_y%     = " + _TRIM$(STR$(img.dst_y%))
-    console.log "   x_offset%  = " + _TRIM$(STR$(img.x_offset%))
-    console.log "   y_offset%  = " + _TRIM$(STR$(img.y_offset%))
-    console.log "   zoom!      = " + _TRIM$(STR$(img.zoom!))
+    console.log "   ID&         = " + _TRIM$(STR$(img.ID&))
+    console.log "   handle&     = " + _TRIM$(STR$(img.handle&))
+    console.log "   file_name$  = " + img.file_name$
+    console.log "   file_path$  = " + img.file_path$
+    console.log "   file_ext$   = " + img.file_ext$
+    console.log "   src_w%      = " + _TRIM$(STR$(img.src_w%))
+    console.log "   src_h%      = " + _TRIM$(STR$(img.src_h%))
+    console.log "   src_x%      = " + _TRIM$(STR$(img.src_x%))
+    console.log "   src_y%      = " + _TRIM$(STR$(img.src_y%))
+    console.log "   dst_w%      = " + _TRIM$(STR$(img.dst_w%))
+    console.log "   dst_h%      = " + _TRIM$(STR$(img.dst_h%))
+    console.log "   dst_x%      = " + _TRIM$(STR$(img.dst_x%))
+    console.log "   dst_y%      = " + _TRIM$(STR$(img.dst_y%))
+    console.log "   x_offset%   = " + _TRIM$(STR$(img.x_offset%))
+    console.log "   y_offset%   = " + _TRIM$(STR$(img.y_offset%))
+    console.log "   has_mouse%% = " + _TRIM$(STR$(img.has_mouse%%))
+    console.log "   has_focus%% = " + _TRIM$(STR$(img.has_focus%%))
+    console.log "   zoom!       = " + _TRIM$(STR$(img.zoom!))
     console.warn "}"
 END SUB
 
@@ -134,3 +162,5 @@ SUB console.error(msg$)
     $END IF
     msg$ = ""
 END SUB
+
+'$INCLUDE:'./include/MOUSE/MOUSE.BM'
