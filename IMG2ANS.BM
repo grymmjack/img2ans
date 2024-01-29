@@ -1,4 +1,19 @@
 ''
+' IMG2ANS - IMG2ANS_BM (Module)
+' 
+' @depends IMG2ANS.BI
+' @depends IMG2ANS.BAS
+' @depends include/InForm/InFormCommon.bi
+' @depends include/InForm/InForm.bi
+' @depends include/InForm/InForm.ui
+'
+$IF IMG2ANS_BM = UNDEFINED THEN
+    $LET IMG2ANS_BM = TRUE
+$END IF
+
+
+
+''
 ' Load Image into PictureBox
 ' @param IMAGE img to load
 ' @param LONG pb Control ID of PictueBox
