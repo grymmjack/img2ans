@@ -104,18 +104,20 @@ END SUB
 SUB __UI_BeforeUpdateDisplay
     'This event occurs at approximately 60 frames per second.
     'You can change the update frequency by calling SetFrameRate DesiredRate%
-    DO WHILE _MOUSEINPUT
-        MOUSE_update
-        ' Log the dragging
-        IF IMAGES(Source).has_mouse%% THEN
-            IF MOUSE.dragging%% = TRUE THEN
-                console.warn "Dragging!"
-            END IF
-            IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
-                console.warn "Mousewheel!"
-            END IF
-        END IF
-    LOOP
+    ' DO WHILE _MOUSEINPUT
+    '     _LIMIT 60
+    '     SetFrameRate 60
+    '     MOUSE_update
+    '     ' Log the dragging
+    '     IF IMAGES(Source).has_mouse%% THEN
+    '         IF MOUSE.dragging%% = TRUE THEN
+    '             console.warn "Dragging!"
+    '         END IF
+    '         IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
+    '             console.warn "Mousewheel!"
+    '         END IF
+    '     END IF
+    ' LOOP
 END SUB
 
 SUB __UI_BeforeUnload
@@ -230,7 +232,6 @@ SUB __UI_MouseEnter (id AS LONG)
             SourceImgMouseEnter:
                 CALL console.log("Entering SourceImg")
                 IMAGES(Source).has_mouse%% = TRUE
-                console.dir_mouse
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -313,7 +314,6 @@ SUB __UI_MouseLeave (id AS LONG)
             SourceImgMouseLeave:
                 CALL console.log("Leaving SourceImg")
                 IMAGES(Source).has_mouse%% = FALSE
-                console.dir_mouse
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -489,7 +489,6 @@ SUB __UI_MouseDown (id AS LONG)
         CASE SI_SourceImgPB
             SourceImgMouseDown:
                 CALL console.log("MOUSEDOWN on SourceImg")
-                console.dir_mouse
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -571,7 +570,6 @@ SUB __UI_MouseUp (id AS LONG)
         CASE SI_SourceImgPB
             SourceImgMouseDown:
                 CALL console.log("MOUSEUP on SourceImg")
-                console.dir_mouse
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB

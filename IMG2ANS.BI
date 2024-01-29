@@ -60,4 +60,4 @@ CONST Preview    = 3
 CONST Final      = 4
 DIM SHARED IMAGES(4) AS IMAGE
 
-'$INCLUDE:'./include/MOUSE/MOUSE.BI'
+
