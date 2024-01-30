@@ -53,11 +53,11 @@ TYPE IMAGE
     zoom      AS SINGLE
 END TYPE
 
-CONST Source     = 0
-CONST DestPal    = 1
-CONST ResizeCrop = 2
-CONST Preview    = 3
-CONST Final      = 4
-DIM SHARED IMAGES(4) AS IMAGE
+DIM SHARED AS IMAGE _
+    SourceIMG, _
+    DestPalIMG, _
+    ResizeCropIMG, _
+    PreviewIMG, _
+    FinalIMG
 
-
+'$INCLUDE:'include/MOUSE/MOUSE.BI'

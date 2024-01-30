@@ -91,7 +91,6 @@ DIM SHARED ST_StatusLB AS LONG
 '$INCLUDE:'include/InForm/xp.uitheme'
 '$INCLUDE:'IMG2ANS.FRM'
 
-
 ': Event procedures: ---------------------------------------------------------------
 SUB __UI_BeforeInit
 
@@ -105,11 +104,11 @@ SUB __UI_BeforeUpdateDisplay
     'This event occurs at approximately 60 frames per second.
     'You can change the update frequency by calling SetFrameRate DesiredRate%
     ' DO WHILE _MOUSEINPUT
-    '     _LIMIT 60
-    '     SetFrameRate 60
+    '     ' _LIMIT 60
+    '     ' SetFrameRate 60
     '     MOUSE_update
     '     ' Log the dragging
-    '     IF IMAGES(Source).has_mouse%% THEN
+    '     IF SourceIMG.has_mouse%% THEN
     '         IF MOUSE.dragging%% = TRUE THEN
     '             console.warn "Dragging!"
     '         END IF
@@ -137,10 +136,12 @@ SUB __UI_Click (id AS LONG)
 
         'SI:SOURCE IMAGE
         CASE SI_SourceImgLB
-        CASE SI_SourceImgBrowseButtonBT 
-            CALL LoadImageIntoPB(IMAGES(Source), SI_SourceImgPB)
+        CASE SI_SourceImgBrowseButtonBT
+            console.warn "CLICK SOURCE BUTTON"
+            LoadImageIntoPB SourceIMG, SI_SourceImgPB
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
+            console.warn "CLICK SOURCE"
             SetImgFocus SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
@@ -225,7 +226,7 @@ SUB __UI_MouseEnter (id AS LONG)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
             CALL console.log("Entering SourceImg")
-            IMAGES(Source).has_mouse%% = TRUE
+            SourceIMG.has_mouse%% = TRUE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -306,7 +307,7 @@ SUB __UI_MouseLeave (id AS LONG)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
             CALL console.log("Leaving SourceImg")
-            IMAGES(Source).has_mouse%% = FALSE
+            SourceIMG.has_mouse%% = FALSE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB

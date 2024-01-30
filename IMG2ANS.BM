@@ -22,6 +22,7 @@ SUB SetImgFocus(pb&)
     console.warn "SetImgFocus"
     ClearImgFocus
     Control(pb&).BorderColor = _RGB32(255, 0, 0)
+    Control(pb&).Redraw = TRUE
 END SUB
 
 
@@ -34,6 +35,10 @@ SUB ClearImgFocus
     Control(DP_DestPalPB).BorderColor    = _RGB32(167, 166, 170)
     Control(RC_ResizeCropPB).BorderColor = _RGB32(167, 166, 170)
     Control(P_PreviewPB).BorderColor     = _RGB32(167, 166, 170)
+    Control(SI_SourceImgPB).Redraw       = TRUE
+    Control(DP_DestPalPB).Redraw         = TRUE
+    Control(RC_ResizeCropPB).Redraw      = TRUE
+    Control(P_PreviewPB).Redraw          = TRUE
 END SUB
 
 
@@ -43,6 +48,7 @@ END SUB
 ' @param LONG pb Control ID of PictueBox
 '
 SUB LoadImageIntoPB(img AS IMAGE, pb&)
+    console.warn "LoadImageIntoPB"
     img.file_path$  = BrowseForImageFile$
     img.file_name$  = MID$(img.file_path$, _INSTRREV(img.file_path$, SLASH$) + 1)
     img.file_ext$   = MID$(img.file_name$, _INSTRREV(img.file_name$, "."))
@@ -74,7 +80,7 @@ FUNCTION BrowseForImageFile$
     ' Choose an image file with dialog
     BrowseForImageFile$ = _OPENFILEDIALOG$( _
         "Choose an image", _
-        , _
+        "", _
         "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi", _
         "Image Files", _
         -1 _
@@ -163,3 +169,4 @@ SUB console.error(msg$)
     msg$ = ""
 END SUB
 
+'$INCLUDE:'include/MOUSE/MOUSE.BM'
