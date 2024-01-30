@@ -138,12 +138,10 @@ SUB __UI_Click (id AS LONG)
         'SI:SOURCE IMAGE
         CASE SI_SourceImgLB
         CASE SI_SourceImgBrowseButtonBT 
-            SourceImgBrowseButton:
-                CALL LoadImageIntoPB(IMAGES(Source), SI_SourceImgPB)
+            CALL LoadImageIntoPB(IMAGES(Source), SI_SourceImgPB)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
-            SourceImgClick:
-                SetImgFocus SI_SourceImgPB
+            SetImgFocus SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -157,8 +155,7 @@ SUB __UI_Click (id AS LONG)
         'DP:DESTINATION PALETTE
         CASE DP_DestPalCB
         CASE DP_DestPalPB
-            DestPalImgClick:
-                SetImgFocus DP_DestPalPB
+            SetImgFocus DP_DestPalPB
         CASE DP_DestPalPalleteDL
         CASE DP_DestPalPalleteBrowseBT
         CASE DP_DestPalPaletteColorsPB
@@ -166,8 +163,7 @@ SUB __UI_Click (id AS LONG)
         'RC:RESIZE / CROP
         CASE RC_ResizeCropCB
         CASE RC_ResizeCropPB
-            ResizeCropImgClick:
-                SetImgFocus RC_ResizeCropPB
+            SetImgFocus RC_ResizeCropPB
         CASE RC_ResizeCropXLB
         CASE RC_ResizeCropXTB
         CASE RC_ResizeCropYLB
@@ -180,8 +176,7 @@ SUB __UI_Click (id AS LONG)
         'P:PREVIEW
         CASE P_PreviewLB
         CASE P_PreviewPB
-            PreviewImgClick:
-                SetImgFocus P_PreviewPB
+            SetImgFocus P_PreviewPB
 
         'S:SAUCE
         CASE S_SauceFrame
@@ -229,9 +224,8 @@ SUB __UI_MouseEnter (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
-            SourceImgMouseEnter:
-                CALL console.log("Entering SourceImg")
-                IMAGES(Source).has_mouse%% = TRUE
+            CALL console.log("Entering SourceImg")
+            IMAGES(Source).has_mouse%% = TRUE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -311,9 +305,8 @@ SUB __UI_MouseLeave (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
-            SourceImgMouseLeave:
-                CALL console.log("Leaving SourceImg")
-                IMAGES(Source).has_mouse%% = FALSE
+            CALL console.log("Leaving SourceImg")
+            IMAGES(Source).has_mouse%% = FALSE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -487,8 +480,7 @@ SUB __UI_MouseDown (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
-            SourceImgMouseDown:
-                CALL console.log("MOUSEDOWN on SourceImg")
+            CALL console.log("MOUSEDOWN on SourceImg")
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -568,8 +560,7 @@ SUB __UI_MouseUp (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
-            SourceImgMouseDown:
-                CALL console.log("MOUSEUP on SourceImg")
+            CALL console.log("MOUSEUP on SourceImg")
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB

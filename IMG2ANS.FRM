@@ -12,7 +12,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Form, "IMG2ANS", 1308, 670, 0, 0, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "IMG2ANS"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 12)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 12)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CenteredWindow = True
 
@@ -22,7 +22,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "H_IMG2ANSLB", 150, 28, 17, 10, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "IMG2ANS"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 20)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 16)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -35,6 +35,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "H_CodeIdeaLB", 150, 19, 1140, 10, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "CODE / IDEA BY:"
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 10)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).Align = __UI_Right
     Control(__UI_NewID).VAlign = __UI_Middle
@@ -42,12 +43,14 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "H_CodeIdeaAuthorLB", 150, 23, 1153, 25, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Rick Christy (grymmjack)"
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 10)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "H_LinksLB", 182, 20, 1120, 44, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "https://youtube.com/grymmjack"
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 10)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -57,7 +60,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "SI_SourceImgLB", 150, 21, 17, 43, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "SOURCE IMAGE"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -150,7 +153,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "DP_DestPalCB", 250, 23, 341, 43, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "&DESTINATION PALETTE"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
@@ -213,7 +216,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "RC_ResizeCropCB", 250, 23, 666, 44, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "RESI&ZE / CROP"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
@@ -287,7 +290,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "P_PreviewLB", 125, 23, 989, 44, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "PREVIEW"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -312,7 +315,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "S_SauceTitleLB", 150, 23, 13, 25, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "TITLE"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -327,7 +330,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "S_SauceAuthorLB", 150, 23, 13, 53, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "AUTHOR"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -342,7 +345,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "S_SauceGroupLB", 150, 23, 13, 81, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "GROUP"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -357,7 +360,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "S_SauceCommentLB", 150, 23, 326, 25, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "COMMENT"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 16)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 14)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).VAlign = __UI_Middle
 
@@ -445,7 +448,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_Button, "E_ExportBT", 300, 32, 989, 626, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "&EXPORT"
-    Control(__UI_NewID).Font = SetFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 20)
+    Control(__UI_NewID).Font = SetFont("./include/InForm/resources/NotoMono-Regular.ttf", 16)
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 

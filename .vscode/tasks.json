@@ -86,7 +86,7 @@
                 ]
             },
             "osx": {
-                "command": "/home/grymmjack/git/InForm-PE/UiEditor",
+                "command": "~/git/InForm-PE/UiEditor",
                 "args": [
                     "${file}"
                 ]
