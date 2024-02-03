@@ -246,6 +246,7 @@
                 ]
             },
             "presentation": {
+                "close": true,
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
@@ -261,7 +262,7 @@
             "label": "ANSI: Open in MoebiusXBIN",
             "type": "shell",
             "windows": {
-                "command": "C:\\Program Files\\MoebiusXBIN\\moebius.exe",
+                "command": "B:\\Backup2020\\Drawing\\ANSI\\Programs\\Moebius x-bin GJ Edition\\MoebiusXBIN.exe",
                 "args": [
                     "--no-sandbox",
                     "${file}"
@@ -282,6 +283,7 @@
                 ]
             },
             "presentation": {
+                "close": true,
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
@@ -297,7 +299,7 @@
             "label": "ANSI: Open in IcyDraw",
             "type": "shell",
             "windows": {
-                "command": "C:\\Program Files\\IcyDraw\\IcyDraw.exe",
+                "command": "B:\\Backup2020\\Drawing\\ANSI\\Programs\\Icy Draw\\icy_draw.exe",
                 "args": [
                     "${file}"
                 ]
@@ -315,6 +317,7 @@
                 ]
             },
             "presentation": {
+                "close": true,
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
@@ -330,7 +333,7 @@
             "label": "ANSI: Open in PabloDraw",
             "type": "shell",
             "windows": {
-                "command": "C:\\Program Files\\PabloDraw\\PabloDraw.exe",
+                "command": "C:\\Program Files (x86)\\PabloDraw\\PabloDraw.exe",
                 "args": [
                     "--edit",
                     "${file}"
@@ -351,6 +354,7 @@
                 ]
             },
             "presentation": {
+                "close": true,
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
@@ -366,7 +370,7 @@
             "label": "ANSI: View in PabloDraw",
             "type": "shell",
             "windows": {
-                "command": "C:\\Program Files\\PabloDraw\\PabloDraw.exe",
+                "command": "C:\\Program Files (x86)\\PabloDraw\\PabloDraw.exe",
                 "args": [
                     "--file",
                     "${file}"
@@ -387,6 +391,7 @@
                 ]
             },
             "presentation": {
+                "close": true,
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
