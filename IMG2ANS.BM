@@ -169,4 +169,4 @@ SUB console.error(msg$)
     msg$ = ""
 END SUB
 
-'$INCLUDE:'include/MOUSE/MOUSE.BM'
+'$INCLUDE:'./include/MOUSE/MOUSE.BM'
