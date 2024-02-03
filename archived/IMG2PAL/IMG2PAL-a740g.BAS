@@ -1,13 +1,17 @@
 ''
 ' IMG2PAL
 '
-' Converts any QB64 supported image to a fixed color palette
+' Converts any QB64 supported image to a fixed color palette by calculating
+' the closest Euclidean Distance matching indexed color to RGB components.
 '
 ' EGA is currently used to support conversion of pixel art with IMG2ANS, but
-' I will also support loading .GPL files for indexed palettes besides EGA.
+' I will also support loading .PAL files for indexed palettes besides EGA.
 '
-' @author Rick Christy <grymmjack@gmail.com> - original crappy version :) 
-' @author Samuel Gomes <a740g@github> - QB64PE _RGB conversion, GPL loader fixes
+' @author Rick Christy <grymmjack@gmail.com>
+'
+' @see https://en.wikipedia.org/wiki/Euclidean_distance
+' @see https://stackoverflow.com/questions/57862060/finding-the-closest-indexed-color-value-to-the-current-color-in-javascript-p5
+' @see https://github.com/libgd/libgd/blob/58d25665be1c146e7284f253fa679e8256afa6cb/src/gd.c#L460
 '
 ' @version 0.1
 '
@@ -16,7 +20,7 @@ OPTION _EXPLICIT
 '$DYNAMIC
 
 ' Set this to FALSE to enable debugging output to the console
-$LET NDEBUG = FALSE
+$LET NDEBUG = TRUE
 
 $IF NDEBUG = FALSE THEN
         $DEBUG
@@ -25,38 +29,21 @@ $IF NDEBUG = FALSE THEN
 $END IF
 
 'Setup screen
-DIM SHARED CANVAS AS LONG
-CANVAS = _NEWIMAGE(3000, 2000, 32)
+DIM CANVAS AS LONG
+CANVAS = _NEWIMAGE(3000, 1080, 32)
 SCREEN CANVAS
-_FULLSCREEN _SQUAREPIXELS
 
-DIM SHARED AS LONG img_orig, img_pal
-DIM SHARED AS STRING k, img_file, pal_file
-DIM SHARED AS _BYTE no_dithering
-DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
-zoom = 1.0
-zoom_adj = 0.5
-zoom_min = 0.5
-zoom_max = 3.0
+DIM AS LONG img_orig, img_pal
+DIM AS STRING k, img_file, pal_file
+DIM AS _BYTE no_dithering
 
-draw_output
 DO
-    _LIMIT 30
     k$ = INKEY$
-    SELECT CASE k
+    SELECT CASE LCASE$(k$)
         CASE CHR$(27)
             EXIT DO
-        CASE CHR$(0) + CHR$(72) 'up arrow
-            _ASSERT 1, "Up"
-            zoom = zoom + zoom_adj
-            IF (zoom > zoom_max) THEN zoom = zoom_max
-            draw_output
-        CASE CHR$(0) + CHR$(80) 'down arrow
-            _ASSERT 1, "Down"
-            zoom = zoom - zoom_adj
-            IF (zoom < zoom_min) THEN zoom = zoom_min
-            draw_output
-        CASE LCASE$("l")
+
+        CASE "l"
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
                 "Choose an image", _
@@ -85,10 +72,9 @@ DO
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
-                draw_output
             END IF
 
-        CASE LCASE$("p")
+        CASE "p"
             ' Only allow to load a palette if the main image is loaded
             IF img_pal < -1 THEN
                 ' Choose a palette file with dialog
@@ -102,10 +88,9 @@ DO
                 IF LEN(pal_file$) <> 0 THEN
                     load_gpl_palette pal_file$, img_pal
                 END IF
-                draw_output
             END IF
 
-        CASE LCASE$("d")
+        CASE "d"
             no_dithering = NOT no_dithering
 
             IF LEN(img_file$) <> 0 THEN
@@ -127,9 +112,30 @@ DO
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
-                draw_output
             END IF
     END SELECT
+
+    CLS
+    COLOR _RGB32(255, 255, 255)
+    IF no_dithering THEN
+        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=DITHERING ESC=QUIT"
+    ELSE
+        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=NO DITHERING ESC=QUIT"
+    END IF
+
+    ' Draw the images if they are loaded
+    IF img_orig < -1 THEN
+        _PUTIMAGE (0, 16), img_orig
+
+        ' Palletize the image only if everything is proper
+        IF img_pal < -1 THEN
+            palettize img_pal, img_orig
+
+            _PUTIMAGE (_WIDTH(img_orig) + 10, 16), img_pal
+        END IF
+    END IF
+
+    SLEEP
 LOOP
 
 IF img_orig < -1 THEN _FREEIMAGE img_orig
@@ -137,55 +143,6 @@ IF img_pal < -1 THEN _FREEIMAGE img_pal
 SCREEN 0
 _FREEIMAGE CANVAS
 SYSTEM
-
-
-SUB draw_output
-    CLS
-    COLOR _RGB32(255, 255, 255)
-    IF no_dithering THEN
-        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=DITHERING, UP/DOWN=ZOOM, ESC=QUIT - ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom))
-    ELSE
-        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=NO DITHERING, UP/DOWN=ZOOM,  ESC=QUIT - ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom))
-    END IF
-
-    ' Draw the images if they are loaded
-    IF img_orig < -1 THEN
-        _ASSERT 1, "bh="+_TRIM$(STR$(_HEIGHT(img_orig)))
-        _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
-        DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
-        dx1_orig = 0
-        dy1_orig = 16
-        dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
-        dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
-        _ASSERT 1, "(" _
-            + _TRIM$(STR$(dx1_orig)) + "," _
-            + _TRIM$(STR$(dy1_orig)) + ")-(" _
-            + _TRIM$(STR$(dx2_orig)) + "," _ 
-            + _TRIM$(STR$(dy2_orig)) + ")"
-        _PUTIMAGE (dx1_orig, dy1_orig)-(dx2_orig, dy2_orig), img_orig
-
-        ' Palletize the image only if everything is proper
-        IF img_pal < -1 THEN
-            palettize img_pal, img_orig
-            DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
-            dx1_pal = dx2_orig + 10
-            dy1_pal = 16
-            dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
-            dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
-        _ASSERT 1, "(" _
-            + _TRIM$(STR$(dx1_pal)) + "," _
-            + _TRIM$(STR$(dy1_pal)) + ")-(" _
-            + _TRIM$(STR$(dx2_pal)) + "," _ 
-            + _TRIM$(STR$(dy2_pal)) + ")"
-            _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), img_pal
-        END IF
-        _ASSERT 1, "ah="+_TRIM$(STR$(_HEIGHT(img_orig)))
-        _ASSERT 1, "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
-    END IF
-    _ASSERT 1, "ZOOM=" + _TRIM$(STR$(zoom))
-END SUB
 
 
 
@@ -248,7 +205,7 @@ SUB load_default_ega_palette (dst AS LONG)
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
 
     $IF NDEBUG = FALSE THEN
-            _ASSERT 1, "Clearing dst palette..."
+            _ECHO "Clearing dst palette..."
     $END IF
 
     ' Clear the palette
@@ -257,7 +214,7 @@ SUB load_default_ega_palette (dst AS LONG)
     NEXT i
 
     $IF NDEBUG = FALSE THEN
-            _ASSERT 1, "Loading default palette..."
+            _ECHO "Loading default palette..."
     $END IF
 
     ' Load our palette
@@ -269,12 +226,12 @@ SUB load_default_ega_palette (dst AS LONG)
         _PALETTECOLOR i, _RGB32(VAL("&h" + r), VAL("&h" + g), VAL("&h" + b)), dst
 
         $IF NDEBUG = FALSE THEN
-                _ASSERT 1, "Color" + STR$(i) + "=" + STR$(VAL("&h" + r)) + "," + STR$(VAL("&h" + g)) + "," + STR$(VAL("&h" + b))
+                _ECHO "Color" + STR$(i) + "=" + STR$(VAL("&h" + r)) + "," + STR$(VAL("&h" + g)) + "," + STR$(VAL("&h" + b))
         $END IF
     NEXT i
 
     $IF NDEBUG = FALSE THEN
-            _ASSERT 1, "Done!"
+            _ECHO "Done!"
     $END IF
 
     'EGA palette is easy to use in hex color value format
@@ -317,7 +274,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
 
     IF lin = "GIMP Palette" THEN
         $IF NDEBUG = FALSE THEN
-                _ASSERT 1, "Clearing dst palette..."
+                _ECHO "Clearing dst palette..."
         $END IF
 
         ' Clear the palette
@@ -328,7 +285,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
         DIM c AS LONG
 
         $IF NDEBUG = FALSE THEN
-                _ASSERT 1, "Loading palette from " + gpl_file + "..."
+                _ECHO "Loading palette from " + gpl_file + "..."
         $END IF
 
         WHILE NOT EOF(fh)
@@ -342,7 +299,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
                 ' Skip comments and other junk (i.e. first character is not a digit)
                 IF char >= 48 AND char <= 57 THEN
                     $IF NDEBUG = FALSE THEN
-                            _ASSERT 1, "Parsing text: " + lin
+                            _ECHO "Parsing text: " + lin
                     $END IF
 
                     ' Parse and read the 3 color components
@@ -365,7 +322,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
                             _PALETTECOLOR c, _RGB32(clr(0), clr(1), clr(2)), dst
 
                             $IF NDEBUG = FALSE THEN
-                                    _ASSERT 1, "Color" + STR$(c) + "=" + STR$(clr(0)) + "," + STR$(clr(1)) + "," + STR$(clr(2))
+                                    _ECHO "Color" + STR$(c) + "=" + STR$(clr(0)) + "," + STR$(clr(1)) + "," + STR$(clr(2))
                             $END IF
 
                             c = c + 1
@@ -380,7 +337,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
         WEND
 
         $IF NDEBUG = FALSE THEN
-                _ASSERT 1, "Done!"
+                _ECHO "Done!"
         $END IF
 
         ' load the default palette if no color was loaded

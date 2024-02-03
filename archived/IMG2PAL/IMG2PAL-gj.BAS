@@ -38,7 +38,7 @@ EGA~&(13) = &HFFFF55FF
 EGA~&(14) = &HFFFFFF55
 EGA~&(15) = &HFFFFFFFF
 '0 = RED, 1 = GREEN, 2 = BLUE, 3 = ALPHA
-REDIM SHARED indexedColors(0 TO 15, 0 TO 2) AS LONG
+REDIM SHARED indexedColors(0 TO 15, 0 TO 2) AS _UNSIGNED _BYTE
 
 'Setup screen
 DIM SHARED CANVAS AS LONG
@@ -50,7 +50,7 @@ SCREEN CANVAS&
 ' By default
 DIM i AS INTEGER
 FOR i% = LBOUND(EGA~&) TO UBOUND(EGA~&)
-    CALL hex_to_rgb(EGA~&(), indexedColors&(), i%)
+    CALL hex_to_rgb(EGA~&(), indexedColors~%%(), i%)
 NEXT i%
 
 DIM SHARED AS LONG img_orig, img_pal
@@ -93,7 +93,7 @@ DO:
                 0 _
             )
             IF pal_file$ <> "" THEN
-                CALL load_gpl_palette_to_array(pal_file$, indexedColors&())
+                CALL load_gpl_palette_to_array(pal_file$, indexedColors~%%())
             END IF
     END SELECT
     display_original
@@ -144,20 +144,19 @@ SUB palettize
     _SOURCE img_orig&
     _DEST img_pal&
     CLS
-    DIM AS INTEGER w, h, y, x, closest
-    DIM AS LONG cr, cg, cb
+    DIM AS INTEGER w, h, y, x, closest, cr, cg, cb
     w% = _WIDTH(img_orig&)
     h% = _HEIGHT(img_orig&)
     FOR y%=0 TO h%
         FOR x%=0 TO w%
-            cr& = _RED32(POINT(x%, y%))
-            cg& = _GREEN32(POINT(x%, y%))
-            cb& = _BLUE32(POINT(x%, y%))
-            closest% = closest_color_index%(cr&, cg&, cb&, indexedColors&())
+            cr% = _RED32(POINT(x%, y%))
+            cg% = _GREEN32(POINT(x%, y%))
+            cb% = _BLUE32(POINT(x%, y%))
+            closest% = closest_color_index%(cr%, cg%, cb%, indexedColors~%%())
             PSET(x%, y%), _RGB32( _
-                indexedColors&(closest%, 0), _
-                indexedColors&(closest%, 1), _
-                indexedColors&(closest%, 2) _
+                indexedColors~%%(closest%, 0), _
+                indexedColors~%%(closest%, 1), _
+                indexedColors~%%(closest%, 2) _
             )
         NEXT x%
     NEXT y%
@@ -189,12 +188,12 @@ END FUNCTION
 ' @param ARRAY _UNSIGNED _BYTE dest_pal destination palette for components
 ' @param INTEGER idx Index of arrays to work on
 '
-SUB hex_to_rgb(src_pal&(), dest_pal&(), idx%)
-    DIM c AS LONG
-    c& = src_pal&(idx%)
-    dest_pal&(idx%, 0) = _RED32(c&)
-    dest_pal&(idx%, 1) = _GREEN32(c&)
-    dest_pal&(idx%, 2) = _BLUE32(c&)
+SUB hex_to_rgb(src_pal~&(), dest_pal~%%(), idx%)
+    DIM c AS _UNSIGNED LONG
+    c~& = src_pal~&(idx%)
+    dest_pal~%%(idx%, 0) = _RED32(c~&)
+    dest_pal~%%(idx%, 1) = _GREEN32(c~&)
+    dest_pal~%%(idx%, 2) = _BLUE32(c~&)
 END SUB
 
 
@@ -212,18 +211,17 @@ END SUB
 ' @param ARRAY _UNSIGNED _BYTE pal Palette to search for matches in
 ' @return INTEGER index of the closest color in palette to passed in RGB color
 '
-FUNCTION closest_color_index%(r&, g&, b&, pal&())
-    DIM AS INTEGER i, found, first
-    DIM AS LONG rr, gg, bb
-    DIM AS SINGLE dist, mindist
-    dist! = 0 : mindist! = 0 : first% = 1
-    FOR i% = LBOUND(pal&) TO UBOUND(pal&)
-        rr& = pal&(i%, 0) - r&
-        gg& = pal&(i%, 1) - g&
-        bb& = pal&(i%, 2) - b&
-        dist! = rr& * rr& + gg& * gg& + bb& * bb&
-        IF first% OR (dist! < mindist!) THEN
-            mindist! = dist!
+FUNCTION closest_color_index%(r%, g%, b%, pal~%%())
+    DIM AS INTEGER i, found, rr, gg, bb, first
+    DIM AS LONG dist, mindist
+    dist& = 0 : mindist& = 0 : first% = 1
+    FOR i% = LBOUND(pal~%%) TO UBOUND(pal~%%)
+        rr% = pal~%%(i%, 0) - r%
+        gg% = pal~%%(i%, 1) - g%
+        bb% = pal~%%(i%, 2) - b%
+        dist& = rr% * rr% + gg% * gg% + bb% * bb%
+        IF first% OR (dist& < mindist&) THEN
+            mindist& = dist&
             found% = i%
             first% = 0
         END IF
@@ -238,11 +236,11 @@ END FUNCTION
 ' @param STRING gpl_file Filename of GPL palette to load
 ' @param ARRAY _UNSIGNED _BYTE pal to load RGB components into (must be REDIMable)
 ' 
-SUB load_gpl_palette_to_array(gpl_file$, pal&())
+SUB load_gpl_palette_to_array(gpl_file$, pal~%%())
     DIM AS LONG fh
     DIM AS INTEGER i, count, pal_cols
     DIM AS STRING lin, pal_name, pal_cmnt, r, g, b
-    DIM c(0 TO 255, 0 TO 2) AS LONG
+    DIM c(0 TO 255, 0 TO 2) AS _UNSIGNED _BYTE
     fh& = FREEFILE 
     OPEN gpl_file$ FOR INPUT AS #fh&
         LINE INPUT #fh&, lin$
@@ -260,7 +258,7 @@ SUB load_gpl_palette_to_array(gpl_file$, pal&())
             pal_cmnt$ = MID$(lin$, LEN("# "))
             
             ' Clear color array
-            REDIM pal(0 TO 255, 0 TO 2) AS LONG
+            REDIM pal(0 TO 255, 0 TO 2) AS _UNSIGNED _BYTE
 
             ' Get colors
             i% = 0 : count% = 0
@@ -272,19 +270,19 @@ SUB load_gpl_palette_to_array(gpl_file$, pal&())
                 ' PRINT "COLOR #"; i%,
                 ' PRINT "R:";r$,"G:";g$,"B:";b$
                 ' Add color to palette array
-                c&(i%, 0) = VAL(r$)
-                c&(i%, 1) = VAL(g$)
-                c&(i%, 2) = VAL(b$)
+                c~%%(i%, 0) = VAL(r$)
+                c~%%(i%, 1) = VAL(g$)
+                c~%%(i%, 2) = VAL(b$)
                 i% = i% + 1
             LOOP UNTIL EOF(fh&)
             
             ' Put colors in array
             count% = i%
-            REDIM pal(0 TO count%, 0 TO 2) AS LONG
+            REDIM pal(0 TO count%, 0 TO 2) AS _UNSIGNED _BYTE
             FOR i%=0 TO count% 
-                pal&(i%, 0) = c&(i%, 0)
-                pal&(i%, 1) = c&(i%, 1)
-                pal&(i%, 2) = c&(i%, 2)
+                pal~%%(i%, 0) = c~%%(i%, 0)
+                pal~%%(i%, 1) = c~%%(i%, 1)
+                pal~%%(i%, 2) = c~%%(i%, 2)
             NEXT i%
         END IF
     CLOSE fh&

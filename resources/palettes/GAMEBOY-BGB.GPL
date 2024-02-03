@@ -1,0 +1,8 @@
+GIMP Palette
+#Palette Name: Nintendo Gameboy (bgb)
+#Description: The default palette used by the <a href="http://bgb.bircd.org/">bgb emulator</a> for Gameboy games.
+#Colors: 4
+8	24	32	081820
+52	104	86	346856
+136	192	112	88c070
+224	248	208	e0f8d0

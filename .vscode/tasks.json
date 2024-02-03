@@ -1,9 +1,58 @@
 {
     "version": "2.0.0",
+    "inputs": [
+        {
+            "id": "QB64PEwiki",
+            "type": "command",
+            "command": "simpleBrowser.show",
+            "args": [
+                "https://qb64phoenix.com/qb64wiki"
+            ]
+        },
+        {
+            "id": "QB64PEforums",
+            "type": "command",
+            "command": "simpleBrowser.show",
+            "args": [
+                "https://qb64phoenix.com"
+            ]
+        }
+    ],
     "tasks": [
         {
-            "label": "RUN: Run",
-            "dependsOn": "Compile",
+            "label": "HELP: QB64PE Wiki",
+            "command": "${input:QB64PEwiki}"
+        },
+        {
+            "label": "HELP: QB64PE Forums",
+            "command": "${input:QB64PEforums}"
+        },
+        {
+            "label": "HELP: InForm-PE Wiki",
+            "command": "OpenWebPage",
+            "type": "shell",
+            "linux": {
+                "command": "setsid xdg-open https://github.com/a740g/InForm-PE/wiki",
+            },
+            "osx": {
+                "command": "open https://github.com/a740g/InForm-PE/wiki",
+            },
+            "windows": {
+                "command": "start https://github.com/a740g/InForm-PE/wiki",
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": false,
+                "close": true
+            }
+        },
+        {
+            "label": "EXECUTE: Run",
+            "dependsOn": "BUILD: Compile",
             "type": "shell",
             "windows": {
                 "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
@@ -43,18 +92,16 @@
                 ]
             },
             "linux": {
-                "command": "~/git/InForm-PE/UiEditor",
-                "args": [
-                    "${file}"
-                ]
+                "command": "setsid --fork /home/grymmjack/git/InForm-PE/UiEditor \"${file}\""
             },
             "presentation": {
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
-                "panel": "shared",
+                "panel": "dedicated",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "build"
@@ -70,31 +117,29 @@
                 ]
             },
             "osx": {
-                "command": "~/git/QB64pe/qb64pe",
+                "command": "/home/grymmjack/git/QB64pe/qb64pe",
                 "args": [
                     "${file}"
                 ]
             },
             "linux": {
-                "command": "~/git/QB64pe/qb64pe",
-                "args": [
-                    "${file}"
-                ]
+                "command": "setsid --fork /home/grymmjack/git/QB64pe/qb64pe \"${file}\""
             },
             "presentation": {
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
-                "panel": "shared",
+                "panel": "dedicated",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "build"
             }
         },
         {
-            "label": "RUN: Selected File",
+            "label": "EXECUTE: Selected File",
             "type": "shell",
             "windows": {
                 "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
@@ -103,15 +148,16 @@
                 "command": "${fileDirname}/${fileBasenameNoExtension}.run",
             },
             "linux": {
-                "command": "${fileDirname}/${fileBasenameNoExtension}.run",
+                "command": "setsid --fork ${fileDirname}/${fileBasenameNoExtension}.run",
             },
             "presentation": {
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
-                "panel": "shared",
+                "panel": "dedicated",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "build"
@@ -133,18 +179,16 @@
                 ]
             },
             "linux": {
-                "command": "/usr/bin/gimp-2.10",
-                "args": [
-                    "${file}"
-                ]
+                "command": "setsid --fork /usr/bin/gimp-2.10 \"${file}\""
             },
             "presentation": {
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
-                "panel": "shared",
+                "panel": "dedicated",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
@@ -166,18 +210,16 @@
                 ]
             },
             "linux": {
-                "command": "/usr/bin/inkscape",
-                "args": [
-                    "${file}"
-                ]
+                "command": "setsid --fork /usr/bin/inkscape \"${file}\""
             },
             "presentation": {
                 "echo": false,
                 "reveal": "never",
                 "focus": false,
-                "panel": "shared",
+                "panel": "dedicated",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
@@ -199,18 +241,7 @@
                 ]
             },
             "linux": {
-                "command": "/usr/bin/flatpak",
-                "args": [
-                    "run",
-                    "--branch=stable",
-                    "--arch=x86_64",
-                    "--command=krita",
-                    "--file-forwarding",
-                    "org.kde.krita",
-                    "@@",
-                    "${file}",
-                    "@@"
-                ]
+                "command": "setsid --fork /var/lib/flatpak/exports/bin/org.kde.krita \"${file}\""
             },
             "presentation": {
                 "echo": false,
@@ -218,7 +249,8 @@
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
@@ -240,10 +272,7 @@
                 ]
             },
             "linux": {
-                "command": "/home/grymmjack/.local/share/Steam/steamapps/common/Aseprite/aseprite",
-                "args": [
-                    "${file}"
-                ]
+                "command": "setsid --fork /home/grymmjack/.local/share/Steam/steamapps/common/Aseprite/aseprite \"${file}\""
             },
             "presentation": {
                 "close": true,
@@ -252,14 +281,15 @@
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
             }
         },
         {
-            "label": "ANSI: Open in MoebiusXBIN",
+            "label": "TEXTMODE: Open in MoebiusXBIN",
             "type": "shell",
             "windows": {
                 "command": "B:\\Backup2020\\Drawing\\ANSI\\Programs\\Moebius x-bin GJ Edition\\MoebiusXBIN.exe",
@@ -276,11 +306,7 @@
                 ]
             },
             "linux": {
-                "command": "/opt/MoebiusXBIN/moebius",
-                "args": [
-                    "--no-sandbox",
-                    "${file}"
-                ]
+                "command": "setsid --fork /opt/MoebiusXBIN/moebius --no-sandbox \"${file}\""
             },
             "presentation": {
                 "close": true,
@@ -289,14 +315,15 @@
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
             }
         },
         {
-            "label": "ANSI: Open in IcyDraw",
+            "label": "TEXTMODE: Open in IcyDraw",
             "type": "shell",
             "windows": {
                 "command": "B:\\Backup2020\\Drawing\\ANSI\\Programs\\Icy Draw\\icy_draw.exe",
@@ -311,10 +338,7 @@
                 ]
             },
             "linux": {
-                "command": "/usr/bin/icy_draw",
-                "args": [
-                    "${file}"
-                ]
+                "command": "setsid --fork /usr/bin/icy_draw \"${file}\""
             },
             "presentation": {
                 "close": true,
@@ -323,14 +347,15 @@
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
             }
         },
         {
-            "label": "ANSI: Open in PabloDraw",
+            "label": "TEXTMODE: Open in PabloDraw",
             "type": "shell",
             "windows": {
                 "command": "C:\\Program Files (x86)\\PabloDraw\\PabloDraw.exe",
@@ -347,11 +372,7 @@
                 ]
             },
             "linux": {
-                "command": "/home/grymmjack/git/pablodraw/artifacts/bin/PabloDraw/Debug/net7.0/linux-x64/PabloDraw",
-                "args": [
-                    "--edit",
-                    "${file}"
-                ]
+                "command": "setsid --fork /home/grymmjack/git/pablodraw/artifacts/bin/PabloDraw/Debug/net7.0/linux-x64/PabloDraw --edit \"${file}\""
             },
             "presentation": {
                 "close": true,
@@ -360,14 +381,15 @@
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
             }
         },
         {
-            "label": "ANSI: View in PabloDraw",
+            "label": "TEXTMODE: View in PabloDraw",
             "type": "shell",
             "windows": {
                 "command": "C:\\Program Files (x86)\\PabloDraw\\PabloDraw.exe",
@@ -384,11 +406,7 @@
                 ]
             },
             "linux": {
-                "command": "/home/grymmjack/git/pablodraw/artifacts/bin/PabloDraw/Debug/net7.0/linux-x64/PabloDraw",
-                "args": [
-                    "--file",
-                    "${file}"
-                ]
+                "command": "setsid --fork /home/grymmjack/git/pablodraw/artifacts/bin/PabloDraw/Debug/net7.0/linux-x64/PabloDraw --file \"${file}\""
             },
             "presentation": {
                 "close": true,
@@ -397,15 +415,16 @@
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
-                "clear": false
+                "clear": false,
+                "close": true
             },
             "group": {
                 "kind": "none"
             }
         },
         {
-            "label": "Compile",
-            "dependsOn": "Remove",
+            "label": "BUILD: Compile",
+            "dependsOn": "BUILD: Remove",
             "type": "shell",
             "windows": {
                 "command": "${config:qb64.compilerPath}",
@@ -445,7 +464,7 @@
             }
         },
         {
-            "label": "Remove",
+            "label": "BUILD: Remove",
             "type": "shell",
             "windows": {
                 "command": "del",

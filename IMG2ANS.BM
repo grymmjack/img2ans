@@ -1,93 +1,199 @@
+''
+' IMG2ANS - IMG2ANS_BM (Module)
+' 
+' @depends IMG2ANS.BI
+' @depends IMG2ANS.BAS
+' @depends include/MOUSE/MOUSE.BM
+' @depends include/InForm/InFormCommon.bi
+' @depends include/InForm/InForm.bi
+' @depends include/InForm/InForm.ui
+'
+$IF IMG2ANS_BM = UNDEFINED THEN
+    $LET IMG2ANS_BM = TRUE
+$END IF
+
+
 
 ''
-' Browses for image files using OS file browser dialog
+' Sets input focus to image
+' @param LONG pb picturebox control
 '
-SUB BrowseForImageFiles
-    DIM AS STRING SRC_FILE, filename, slash
-    DIM AS INTEGER i, n, l, ch
-    slash$ = "/" : IF _OS$ = "WINDOWS" THEN slash$ = "\"
-    n% = UBOUND(ImageListFilenames$)
+SUB SetImgFocus(pb&)
+    console.warn "SetImgFocus"
+    ClearImgFocus
+    Control(pb&).BorderColor = _RGB32(255, 0, 0)
+    Control(pb&).Redraw = TRUE
+END SUB
 
+
+''
+' Clears ImgFocus
+'
+SUB ClearImgFocus
+    console.warn "ClearImgFocus"
+    Control(SI_SourceImgPB).BorderColor  = _RGB32(167, 166, 170)
+    Control(DP_DestPalPB).BorderColor    = _RGB32(167, 166, 170)
+    Control(RC_ResizeCropPB).BorderColor = _RGB32(167, 166, 170)
+    Control(P_PreviewPB).BorderColor     = _RGB32(167, 166, 170)
+    Control(SI_SourceImgPB).Redraw       = TRUE
+    Control(DP_DestPalPB).Redraw         = TRUE
+    Control(RC_ResizeCropPB).Redraw      = TRUE
+    Control(P_PreviewPB).Redraw          = TRUE
+END SUB
+
+
+''
+' Load Image into PictureBox
+' @param IMAGE img to load
+' @param LONG pb Control ID of PictueBox
+'
+SUB LoadImageIntoPB(img AS IMAGE, pb&)
+    console.warn "LoadImageIntoPB"
+    img.file_path$  = BrowseForImageFile$
+    img.file_name$  = MID$(img.file_path$, _INSTRREV(img.file_path$, SLASH$) + 1)
+    img.file_ext$   = MID$(img.file_name$, _INSTRREV(img.file_name$, "."))
+    img.ID&         = pb&
+    LoadImage Control(img.ID&), img.file_path$
+    img.handle&     = Control(img.ID&).HelperCanvas&
+    img.src_w%      = _WIDTH(img.handle&)
+    img.src_h%      = _HEIGHT(img.handle&)
+    img.src_x%      = 1
+    img.src_y%      = 1
+    img.dst_w%      = _WIDTH(img.handle&)
+    img.dst_h%      = _HEIGHT(img.handle&)
+    img.dst_x%      = 1
+    img.dst_y%      = 1
+    img.x_offset%   = 0
+    img.y_offset%   = 0
+    img.zoom!       = 1
+    img.has_mouse%% = FALSE
+    img.has_focus%% = TRUE
+    CALL console.dir_image(img)
+END SUB
+
+
+''
+' Browses for image file using OS file browser dialog
+'
+FUNCTION BrowseForImageFile$
+    console.info "BrowseForImageFile$"
     ' Choose an image file with dialog
-    SRC_FILE$ = _OPENFILEDIALOG$( _
+    BrowseForImageFile$ = _OPENFILEDIALOG$( _
         "Choose an image", _
-        , _
+        "", _
         "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi", _
         "Image Files", _
         -1 _
     )
-    IF SRC_FILE$ <> "" THEN
-        SRC_FILE$ = SRC_FILE$ + "|"
-        l% = LEN(SRC_FILE$)
-        FOR i%=0 TO l%
-            IF i%+1 <= l% THEN ' At end of file list, do nothing
-                ch% = ASC(SRC_FILE$, i%+1)
-                IF CHR$(ch%) = "|" THEN ' File found
-                    REDIM _PRESERVE ImageListFilenames(1 TO UBOUND(ImageListFilenames$)+1) AS STRING
-                    ImageListFilenames$(n%) = filename$
-                    echo "ImageListFilenames$(" + _TRIM$(STR$(n%)) + ")=" + filename$
-                    DIM fn AS STRING
-                    fn$ = MID$(filename$, _INSTRREV(filename$, slash$) + 1)
-                    echo "Filename: [" + filename$ + "]"
-                    echo "File: [" + fn$ + "]"
-                    AddItem ImagesList&, fn$
-                    filename$ = ""
-                    n% = n% + 1
-                ELSE ' Not at end of filename yet concat...
-                    filename$ = filename$ + CHR$(ch%)
-                END IF
-            END IF
-        NEXT i%
-    END IF
-END SUB
-
-
-''
-' Returns all image files in the list as a string
-' @return STRING
-'
-FUNCTION GetImageFilesAsString$()
-    DIM AS STRING ImageFiles, listValue
-    DIM i AS INTEGER
-    ImageFiles$ = ""
-    listValue$  = "START"
-    i% = 1
-    WHILE listValue$ <> ""
-        listValue$ = GetItem$(ImagesList&, i%)
-        IF listValue$ <> "" THEN
-            echo "i:" + STR$(i%) + ", listValue$: [" + listValue$ + "]"
-            ImageFiles$ = ImageFiles$ + listValue$ + "\n"
-            i% = i% + 1
-        END IF
-    WEND
-    GetImageFilesAsString$ = ImageFiles$
 END FUNCTION
 
 
-
 ''
-' Updates the ImagesList control tooltip with the full filename of selected image
+' Log IMAGE properties if DEBUGGING
+' @param IMAGE image to log properties of
 '
-SUB UpdateImagesListToolTip
-    DIM newVal as STRING
-    DIM index AS INTEGER
-    index% = Control(ImagesList&).Value
-    newVal = ImageListFilenames$(index%)
-    echo "Index: " + STR$(index%) + ", Value:" + newVal$
-    IF index% > 0 THEN
-        ToolTip(ImagesList&) = newVal$
-    ELSE
-        ToolTip(ImagesList&) = "Click Browse to select images to convert"
-    END IF
+SUB console.dir_image(img AS IMAGE)
+    console.warn _TRIM$(Control(img.ID&).Name$) + " {"
+    console.log "   ID&         = " + _TRIM$(STR$(img.ID&))
+    console.log "   handle&     = " + _TRIM$(STR$(img.handle&))
+    console.log "   file_name$  = " + img.file_name$
+    console.log "   file_path$  = " + img.file_path$
+    console.log "   file_ext$   = " + img.file_ext$
+    console.log "   src_w%      = " + _TRIM$(STR$(img.src_w%))
+    console.log "   src_h%      = " + _TRIM$(STR$(img.src_h%))
+    console.log "   src_x%      = " + _TRIM$(STR$(img.src_x%))
+    console.log "   src_y%      = " + _TRIM$(STR$(img.src_y%))
+    console.log "   dst_w%      = " + _TRIM$(STR$(img.dst_w%))
+    console.log "   dst_h%      = " + _TRIM$(STR$(img.dst_h%))
+    console.log "   dst_x%      = " + _TRIM$(STR$(img.dst_x%))
+    console.log "   dst_y%      = " + _TRIM$(STR$(img.dst_y%))
+    console.log "   x_offset%   = " + _TRIM$(STR$(img.x_offset%))
+    console.log "   y_offset%   = " + _TRIM$(STR$(img.y_offset%))
+    console.log "   has_mouse%% = " + _TRIM$(STR$(img.has_mouse%%))
+    console.log "   has_focus%% = " + _TRIM$(STR$(img.has_focus%%))
+    console.log "   zoom!       = " + _TRIM$(STR$(img.zoom!))
+    console.warn "}"
 END SUB
 
 
 ''
-' Wrap _ECHO if debugging enabled
-' @param STRING s$
+' Log a banner to console if DEBUGGING
+' @param STRING msg message to send
+' @param _UNSIGNED _BYTE kolor~%% color to use
 '
-SUB echo(s$)
-    $IF IMG2ANS_DEBUG = DEFINED THEN
-        _ECHO s$
+SUB console.banner(msg$, kolor~%%)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        msg$ = STR.replace$(msg$, "\n", CHR$(13), -1)
+        DIM AS STRING color_code
+        DIM AS _UNSIGNED _BYTE fg
+        color_code$ = e$
+        IF kolor~%% > 7 THEN 
+            fg~%% = kolor~%% - 8
+            color_code$ = color_code$ + "[1;" + _TRIM$(STR$(fg~%%)) + "m"
+        ELSE
+            fg~%% = kolor~%%
+            color_code$ = color_code$ + "[0;" + _TRIM$(STR$(fg~%%)) + "m"
+        END IF
+        _ECHO color_code$ + msg$ + e$ + "[0m"
     $END IF
+    msg$ = ""
 END SUB
+
+
+''
+' Log to console if DEBUGGING
+' @param STRING msg message to send
+'
+SUB console.log(msg$)
+    $IF DEBUGGING = TRUE THEN
+        _ECHO msg$
+    $END IF
+    msg$ = ""
+END SUB
+
+
+''
+' Log to console as info if DEBUGGING
+' @param STRING msg message to send
+'
+SUB console.info(msg$)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        _ECHO e$ + "[1;36m" + msg$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
+END SUB
+
+
+''
+' Log to console as warning if DEBUGGING
+' @param STRING msg message to send
+'
+SUB console.warn(msg$)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        _ECHO e$ + "[1;33m" + msg$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
+END SUB
+
+
+''
+' Log to console as error if DEBUGGING
+' @param STRING msg message to send
+'
+SUB console.error(msg$)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        _ECHO e$ + "[1;31m" + msg$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
+END SUB
+
+'$INCLUDE:'./include/MOUSE/MOUSE.BM'
+'$INCLUDE:'./include/QB64_GJ_LIB/STRINGS/STRINGS.BM'

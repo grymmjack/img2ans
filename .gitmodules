@@ -1,0 +1,6 @@
+[submodule "include/InForm-PE"]
+	path = include/InForm-PE
+	url = https://github.com/a740g/InForm-PE
+[submodule "include/QB64_GJ_LIB"]
+	path = include/QB64_GJ_LIB
+	url = https://github.com/grymmjack/QB64_GJ_LIB

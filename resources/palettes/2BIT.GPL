@@ -1,0 +1,8 @@
+GIMP Palette
+#Palette Name: 2-bit Grayscale
+#Description: A grayscale palette calculated using 2-bits per color. It was used by the original <a href="https://en.wikipedia.org/wiki/Game_Boy">gameboy</a> and <a href="https://en.wikipedia.org/wiki/List_of_monochrome_and_RGB_palettes#2-bit_Grayscale">a few other computer systems</a>.
+#Colors: 4
+0	0	0	000000
+103	103	103	676767
+182	182	182	b6b6b6
+255	255	255	ffffff

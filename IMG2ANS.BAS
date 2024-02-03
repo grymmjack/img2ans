@@ -5,8 +5,6 @@
 ': https://github.com/a740g/InForm-PE
 '-----------------------------------------------------------
 
-'$INCLUDE:'IMG2ANS.BI'
-
 ': Controls' IDs: ------------------------------------------------------------------
 'WINDOW
 DIM SHARED IMG2ANS AS LONG
@@ -88,9 +86,10 @@ DIM SHARED ST_StatusLB AS LONG
 
 
 ': External modules: ---------------------------------------------------------------
-'$INCLUDE:'include/InForm/InForm.bi'
-'$INCLUDE:'include/InForm/xp.uitheme'
-'$INCLUDE:'IMG2ANS.FRM'
+'$INCLUDE:'./include/InForm-PE/InForm/InForm.bi'
+'$INCLUDE:'./IMG2ANS.BI'
+'$INCLUDE:'./include/InForm-PE/InForm/xp.uitheme'
+'$INCLUDE:'./IMG2ANS.FRM'
 
 ': Event procedures: ---------------------------------------------------------------
 SUB __UI_BeforeInit
@@ -104,7 +103,27 @@ END SUB
 SUB __UI_BeforeUpdateDisplay
     'This event occurs at approximately 60 frames per second.
     'You can change the update frequency by calling SetFrameRate DesiredRate%
+    _LIMIT 60
+    SetFrameRate 60
 
+    ' Mouse input loop
+    IF __UI_HasInput%% THEN
+        ' Update mouse properties from InForm-PE READ-ONLY
+        IMOUSE_update
+
+        ' console.log "__UI_HasInput"
+        ' Log the dragging
+        IF SourceIMG.has_mouse%% THEN
+            ' console.warn "SourceIMG has mouse"
+            console.dir_mouse
+            IF MOUSE.dragging%% = TRUE THEN
+                console.banner "DRAGGING", 11
+            END IF
+            IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
+                console.banner "MOUSEWHEEL", 13
+            END IF
+        END IF
+    END IF
 END SUB
 
 SUB __UI_BeforeUnload
@@ -124,12 +143,11 @@ SUB __UI_Click (id AS LONG)
 
         'SI:SOURCE IMAGE
         CASE SI_SourceImgLB
-        CASE SI_SourceImgBrowseButtonBT
-            DIM stuff AS STRING
-            stuff$ = GetImageFilesAsString$
-            _MessageBox "Debug", "Images:\n\n" + stuff$, "info"        
+        CASE SI_SourceImgBrowseButtonBT 
+            CALL LoadImageIntoPB(SourceIMG, SI_SourceImgPB)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
+            SetImgFocus SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -143,6 +161,7 @@ SUB __UI_Click (id AS LONG)
         'DP:DESTINATION PALETTE
         CASE DP_DestPalCB
         CASE DP_DestPalPB
+            SetImgFocus DP_DestPalPB
         CASE DP_DestPalPalleteDL
         CASE DP_DestPalPalleteBrowseBT
         CASE DP_DestPalPaletteColorsPB
@@ -150,6 +169,7 @@ SUB __UI_Click (id AS LONG)
         'RC:RESIZE / CROP
         CASE RC_ResizeCropCB
         CASE RC_ResizeCropPB
+            SetImgFocus RC_ResizeCropPB
         CASE RC_ResizeCropXLB
         CASE RC_ResizeCropXTB
         CASE RC_ResizeCropYLB
@@ -162,6 +182,7 @@ SUB __UI_Click (id AS LONG)
         'P:PREVIEW
         CASE P_PreviewLB
         CASE P_PreviewPB
+            SetImgFocus P_PreviewPB
 
         'S:SAUCE
         CASE S_SauceFrame
@@ -209,6 +230,8 @@ SUB __UI_MouseEnter (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
+            CALL console.log("Entering SourceImg")
+            SourceIMG.has_mouse%% = TRUE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -288,6 +311,8 @@ SUB __UI_MouseLeave (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
+            CALL console.log("Leaving SourceImg")
+            SourceIMG.has_mouse%% = FALSE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -461,6 +486,7 @@ SUB __UI_MouseDown (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
+            CALL console.log("MOUSEDOWN on SourceImg")
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -540,6 +566,7 @@ SUB __UI_MouseUp (id AS LONG)
         CASE SI_SourceImgBrowseButtonBT
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
+            CALL console.log("MOUSEUP on SourceImg")
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -712,5 +739,5 @@ SUB __UI_FormResized
 
 END SUB
 
-'$INCLUDE:'include/InForm/InForm.ui'
-'$INCLUDE:'IMG2ANS.BM'
+'$INCLUDE:'./include/InForm-PE/InForm/InForm.ui'
+'$INCLUDE:'./IMG2ANS.BM'
