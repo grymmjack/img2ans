@@ -11,12 +11,12 @@ SUB IMOUSE_update
     ' MOUSE.m_up%%     = NOT _MOUSEBUTTON(3)
     MOUSE.w_up%%     = __UI_MouseWheel% = -1
     MOUSE.w_down%%   = __UI_MouseWheel% = 1
-    MOUSE.old_x%     = __UI_PrevMouseLeft%
-    MOUSE.old_y%     = __UI_PrevMouseTop%
+    MOUSE.old_x%     = MOUSE.x%
+    MOUSE.old_y%     = MOUSE.y%
     MOUSE.x%         = __UI_MouseLeft%
     MOUSE.y%         = __UI_MouseTop%
-    MOUSE.dragging%% = MOUSE.l_down%% AND MOUSE.old_x% <> MOUSE.x% _
-                    OR MOUSE.l_down%% AND MOUSE.old_y% <> MOUSE.y%
+    MOUSE.dragging%% = (MOUSE.l_down%% AND MOUSE.old_x% <> MOUSE.x%) _
+                    OR (MOUSE.l_down%% AND MOUSE.old_y% <> MOUSE.y%)
     MOUSE.dropping%% = MOUSE.l_up%% = TRUE AND NOT MOUSE.dragging%%
 END SUB
 
@@ -37,8 +37,8 @@ SUB MOUSE_update
     MOUSE.old_y%     = MOUSE.y%
     MOUSE.x%         = _MOUSEX
     MOUSE.y%         = _MOUSEY
-    MOUSE.dragging%% = MOUSE.l_down%% AND MOUSE.old_x% <> MOUSE.x% _
-                    OR MOUSE.l_down%% AND MOUSE.old_y% <> MOUSE.y%
+    MOUSE.dragging%% = (MOUSE.l_down%% AND MOUSE.old_x% <> MOUSE.x%) _
+                    OR (MOUSE.l_down%% AND MOUSE.old_y% <> MOUSE.y%)
     MOUSE.dropping%% = MOUSE.l_up%% = TRUE AND NOT MOUSE.dragging%%
 END SUB
 

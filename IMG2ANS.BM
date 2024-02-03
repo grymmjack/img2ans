@@ -117,6 +117,32 @@ END SUB
 
 
 ''
+' Log a banner to console if DEBUGGING
+' @param STRING msg message to send
+' @param _UNSIGNED _BYTE kolor~%% color to use
+'
+SUB console.banner(msg$, kolor~%%)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e
+        e$ = CHR$(27)
+        msg$ = STR.replace$(msg$, "\n", CHR$(13), -1)
+        DIM AS STRING color_code
+        DIM AS _UNSIGNED _BYTE fg
+        color_code$ = e$
+        IF kolor~%% > 7 THEN 
+            fg~%% = kolor~%% - 8
+            color_code$ = color_code$ + "[1;" + _TRIM$(STR$(fg~%%)) + "m"
+        ELSE
+            fg~%% = kolor~%%
+            color_code$ = color_code$ + "[0;" + _TRIM$(STR$(fg~%%)) + "m"
+        END IF
+        _ECHO color_code$ + msg$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
+END SUB
+
+
+''
 ' Log to console if DEBUGGING
 ' @param STRING msg message to send
 '
@@ -170,3 +196,4 @@ SUB console.error(msg$)
 END SUB
 
 '$INCLUDE:'./include/MOUSE/MOUSE.BM'
+'$INCLUDE:'./include/QB64_GJ_LIB/STRINGS/STRINGS.BM'

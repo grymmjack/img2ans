@@ -60,4 +60,5 @@ DIM SHARED AS IMAGE _
     PreviewIMG, _
     FinalIMG
 
-'$INCLUDE:'include/MOUSE/MOUSE.BI'
+'$INCLUDE:'./include/MOUSE/MOUSE.BI'
+'$INCLUDE:'./include/QB64_GJ_LIB/STRINGS/STRINGS.BI'

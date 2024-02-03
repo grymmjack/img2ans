@@ -86,10 +86,10 @@ DIM SHARED ST_StatusLB AS LONG
 
 
 ': External modules: ---------------------------------------------------------------
-'$INCLUDE:'include/InForm-PE/InForm/InForm.bi'
-'$INCLUDE:'IMG2ANS.BI'
-'$INCLUDE:'include/InForm-PE/InForm/xp.uitheme'
-'$INCLUDE:'IMG2ANS.FRM'
+'$INCLUDE:'./include/InForm-PE/InForm/InForm.bi'
+'$INCLUDE:'./IMG2ANS.BI'
+'$INCLUDE:'./include/InForm-PE/InForm/xp.uitheme'
+'$INCLUDE:'./IMG2ANS.FRM'
 
 ': Event procedures: ---------------------------------------------------------------
 SUB __UI_BeforeInit
@@ -106,18 +106,21 @@ SUB __UI_BeforeUpdateDisplay
     _LIMIT 60
     SetFrameRate 60
 
-    ' Update mouse properties from InForm-PE READ-ONLY
-    IMOUSE_update
-
     ' Mouse input loop
     IF __UI_HasInput%% THEN
+        ' Update mouse properties from InForm-PE READ-ONLY
+        IMOUSE_update
+
+        ' console.log "__UI_HasInput"
         ' Log the dragging
-        IF IMAGES(Source).has_mouse%% THEN
+        IF SourceIMG.has_mouse%% THEN
+            ' console.warn "SourceIMG has mouse"
+            console.dir_mouse
             IF MOUSE.dragging%% = TRUE THEN
-                console.warn "Dragging!"
+                console.banner "DRAGGING", 11
             END IF
             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
-                console.warn "Mousewheel!"
+                console.banner "MOUSEWHEEL", 13
             END IF
         END IF
     END IF
@@ -141,7 +144,7 @@ SUB __UI_Click (id AS LONG)
         'SI:SOURCE IMAGE
         CASE SI_SourceImgLB
         CASE SI_SourceImgBrowseButtonBT 
-            CALL LoadImageIntoPB(IMAGES(Source), SI_SourceImgPB)
+            CALL LoadImageIntoPB(SourceIMG, SI_SourceImgPB)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
             SetImgFocus SI_SourceImgPB
@@ -228,7 +231,7 @@ SUB __UI_MouseEnter (id AS LONG)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
             CALL console.log("Entering SourceImg")
-            IMAGES(Source).has_mouse%% = TRUE
+            SourceIMG.has_mouse%% = TRUE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -309,7 +312,7 @@ SUB __UI_MouseLeave (id AS LONG)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB
             CALL console.log("Leaving SourceImg")
-            IMAGES(Source).has_mouse%% = FALSE
+            SourceIMG.has_mouse%% = FALSE
         CASE SI_SourceImgBrightnessLB
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
@@ -736,5 +739,5 @@ SUB __UI_FormResized
 
 END SUB
 
-'$INCLUDE:'include/InForm-PE/InForm/InForm.ui'
-'$INCLUDE:'IMG2ANS.BM'
+'$INCLUDE:'./include/InForm-PE/InForm/InForm.ui'
+'$INCLUDE:'./IMG2ANS.BM'
