@@ -103,40 +103,41 @@ SUB __UI_BeforeUpdateDisplay
     'You can change the update frequency by calling SetFrameRate DesiredRate%
     SetFrameRate 120
 
-    ' Keyboard input handling
-    DIM AS _UNSIGNED _BYTE IS_SHIFT, IS_ALT, IS_CTRL
-    IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN IS_SHIFT~%% = TRUE
-    IF _KEYDOWN(KEY_LALT&)   OR _KEYDOWN(KEY_RALT&)   THEN IS_ALT~%% = TRUE
-    IF _KEYDOWN(KEY_LCTRL&)  OR _KEYDOWN(KEY_RCTRL&)  THEN IS_CTRL~%% = TRUE
-    DIM AS STRING msg
-    msg$ = ""
-    IF IS_CTRL~%%  THEN msg$ = msg$ + "[CTRL]+"
-    IF IS_ALT~%%   THEN msg$ = msg$ + "[ALT]+"
-    IF IS_SHIFT~%% THEN msg$ = msg$ + "[SHIFT]+"
-
-    IF __UI_KeyHit THEN
-        SELECT CASE __UI_KeyHit
-            CASE KEY_ESCAPE:
-                console.box msg$ + "ESCAPE", BRIGHT_MAGENTA
-                SYSTEM
-            CASE KEY_SPACE:
-                console.box msg$ + "SPACE", BRIGHT_MAGENTA
-            CASE KEY_LEFT:
-                console.box msg$ + "LEFT", BRIGHT_MAGENTA
-            CASE KEY_RIGHT:
-                console.box msg$ + "RIGHT", BRIGHT_MAGENTA
-            CASE KEY_UP:
-                console.box msg$ + "UP", BRIGHT_MAGENTA
-            CASE KEY_DOWN:
-                console.box msg$ + "DOWN", BRIGHT_MAGENTA
-            CASE ELSE:
-                _ECHO CHR$(__UI_KeyHit)
-                console.box msg$ + CHR$(__UI_KeyHit), BRIGHT_MAGENTA
-        END SELECT
-    END IF
-
-    ' Mouse input handling
+    ' Input handling
     IF __UI_HasInput%% THEN
+        ' Keyboard input handling
+        DIM AS _UNSIGNED _BYTE IS_SHIFT, IS_ALT, IS_CTRL
+        IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN IS_SHIFT~%% = TRUE
+        IF _KEYDOWN(KEY_LALT&)   OR _KEYDOWN(KEY_RALT&)   THEN IS_ALT~%% = TRUE
+        IF _KEYDOWN(KEY_LCTRL&)  OR _KEYDOWN(KEY_RCTRL&)  THEN IS_CTRL~%% = TRUE
+        DIM AS STRING msg
+        msg$ = ""
+        IF IS_CTRL~%%  THEN msg$ = msg$ + "[CTRL]+"
+        IF IS_ALT~%%   THEN msg$ = msg$ + "[ALT]+"
+        IF IS_SHIFT~%% THEN msg$ = msg$ + "[SHIFT]+"
+
+        IF __UI_KeyHit THEN
+            SELECT CASE __UI_KeyHit
+                CASE KEY_ESCAPE:
+                    console.box msg$ + "ESCAPE", BRIGHT_MAGENTA
+                    SYSTEM
+                CASE KEY_SPACE:
+                    console.box msg$ + "SPACE", BRIGHT_MAGENTA
+                CASE KEY_LEFT:
+                    console.box msg$ + "LEFT", BRIGHT_MAGENTA
+                CASE KEY_RIGHT:
+                    console.box msg$ + "RIGHT", BRIGHT_MAGENTA
+                CASE KEY_UP:
+                    console.box msg$ + "UP", BRIGHT_MAGENTA
+                CASE KEY_DOWN:
+                    console.box msg$ + "DOWN", BRIGHT_MAGENTA
+                CASE ELSE:
+                    _ECHO CHR$(__UI_KeyHit)
+                    console.box msg$ + CHR$(__UI_KeyHit), BRIGHT_MAGENTA
+            END SELECT
+        END IF
+
+        ' Mouse input handling
         ' Update mouse properties from InForm-PE READ-ONLY
         IMOUSE_update
 
@@ -152,10 +153,7 @@ SUB __UI_BeforeUpdateDisplay
                 console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), CYAN
             END IF
         END IF
-
-
     END If
-
 END SUB
 
 SUB __UI_BeforeUnload
