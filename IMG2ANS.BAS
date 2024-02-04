@@ -101,10 +101,25 @@ END SUB
 SUB __UI_BeforeUpdateDisplay
     'This event occurs at approximately 60 frames per second.
     'You can change the update frequency by calling SetFrameRate DesiredRate%
-    _LIMIT 60
-    SetFrameRate 60
 
-    ' Mouse input loop
+    ' Keyboard input handling
+    SELECT CASE __UI_KeyHit
+        CASE K_ESCAPE:
+            console.box "ESCAPE", BRIGHT_MAGENTA
+            SYSTEM
+        CASE K_SPACE:
+            console.box "SPACE", BRIGHT_MAGENTA
+        CASE K_LEFT:
+            console.box "LEFT", BRIGHT_MAGENTA
+        CASE K_RIGHT:
+            console.box "RIGHT", BRIGHT_MAGENTA
+        CASE K_UP:
+            console.box "UP", BRIGHT_MAGENTA
+        CASE K_DOWN:
+            console.box "DOWN", BRIGHT_MAGENTA
+    END SELECT
+
+    ' Mouse input handling
     IF __UI_HasInput%% THEN
         ' Update mouse properties from InForm-PE READ-ONLY
         IMOUSE_update
