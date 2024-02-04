@@ -119,20 +119,20 @@ END SUB
 ''
 ' Log a boxed message to console if DEBUGGING
 ' @param STRING msg message to send
-' @param _UNSIGNED _BYTE kolor~%% color to use
+' @param INTEGER kolor% color to use
 '
-SUB console.box(msg$, kolor~%%)
+SUB console.box(msg$, kolor%)
     $IF DEBUGGING = TRUE THEN
         DIM AS STRING e, color_code, top_line, bot_line
-        DIM AS _UNSIGNED _BYTE fg
+        DIM AS INTEGER fg, afg
+        DIM AS STRING intensity
+        intensity$ = "0"
         e$ = CHR$(27)
-        IF kolor~%% > 7 THEN 
-            fg~%% = kolor~%% - 8
-            color_code$ = e$ + "[1;3" + _TRIM$(STR$(fg~%%)) + "m"
-        ELSE
-            fg~%% = kolor~%%
-            color_code$ = e$ + "[0;3" + _TRIM$(STR$(fg~%%)) + "m"
-        END IF
+        afg% = ANSI_COLOR%(kolor%)
+        color_code$ = e$ + "["
+        IF kolor% > 7 THEN intensity$ = "1"
+        color_code$ = color_code$ + intensity$ + ";3"
+        color_code$ = color_code$ + _TRIM$(STR$(afg%)) + "m"
         top_line$ = "." + STRING$(LEN(msg$)+2, "-") + "."
         bot_line$ = "`" + STRING$(LEN(msg$)+2, "-") + "'"
         _ECHO color_code$ + top_line$

@@ -83,11 +83,9 @@ DIM SHARED E_ExportBT AS LONG
 DIM SHARED ST_StatusFrame AS LONG
 DIM SHARED ST_StatusLB AS LONG
 
-
-
 ': External modules: ---------------------------------------------------------------
-'$INCLUDE:'include/InForm-PE/InForm/InForm.bi'
 '$INCLUDE:'IMG2ANS.BI'
+'$INCLUDE:'include/InForm-PE/InForm/InForm.bi'
 '$INCLUDE:'include/InForm-PE/InForm/xp.uitheme'
 '$INCLUDE:'IMG2ANS.FRM'
 
@@ -117,9 +115,8 @@ SUB __UI_BeforeUpdateDisplay
             ' console.warn "SourceIMG has mouse"
             ' console.dir_mouse
             IF MOUSE.dragging%% = TRUE THEN
-                console.box "DRAGGING", 2
+                console.box "DRAGGING", 15
             END IF
-            console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), 12
             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
                 console.box "MOUSEWHEEL", 10
             END IF
