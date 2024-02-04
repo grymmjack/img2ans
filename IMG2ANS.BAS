@@ -101,23 +101,39 @@ END SUB
 SUB __UI_BeforeUpdateDisplay
     'This event occurs at approximately 60 frames per second.
     'You can change the update frequency by calling SetFrameRate DesiredRate%
+    SetFrameRate 120
 
     ' Keyboard input handling
-    SELECT CASE __UI_KeyHit
-        CASE K_ESCAPE:
-            console.box "ESCAPE", BRIGHT_MAGENTA
-            SYSTEM
-        CASE K_SPACE:
-            console.box "SPACE", BRIGHT_MAGENTA
-        CASE K_LEFT:
-            console.box "LEFT", BRIGHT_MAGENTA
-        CASE K_RIGHT:
-            console.box "RIGHT", BRIGHT_MAGENTA
-        CASE K_UP:
-            console.box "UP", BRIGHT_MAGENTA
-        CASE K_DOWN:
-            console.box "DOWN", BRIGHT_MAGENTA
-    END SELECT
+    DIM AS _UNSIGNED _BYTE IS_SHIFT, IS_ALT, IS_CTRL
+    IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN IS_SHIFT~%% = TRUE
+    IF _KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&) THEN IS_ALT~%% = TRUE
+    IF _KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&) THEN IS_CTRL~%% = TRUE
+
+    DIM AS STRING msg
+    msg$ = ""
+    IF IS_CTRL~%% THEN msg$ = msg$ + "[CTRL]+"
+    IF IS_ALT~%% THEN msg$ = msg$ + "[ALT]+"
+    IF IS_SHIFT~%% THEN msg$ = msg$ + "[SHIFT]+"
+
+    IF __UI_KeyHit THEN
+        SELECT CASE __UI_KeyHit
+            CASE KEY_ESCAPE:
+                console.box msg$ + "ESCAPE", BRIGHT_MAGENTA
+                SYSTEM
+            CASE KEY_SPACE:
+                console.box msg$ + "SPACE", BRIGHT_MAGENTA
+            CASE KEY_LEFT:
+                console.box msg$ + "LEFT", BRIGHT_MAGENTA
+            CASE KEY_RIGHT:
+                console.box msg$ + "RIGHT", BRIGHT_MAGENTA
+            CASE KEY_UP:
+                console.box msg$ + "UP", BRIGHT_MAGENTA
+            CASE KEY_DOWN:
+                console.box msg$ + "DOWN", BRIGHT_MAGENTA
+            CASE ELSE:
+                console.box msg$ + CHR$(__UI_KeyHit), BRIGHT_MAGENTA
+        END SELECT
+    END IF
 
     ' Mouse input handling
     IF __UI_HasInput%% THEN
