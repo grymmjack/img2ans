@@ -46,10 +46,11 @@ END SUB
 ' Load Image into PictureBox
 ' @param IMAGE img to load
 ' @param LONG pb Control ID of PictueBox
+' @param STRING directory to start in for file picker
 '
-SUB LoadImageIntoPB(img AS IMAGE, pb&)
+SUB LoadImageIntoPB(img AS IMAGE, pb&, directory$)
     console.warn "LoadImageIntoPB"
-    img.file_path$  = BrowseForImageFile$
+    img.file_path$  = BrowseForImageFile$(directory$)
     img.file_name$  = MID$(img.file_path$, _INSTRREV(img.file_path$, SLASH$) + 1)
     img.file_ext$   = MID$(img.file_name$, _INSTRREV(img.file_name$, "."))
     img.ID&         = pb&
@@ -74,13 +75,14 @@ END SUB
 
 ''
 ' Browses for image file using OS file browser dialog
+' @param STRING directory to start in for file picker
 '
-FUNCTION BrowseForImageFile$
+FUNCTION BrowseForImageFile$(directory$)
     console.info "BrowseForImageFile$"
     ' Choose an image file with dialog
     BrowseForImageFile$ = _OPENFILEDIALOG$( _
         "Choose an image", _
-        "", _
+        directory$, _
         "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi", _
         "Image Files", _
         -1 _
