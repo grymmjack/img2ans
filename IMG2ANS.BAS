@@ -109,16 +109,18 @@ SUB __UI_BeforeUpdateDisplay
         ' Update mouse properties from InForm-PE READ-ONLY
         IMOUSE_update
 
-        ' console.log "__UI_HasInput"
         ' Log the dragging
         IF SourceIMG.has_mouse%% THEN
-            ' console.warn "SourceIMG has mouse"
-            ' console.dir_mouse
             IF MOUSE.dragging%% = TRUE THEN
-                console.box "DRAGGING", BRIGHT_WHITE
+                IF MOUSE.l_down%% THEN
+                    console.box "DRAGGING", BRIGHT_GREEN
+                END IF
+                IF MOUSE.l_up%% THEN
+                    console.box "DROPPING", BRIGHT_RED
+                END IF
             END IF
             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
-                console.box "MOUSEWHEEL", CYAN
+                console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), CYAN
             END IF
         END IF
     END IF

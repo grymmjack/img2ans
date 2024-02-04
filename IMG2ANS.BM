@@ -123,7 +123,7 @@ END SUB
 '
 SUB console.box(msg$, kolor%)
     $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e, color_code, top_line, bot_line
+        DIM AS STRING e, color_code, lines
         DIM AS INTEGER fg, afg
         DIM AS STRING intensity
         intensity$ = "0"
@@ -133,11 +133,10 @@ SUB console.box(msg$, kolor%)
         IF kolor% > 7 THEN intensity$ = "1"
         color_code$ = color_code$ + intensity$ + ";3"
         color_code$ = color_code$ + _TRIM$(STR$(afg%)) + "m"
-        top_line$ = "." + STRING$(LEN(msg$)+2, "-") + "."
-        bot_line$ = "`" + STRING$(LEN(msg$)+2, "-") + "'"
-        _ECHO color_code$ + top_line$
+        lines$ = "+" + STRING$(LEN(msg$)+2, "-") + "+"
+        _ECHO color_code$ + lines$
         _ECHO "| " + msg$ + " |"
-        _ECHO bot_line$ + e$ + "[0m"
+        _ECHO lines$ + e$ + "[0m"
     $END IF
     msg$ = ""
 END SUB
