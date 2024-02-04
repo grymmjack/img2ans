@@ -201,7 +201,6 @@ SUB __UI_LoadForm
     AddItem __UI_NewID, "FAIRCHILD (8)"
     AddItem __UI_NewID, "GAMEBOY (4)"
     AddItem __UI_NewID, "GAMEBOY-BGB (4)"
-    AddItem __UI_NewID, "generate-add-to-frm.sh"
     AddItem __UI_NewID, "HALLOWPUMPKIN (4)"
     AddItem __UI_NewID, "INK (5)"
     AddItem __UI_NewID, "INK-CRIMSON (10)"
