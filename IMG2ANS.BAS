@@ -264,7 +264,7 @@ SUB __UI_BeforeUpdateDisplay
         END IF
 
         ' Log the mouse action
-        IF MouseManager.leftButtonDown AND MOUSE.dragging%% THEN
+        IF MouseManager.leftButtonDown THEN
             console.box "DRAGGING", BRIGHT_GREEN
         END IF
 
