@@ -109,21 +109,22 @@ SUB __UI_BeforeUpdateDisplay
         ' Update mouse properties from InForm-PE READ-ONLY
         IMOUSE_update
 
-        ' Log the dragging
+        ' Log the mouse action
         IF SourceIMG.has_mouse%% THEN
             IF MOUSE.dragging%% = TRUE THEN
-                IF MOUSE.l_down%% THEN
-                    console.box "DRAGGING", BRIGHT_GREEN
-                END IF
-                IF MOUSE.l_up%% THEN
-                    console.box "DROPPING", BRIGHT_RED
-                END IF
+                console.box "DRAGGING", BRIGHT_GREEN
+            END IF
+            IF MOUSE.dropping%% THEN
+                console.box "DROPPING", BRIGHT_RED
             END IF
             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
                 console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), CYAN
             END IF
         END IF
-    END IF
+
+
+    END If
+
 END SUB
 
 SUB __UI_BeforeUnload
