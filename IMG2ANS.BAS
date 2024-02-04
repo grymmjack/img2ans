@@ -132,7 +132,6 @@ SUB __UI_BeforeUpdateDisplay
                 CASE KEY_DOWN:
                     console.box msg$ + "DOWN", BRIGHT_MAGENTA
                 CASE ELSE:
-                    _ECHO CHR$(__UI_KeyHit)
                     console.box msg$ + CHR$(__UI_KeyHit), BRIGHT_MAGENTA
             END SELECT
         END IF
