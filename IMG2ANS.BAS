@@ -176,7 +176,7 @@ SUB __UI_Click (id AS LONG)
             CALL LoadImageIntoPB( _
                 SourceIMG, _
                 SI_SourceImgPB, _
-                "/home/grymmjack/git/img2ans/resources/images/tests-external/" _
+                _STARTDIR$ + "/resources/images/tests-external/" _
             )
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgPB

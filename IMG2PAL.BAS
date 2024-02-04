@@ -60,7 +60,7 @@ DO
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
                 "Choose an image", _
-                , _
+                _STARTDIR$ + "/resources/images/tests-external/", _
                 "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi" _
                 + "*.JPG|*.JPEG|*.PNG|*.TGA|*.BMP|*.PSD|*.GIF|*.PCX|*.SVG|*.QOI", _
                 "Image Files", _
@@ -94,7 +94,7 @@ DO
                 ' Choose a palette file with dialog
                 pal_file$ = _OPENFILEDIALOG$( _
                     "Choose a GPL (GIMP) palette", _
-                    , _
+                    _STARTDIR$ + "/resources/palettes/", _
                     "*.gpl|*.GPL", _
                     "GPL (GIMP) Palette", _
                     0 _
