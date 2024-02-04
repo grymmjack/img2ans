@@ -4,14 +4,14 @@
 ' @depends IMG2ANS.BI
 ' @depends IMG2ANS.BAS
 ' @depends include/MOUSE/MOUSE.BM
-' @depends include/InForm/InFormCommon.bi
-' @depends include/InForm/InForm.bi
-' @depends include/InForm/InForm.ui
+' @depends include/InForm-PE/InForm/InFormCommon.bi
+' @depends include/InForm-PE/InForm/InForm.bi
+' @depends include/InForm-PE/InForm/InForm.ui
+' @depends include/QB64_GJ_LIB/STRINGS/STRINGS.BM
 '
 $IF IMG2ANS_BM = UNDEFINED THEN
     $LET IMG2ANS_BM = TRUE
 $END IF
-
 
 
 ''
@@ -117,6 +117,33 @@ END SUB
 
 
 ''
+' Log a boxed message to console if DEBUGGING
+' @param STRING msg message to send
+' @param _UNSIGNED _BYTE kolor~%% color to use
+'
+SUB console.box(msg$, kolor~%%)
+    $IF DEBUGGING = TRUE THEN
+        DIM AS STRING e, color_code, top_line, bot_line
+        DIM AS _UNSIGNED _BYTE fg
+        e$ = CHR$(27)
+        IF kolor~%% > 7 THEN 
+            fg~%% = kolor~%% - 8
+            color_code$ = e$ + "[1;3" + _TRIM$(STR$(fg~%%)) + "m"
+        ELSE
+            fg~%% = kolor~%%
+            color_code$ = e$ + "[0;3" + _TRIM$(STR$(fg~%%)) + "m"
+        END IF
+        top_line$ = "." + STRING$(LEN(msg$)+2, "-") + "."
+        bot_line$ = "`" + STRING$(LEN(msg$)+2, "-") + "'"
+        _ECHO color_code$ + top_line$
+        _ECHO "| " + msg$ + " |"
+        _ECHO bot_line$ + e$ + "[0m"
+    $END IF
+    msg$ = ""
+END SUB
+
+
+''
 ' Log a banner to console if DEBUGGING
 ' @param STRING msg message to send
 ' @param _UNSIGNED _BYTE kolor~%% color to use
@@ -125,16 +152,17 @@ SUB console.banner(msg$, kolor~%%)
     $IF DEBUGGING = TRUE THEN
         DIM AS STRING e
         e$ = CHR$(27)
-        msg$ = STR.replace$(msg$, "\n", CHR$(13), -1)
+        ' e$ = ""
+        msg$ = STR.replace$(msg$, "\n", CHR$(10), -1)
+        msg$ = STR.replace$(msg$, "\t", CHR$(9), -1)
         DIM AS STRING color_code
         DIM AS _UNSIGNED _BYTE fg
-        color_code$ = e$
         IF kolor~%% > 7 THEN 
             fg~%% = kolor~%% - 8
-            color_code$ = color_code$ + "[1;" + _TRIM$(STR$(fg~%%)) + "m"
+            color_code$ = e$ + "[1;3" + _TRIM$(STR$(fg~%%)) + "m"
         ELSE
             fg~%% = kolor~%%
-            color_code$ = color_code$ + "[0;" + _TRIM$(STR$(fg~%%)) + "m"
+            color_code$ = e$ + "[0;3" + _TRIM$(STR$(fg~%%)) + "m"
         END IF
         _ECHO color_code$ + msg$ + e$ + "[0m"
     $END IF
@@ -195,5 +223,5 @@ SUB console.error(msg$)
     msg$ = ""
 END SUB
 
-'$INCLUDE:'./include/MOUSE/MOUSE.BM'
-'$INCLUDE:'./include/QB64_GJ_LIB/STRINGS/STRINGS.BM'
+'$INCLUDE:'include/MOUSE/MOUSE.BM'
+'$INCLUDE:'include/QB64_GJ_LIB/STRINGS/STRINGS.BM'

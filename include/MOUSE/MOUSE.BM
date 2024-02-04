@@ -9,8 +9,9 @@ SUB IMOUSE_update
     ' At this time InForm-PE does not support middle click
     ' MOUSE.m_down%%   = _MOUSEBUTTON(3)
     ' MOUSE.m_up%%     = NOT _MOUSEBUTTON(3)
-    MOUSE.w_up%%     = __UI_MouseWheel% = -1
-    MOUSE.w_down%%   = __UI_MouseWheel% = 1
+    MOUSE.w_raw%     = __UI_MouseWheel%
+    MOUSE.w_up%%     = MOUSE.w_raw% = 1
+    MOUSE.w_down%%   = MOUSE.w_raw% = -1
     MOUSE.old_x%     = MOUSE.x%
     MOUSE.old_y%     = MOUSE.y%
     MOUSE.x%         = __UI_MouseLeft%
@@ -31,6 +32,7 @@ SUB MOUSE_update
     MOUSE.r_up%%     = NOT _MOUSEBUTTON(2)
     MOUSE.m_down%%   = _MOUSEBUTTON(3)
     MOUSE.m_up%%     = NOT _MOUSEBUTTON(3)
+    MOUSE.w_raw%     = _MOUSEWHEEL
     MOUSE.w_up%%     = _MOUSEWHEEL = -1
     MOUSE.w_down%%   = _MOUSEWHEEL = 1
     MOUSE.old_x%     = MOUSE.x%
@@ -54,6 +56,7 @@ SUB console.dir_mouse()
     console.log "   r_up%%     = " + _TRIM$(STR$(MOUSE.r_up%%))
     console.log "   m_down%%   = " + _TRIM$(STR$(MOUSE.m_down%%))
     console.log "   m_up%%     = " + _TRIM$(STR$(MOUSE.m_up%%))
+    console.log "   w_raw%     = " + _TRIM$(STR$(MOUSE.w_raw%))
     console.log "   w_down%%   = " + _TRIM$(STR$(MOUSE.w_down%%))
     console.log "   w_up%%     = " + _TRIM$(STR$(MOUSE.w_up%%))
     console.log "   old_x%     = " + _TRIM$(STR$(MOUSE.old_x%))

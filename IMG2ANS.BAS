@@ -86,10 +86,10 @@ DIM SHARED ST_StatusLB AS LONG
 
 
 ': External modules: ---------------------------------------------------------------
-'$INCLUDE:'./include/InForm-PE/InForm/InForm.bi'
-'$INCLUDE:'./IMG2ANS.BI'
-'$INCLUDE:'./include/InForm-PE/InForm/xp.uitheme'
-'$INCLUDE:'./IMG2ANS.FRM'
+'$INCLUDE:'include/InForm-PE/InForm/InForm.bi'
+'$INCLUDE:'IMG2ANS.BI'
+'$INCLUDE:'include/InForm-PE/InForm/xp.uitheme'
+'$INCLUDE:'IMG2ANS.FRM'
 
 ': Event procedures: ---------------------------------------------------------------
 SUB __UI_BeforeInit
@@ -115,12 +115,13 @@ SUB __UI_BeforeUpdateDisplay
         ' Log the dragging
         IF SourceIMG.has_mouse%% THEN
             ' console.warn "SourceIMG has mouse"
-            console.dir_mouse
+            ' console.dir_mouse
             IF MOUSE.dragging%% = TRUE THEN
-                console.banner "DRAGGING", 11
+                console.box "DRAGGING", 2
             END IF
+            console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), 12
             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
-                console.banner "MOUSEWHEEL", 13
+                console.box "MOUSEWHEEL", 10
             END IF
         END IF
     END IF
@@ -739,5 +740,5 @@ SUB __UI_FormResized
 
 END SUB
 
-'$INCLUDE:'./include/InForm-PE/InForm/InForm.ui'
-'$INCLUDE:'./IMG2ANS.BM'
+'$INCLUDE:'include/InForm-PE/InForm/InForm.ui'
+'$INCLUDE:'IMG2ANS.BM'

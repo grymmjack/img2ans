@@ -3,6 +3,7 @@
 ' 
 ' @depends IMG2ANS.BAS
 ' @depends include/MOUSE/MOUSE.BI
+' @depends include/QB64_GJ_LIB/STRINGS/STRINGS.BI
 '
 $IF IMG2ANS_BI = UNDEFINED THEN
     $LET IMG2ANS_BI = TRUE
@@ -60,5 +61,5 @@ DIM SHARED AS IMAGE _
     PreviewIMG, _
     FinalIMG
 
-'$INCLUDE:'./include/MOUSE/MOUSE.BI'
-'$INCLUDE:'./include/QB64_GJ_LIB/STRINGS/STRINGS.BI'
+'$INCLUDE:'include/MOUSE/MOUSE.BI'
+'$INCLUDE:'include/QB64_GJ_LIB/STRINGS/STRINGS.BI'

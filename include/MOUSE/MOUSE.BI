@@ -5,6 +5,7 @@ TYPE MOUSE_DEVICE
     r_up     AS _BYTE
     m_down   AS _BYTE
     m_up     AS _BYTE
+    w_raw    AS INTEGER
     w_up     AS _BYTE
     w_down   AS _BYTE
     x        AS INTEGER
