@@ -115,10 +115,10 @@ SUB __UI_BeforeUpdateDisplay
             ' console.warn "SourceIMG has mouse"
             ' console.dir_mouse
             IF MOUSE.dragging%% = TRUE THEN
-                console.box "DRAGGING", 15
+                console.box "DRAGGING", BRIGHT_WHITE
             END IF
             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
-                console.box "MOUSEWHEEL", 10
+                console.box "MOUSEWHEEL", CYAN
             END IF
         END IF
     END IF
