@@ -98,13 +98,98 @@ SUB __UI_OnLoad
     __UI_DefaultButtonID = SI_SourceImgBrowseButtonBT
 END SUB
 
+' SUB __UI_BeforeUpdateDisplay
+'     'This event occurs at approximately 60 frames per second.
+'     'You can change the update frequency by calling SetFrameRate DesiredRate%
+'     SetFrameRate 120
+
+'     ' Input handling
+'     IF __UI_HasInput%% THEN
+'         ' Keyboard input handling
+'         DIM AS _UNSIGNED _BYTE IS_SHIFT, IS_ALT, IS_CTRL
+'         IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN IS_SHIFT~%% = TRUE
+'         IF _KEYDOWN(KEY_LALT&)   OR _KEYDOWN(KEY_RALT&)   THEN IS_ALT~%% = TRUE
+'         IF _KEYDOWN(KEY_LCTRL&)  OR _KEYDOWN(KEY_RCTRL&)  THEN IS_CTRL~%% = TRUE
+'         DIM AS STRING msg
+'         msg$ = ""
+'         IF IS_CTRL~%%  THEN msg$ = msg$ + "[CTRL]+"
+'         IF IS_ALT~%%   THEN msg$ = msg$ + "[ALT]+"
+'         IF IS_SHIFT~%% THEN msg$ = msg$ + "[SHIFT]+"
+
+'         IF __UI_KeyHit THEN
+'             SELECT CASE __UI_KeyHit
+'                 CASE KEY_ESCAPE:
+'                     console.box msg$ + "ESCAPE", BRIGHT_MAGENTA
+'                     SYSTEM
+'                 CASE KEY_SPACE:
+'                     console.box msg$ + "SPACE", BRIGHT_MAGENTA
+'                 CASE KEY_LEFT:
+'                     console.box msg$ + "LEFT", BRIGHT_MAGENTA
+'                 CASE KEY_RIGHT:
+'                     console.box msg$ + "RIGHT", BRIGHT_MAGENTA
+'                 CASE KEY_UP:
+'                     console.box msg$ + "UP", BRIGHT_MAGENTA
+'                 CASE KEY_DOWN:
+'                     console.box msg$ + "DOWN", BRIGHT_MAGENTA
+'                 CASE ELSE:
+'                     console.box msg$ + CHR$(__UI_KeyHit), BRIGHT_MAGENTA
+'             END SELECT
+'         END IF
+
+'         ' Mouse input handling
+'         ' Update mouse properties from InForm-PE READ-ONLY
+'         IMOUSE_update
+
+'         ' Log the mouse action
+'         IF SourceIMG.has_mouse%% THEN
+'             IF MOUSE.dragging%% = TRUE THEN
+'                 console.box "DRAGGING", BRIGHT_GREEN
+'             END IF
+'             IF MOUSE.dropping%% THEN
+'                 console.box "DROPPING", BRIGHT_RED
+'             END IF
+'             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
+'                 console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), CYAN
+'             END IF
+'         END IF
+'     END If
+' END SUB
+
 SUB __UI_BeforeUpdateDisplay
     'This event occurs at approximately 60 frames per second.
     'You can change the update frequency by calling SetFrameRate DesiredRate%
-    SetFrameRate 120
 
-    ' Input handling
-    IF __UI_HasInput%% THEN
+    ' An integer 2D vector
+    TYPE Vector2LType
+        x AS LONG
+        y AS LONG
+    END TYPE
+
+    ' A 2D rectangle
+    TYPE RectangleLType
+        a AS Vector2LType ' left-top
+        b AS Vector2LType ' right-bottom
+    END TYPE
+
+    ' This keeps all related stuff neatly considated
+    TYPE MouseManagerType
+        position AS Vector2LType ' mouse position
+        leftButton AS _BYTE ' raw mouse left button
+        rightButton AS _BYTE ' raw mouse right button
+        leftButtonDown AS _BYTE ' mouse left button held down?
+        rightButtonDown AS _BYTE ' mouse right button held down?
+        leftClicked AS _BYTE ' If this is true mouseLeftButtonClickedRectangle is the rectangle where the click happened
+        rightClicked AS _BYTE ' If this is true mouseRightButtonClickedRectangle is the rectangle where the click happened
+        leftButtonClickedRectangle AS RectangleLType ' the rectangle where the mouse left button was clicked
+        rightButtonClickedRectangle AS RectangleLType ' the rectangle where the mouse left button was clicked
+        wheel AS LONG
+    END TYPE
+
+    ' These are a rectangle region the represent click event
+    STATIC MouseManager AS MouseManagerType
+
+    ' Mouse input loop
+    IF __UI_HasInput THEN
         ' Keyboard input handling
         DIM AS _UNSIGNED _BYTE IS_SHIFT, IS_ALT, IS_CTRL
         IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN IS_SHIFT~%% = TRUE
@@ -132,27 +217,71 @@ SUB __UI_BeforeUpdateDisplay
                 CASE KEY_DOWN:
                     console.box msg$ + "DOWN", BRIGHT_MAGENTA
                 CASE ELSE:
-                    console.box msg$ + CHR$(__UI_KeyHit), BRIGHT_MAGENTA
+                    console.box msg$ + LCASE$(CHR$(__UI_KeyHit)), BRIGHT_MAGENTA
             END SELECT
         END IF
 
-        ' Mouse input handling
-        ' Update mouse properties from InForm-PE READ-ONLY
+        ' Mouse input handling (thanks @a740g!)
         IMOUSE_update
 
-        ' Log the mouse action
-        IF SourceIMG.has_mouse%% THEN
-            IF MOUSE.dragging%% = TRUE THEN
-                console.box "DRAGGING", BRIGHT_GREEN
-            END IF
-            IF MOUSE.dropping%% THEN
-                console.box "DROPPING", BRIGHT_RED
-            END IF
-            IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
-                console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), CYAN
-            END IF
+        ' Capture raw mouse position
+        MouseManager.position.x = __UI_MouseLeft
+        MouseManager.position.y = __UI_MouseTop
+
+        ' Capture raw mouse button state
+        MouseManager.leftButton = __UI_MouseButton1
+        MouseManager.rightButton = __UI_MouseButton2
+
+        ' Capure raw wheel info
+        MouseManager.wheel = __UI_MouseWheel
+
+        ' Check if the left button were previously held down and update the up position if released
+        IF NOT MouseManager.leftButton AND MouseManager.leftButtonDown THEN
+            MouseManager.leftButtonDown = FALSE
+            MouseManager.leftButtonClickedRectangle.b = MouseManager.position
+            MouseManager.leftClicked = TRUE
         END IF
-    END If
+
+        ' Check if the button were previously held down and update the up position if released
+        IF NOT MouseManager.rightButton AND MouseManager.rightButtonDown THEN
+            MouseManager.rightButtonDown = FALSE
+            MouseManager.rightButtonClickedRectangle.b = MouseManager.position
+            MouseManager.rightClicked = TRUE
+        END IF
+
+        ' Check if the mouse button was pressed and update the down position
+        IF MouseManager.leftButton AND NOT MouseManager.leftButtonDown THEN
+            MouseManager.leftButtonDown = TRUE
+            MouseManager.leftButtonClickedRectangle.a = MouseManager.position
+            MouseManager.leftClicked = FALSE
+        END IF
+
+        ' Check if the mouse button was pressed and update the down position
+        IF MouseManager.rightButton AND NOT MouseManager.rightButtonDown THEN
+            MouseManager.rightButtonDown = TRUE
+            MouseManager.rightButtonClickedRectangle.a = MouseManager.position
+            MouseManager.rightClicked = FALSE
+        END IF
+
+        ' Log the mouse action
+        IF MouseManager.leftButtonDown AND MOUSE.dragging%% THEN
+            console.box "DRAGGING", BRIGHT_GREEN
+        END IF
+
+        IF MouseManager.leftClicked THEN
+            console.box "DROPPING", BRIGHT_RED
+            console.box "Rect = (" + _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.a.x)) + "," + _
+                _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.a.y)) + ") - (" + _
+                _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.b.x)) + "," + _
+                _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.a.y)) + ")", BRIGHT_RED
+
+            MouseManager.leftClicked = FALSE ' consume the click event!
+        END IF
+
+        IF MouseManager.wheel <> 0 THEN
+            console.box "MOUSEWHEEL=" + _TRIM$(STR$(MouseManager.wheel)), CYAN
+        END IF
+    END IF
 END SUB
 
 SUB __UI_BeforeUnload
