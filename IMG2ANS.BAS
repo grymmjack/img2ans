@@ -597,9 +597,13 @@ SUB __UI_FocusOut (id AS LONG)
         CASE SI_SourceImgClearButtonBT
         CASE SI_SourceImgBrightnessSlider
         CASE SI_SourceImgBrightnessTB
+            Control(SI_SourceImgBrightnessSlider).Value = clamp_int(INT(VAL(Text(id))), 0, 100)
         CASE SI_SourceImgContrastSlider
         CASE SI_SourceImgContrastTB
+            Control(SI_SourceImgContrastSlider).Value = clamp_int(INT(VAL(Text(id))), 0, 100)
         CASE SI_SourceImgPosterizeSlider
+        CASE SI_SourceImgPosterizeTB
+            Control(SI_SourceImgPosterizeSlider).Value = clamp_int(INT(VAL(Text(id))), 0, 100)
 
         'DP:DESTINATION PALETTE
         CASE DP_DestPalCB
@@ -848,6 +852,7 @@ SUB __UI_TextChanged (id AS LONG)
         'SI:SOURCE IMAGE
         CASE SI_SourceImgBrightnessTB
         CASE SI_SourceImgContrastTB
+        CASE SI_SourceImgPosterizeTB
 
         'RC:RESIZE / CROP
         CASE RC_ResizeCropXTB
@@ -872,8 +877,11 @@ SUB __UI_ValueChanged (id AS LONG)
     SELECT CASE id
         'SI:SOURCE IMAGE
         CASE SI_SourceImgBrightnessSlider
+            Text(SI_SourceImgBrightnessTB) = _TRIM$(STR$(Control(id).Value))
         CASE SI_SourceImgContrastSlider
+            Text(SI_SourceImgContrastTB) = _TRIM$(STR$(Control(id).Value))
         CASE SI_SourceImgPosterizeSlider
+            Text(SI_SourceImgPosterizeTB) = _TRIM$(STR$(Control(id).Value))
 
         'DP:DESTINATION PALETTE
         CASE DP_DestPalCB

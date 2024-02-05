@@ -94,8 +94,11 @@ SUB __UI_LoadForm
     __UI_RegisterResult = 0
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).Max = 10
-    Control(__UI_NewID).CanHaveFocus = True
-    Control(__UI_NewID).Interval = 1
+    Control(__UI_NewID).CanHaveFocus = False
+    Control(__UI_NewID).Min = 0
+    Control(__UI_NewID).Max = 100
+    Control(__UI_NewID).Value = 50
+    Control(__UI_NewID).Interval = 10
 
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "SI_SourceImgBrightnessTB", 50, 23, 268, 314, 0)
     __UI_RegisterResult = 0
@@ -114,9 +117,11 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TrackBar, "SI_SourceImgContrastSlider", 124, 40, 126, 347, 0)
     __UI_RegisterResult = 0
     Control(__UI_NewID).HasBorder = False
-    Control(__UI_NewID).Max = 10
-    Control(__UI_NewID).CanHaveFocus = True
-    Control(__UI_NewID).Interval = 1
+    Control(__UI_NewID).Min = 0
+    Control(__UI_NewID).Max = 100
+    Control(__UI_NewID).Value = 50
+    Control(__UI_NewID).CanHaveFocus = False
+    Control(__UI_NewID).Interval = 10
 
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "SI_SourceImgContrastTB", 50, 23, 268, 347, 0)
     __UI_RegisterResult = 0
@@ -135,9 +140,11 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TrackBar, "SI_SourceImgPosterizeSlider", 124, 40, 126, 384, 0)
     __UI_RegisterResult = 0
     Control(__UI_NewID).HasBorder = False
-    Control(__UI_NewID).Max = 10
-    Control(__UI_NewID).CanHaveFocus = True
-    Control(__UI_NewID).Interval = 1
+    Control(__UI_NewID).Min = 0
+    Control(__UI_NewID).Max = 100
+    Control(__UI_NewID).Value = 0
+    Control(__UI_NewID).CanHaveFocus = False
+    Control(__UI_NewID).Interval = 10
 
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "SI_SourceImagePosterizeTB", 50, 23, 268, 384, 0)
     __UI_RegisterResult = 0

@@ -346,5 +346,20 @@ SUB console.error(msg$)
     msg$ = ""
 END SUB
 
+
+''
+' Clamps a number between a minimum and maximum range
+' @param INTEGER num number to clamp
+' @param INTEGER min minimum allowed
+' @param INTEGER max maximum allowed
+' @return INTEGER clamped number
+'
+FUNCTION clamp_int%(num%, min%, max%)
+    IF num% > max% THEN num% = max%
+    IF num% < min% THEN num% = min%
+    clamp_int% = num%
+END FUNCTION
+
+
 '$INCLUDE:'include/MOUSE/MOUSE.BM'
 '$INCLUDE:'include/QB64_GJ_LIB/STRINGS/STRINGS.BM'
