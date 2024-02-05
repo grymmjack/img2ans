@@ -232,7 +232,7 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_PictureBox, "DP_DestPalPaletteColorsPB", 301, 54, 342, 353, 0)
     __UI_RegisterResult = 0
-    Control(__UI_NewID).Stretch = True
+    Control(__UI_NewID).Stretch = False
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Align = __UI_Center
     Control(__UI_NewID).VAlign = __UI_Middle
@@ -250,7 +250,7 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_PictureBox, "RC_ResizeCropPB", 301, 217, 666, 78, 0)
     __UI_RegisterResult = 0
-    Control(__UI_NewID).Stretch = True
+    Control(__UI_NewID).Stretch = False
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Align = __UI_Center
     Control(__UI_NewID).VAlign = __UI_Middle
@@ -324,7 +324,7 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_PictureBox, "P_PreviewPB", 301, 481, 989, 78, 0)
     __UI_RegisterResult = 0
-    Control(__UI_NewID).Stretch = True
+    Control(__UI_NewID).Stretch = False
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).Align = __UI_Center
     Control(__UI_NewID).VAlign = __UI_Middle

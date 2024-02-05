@@ -19,7 +19,7 @@ $END IF
 ' @param LONG pb picturebox control
 '
 SUB SetImgFocus(pb&)
-    console.warn "SetImgFocus"
+    console.info "SetImgFocus(" + _TRIM$(STR$(pb&)) + ")"
     ClearImgFocus
     Control(pb&).BorderColor = _RGB32(255, 0, 0)
     Control(pb&).Redraw = TRUE
@@ -30,7 +30,7 @@ END SUB
 ' Clears ImgFocus
 '
 SUB ClearImgFocus
-    console.warn "ClearImgFocus"
+    console.info "ClearImgFocus"
     Control(SI_SourceImgPB).BorderColor  = _RGB32(167, 166, 170)
     Control(DP_DestPalPB).BorderColor    = _RGB32(167, 166, 170)
     Control(RC_ResizeCropPB).BorderColor = _RGB32(167, 166, 170)
@@ -49,12 +49,28 @@ END SUB
 ' @param STRING directory to start in for file picker
 '
 SUB LoadImageIntoPB(img AS IMAGE, pb&, directory$)
-    console.warn "LoadImageIntoPB"
-    img.file_path$  = BrowseForImageFile$(directory$)
+    console.info "LoadImageIntoPB(" + img.file_name$ + "," + STR$(pb&) + "," + directory$ + ")"
+    DIM AS STRING image_file
+    image_file$ = BrowseForImageFile$(directory$)
+    PutImageIntoPB img, pb&, image_file$
+    PutImageIntoPB DestPalIMG, DP_DestPalPB, image_file$
+    PutImageIntoPB ResizeCropIMG, RC_ResizeCropPB, image_file$
+    PutImageIntoPB PreviewIMG, P_PreviewPB, image_file$
+END SUB
+
+
+''
+' Put Image Into PictureBox
+' @param IMAGE img to put
+' @param LONG pb Control ID of PictureBox
+' @param STRING file_path of image to load into PictureBox HelperCanvas
+'
+SUB PutImageIntoPB(img AS IMAGE, pb&, file_path$)
+    console.info "PutImageIntoPB(" + img.file_name$ + "," + STR$(pb&) + "," + file_path$ + ")"
+    img.file_path$  = file_path$
     img.file_name$  = MID$(img.file_path$, _INSTRREV(img.file_path$, SLASH$) + 1)
     img.file_ext$   = MID$(img.file_name$, _INSTRREV(img.file_name$, "."))
     img.ID&         = pb&
-    LoadImage Control(img.ID&), img.file_path$
     img.handle&     = Control(img.ID&).HelperCanvas&
     img.src_w%      = _WIDTH(img.handle&)
     img.src_h%      = _HEIGHT(img.handle&)
@@ -69,6 +85,7 @@ SUB LoadImageIntoPB(img AS IMAGE, pb&, directory$)
     img.zoom!       = 1
     img.has_mouse%% = FALSE
     img.has_focus%% = TRUE
+    LoadImage Control(img.ID&), img.file_path$
     CALL console.dir_image(img)
 END SUB
 
@@ -78,7 +95,7 @@ END SUB
 ' @param STRING directory to start in for file picker
 '
 FUNCTION BrowseForImageFile$(directory$)
-    console.info "BrowseForImageFile$"
+    console.info "BrowseForImageFile$(" + directory$ + ")"
     ' Choose an image file with dialog
     BrowseForImageFile$ = _OPENFILEDIALOG$( _
         "Choose an image", _
@@ -91,11 +108,60 @@ END FUNCTION
 
 
 ''
+' Browses for GPL palette file using OS file browser dialog
+' @param STRING directory to start in for file picker
+'
+FUNCTION BrowseForGPLFile$(directory$)
+    console.info "BrowseForGPLFile$(" + directory$ + ")"
+    BrowseForGPLFile$ = _OPENFILEDIALOG$( _
+        "Choose a GPL (GIMP) palette", _
+        _STARTDIR$ + "/resources/palettes/", _
+        "*.gpl|*.GPL", _
+        "GPL (GIMP) Palette", _
+        0 _
+    )
+END FUNCTION
+
+
+''
+' Applies GPL palette to image in picturebox
+' @param STRING pal Palette to apply
+' @param LONG img Image to apply palette to
+' @param _BYTE dithering applied?
+'
+SUB ApplyPalToImg(pal$, img&, dithering%%)
+    console.info "ApplyPalToImg(" + pal$ + "," + STR$(img&) + "," + STR$(dithering%%) + ")"
+END SUB
+
+
+''
+' GUI Hook for Destination Palette stuff
+'
+SUB ChangeDestPal
+    console.info "ChangeDestPal"
+    DIM AS STRING pal_sel, pal_1
+    DIM AS _BYTE checked
+    pal_1$   = GetItem$(DP_DestPalPalleteDL, 1)
+    pal_sel$ = GetItem$(DP_DestPalPalleteDL, Control(DP_DestPalPalleteDL).Value)
+    checked%% = Control(DP_DestPalCB).Value
+    IF checked%% THEN ' Use destination palette
+        IF pal_sel$ = "" THEN ' If no choice made, pick first option
+            pal_sel$ = pal_1$
+            Control(DP_DestPalPalleteDL).Value = 1
+        END IF
+        ApplyPalToImg _STARTDIR$ + pal_sel$, Control(DP_DestPalPB).HelperCanvas&, TRUE        
+    ELSE
+        Control(DP_DestPalCB).Value = TRUE    
+    END IF
+END SUB
+
+
+''
 ' Log IMAGE properties if DEBUGGING
 ' @param IMAGE image to log properties of
 '
 SUB console.dir_image(img AS IMAGE)
-    console.warn _TRIM$(Control(img.ID&).Name$) + " {"
+    console.info _TRIM$(Control(img.ID&).Name$) + " {"
     console.log "   ID&         = " + _TRIM$(STR$(img.ID&))
     console.log "   handle&     = " + _TRIM$(STR$(img.handle&))
     console.log "   file_name$  = " + img.file_name$
