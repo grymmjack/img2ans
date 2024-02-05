@@ -43,6 +43,30 @@ END SUB
 
 
 ''
+' Clear all Picture Boxes 
+'
+SUB ClearPBs
+    console.info "ClearPBs"
+    ClearImageFromPB SourceIMG, SI_SourceImgPB
+    ClearImageFromPB DestPalIMG, DP_DestPalPB
+    ClearImageFromPB ResizeCropIMG, RC_ResizeCropPB
+    ClearImageFromPB PreviewIMG, P_PreviewPB
+END SUB
+
+
+''
+' Clear image from a Picture Box
+' @param IMAGE img to clear
+' @param LONG pb PictureBox to clear from
+'
+SUB ClearImageFromPB(img AS IMAGE, pb&)
+    console.info "ClearImageFromPB(" + img.file_name$ + "," + STR$(pb&) + ")"
+    ClearImage img
+    LoadImage Control(pb&), _STARTDIR$ + "/resources/images/blank.gif"
+END SUB
+
+
+''
 ' Load Image into PictureBox
 ' @param IMAGE img to load
 ' @param LONG pb Control ID of PictueBox
@@ -84,9 +108,45 @@ SUB PutImageIntoPB(img AS IMAGE, pb&, file_path$)
     img.y_offset%   = 0
     img.zoom!       = 1
     img.has_mouse%% = FALSE
-    img.has_focus%% = TRUE
+    img.has_focus%% = FALSE
     LoadImage Control(img.ID&), img.file_path$
     CALL console.dir_image(img)
+END SUB
+
+
+'' 
+' Clear an image
+' @param IMAGE img to clear
+'
+SUB ClearImage(img AS IMAGE)
+    console.info "ClearImage(" + img.file_name$ + ")"
+    img.file_path$  = ""
+    img.file_name$  = ""
+    img.file_ext$   = ""
+    img.ID&         = 0
+    img.handle&     = 0
+    img.src_w%      = 0
+    img.src_h%      = 0
+    img.src_x%      = 0
+    img.src_y%      = 0
+    img.dst_w%      = 0
+    img.dst_h%      = 0
+    img.dst_x%      = 0
+    img.dst_y%      = 0
+    img.x_offset%   = 0
+    img.y_offset%   = 0
+    img.zoom!       = 0
+    img.has_mouse%% = FALSE
+    img.has_focus%% = FALSE
+END SUB
+
+
+''
+' Load a GPL GIMP Palette file from disk
+' @param STRING file_path of palette
+'
+SUB LoadGPLFile(file_path$)
+    console.info "LoadGPLFile(" + file_path$ + ")"
 END SUB
 
 

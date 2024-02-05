@@ -308,6 +308,7 @@ SUB __UI_Click (id AS LONG)
                 _STARTDIR$ + "/resources/images/tests-external/" _
             )
         CASE SI_SourceImgClearButtonBT
+            ClearPBs
         CASE SI_SourceImgPB
             SetImgFocus SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
@@ -326,6 +327,7 @@ SUB __UI_Click (id AS LONG)
             SetImgFocus DP_DestPalPB
         CASE DP_DestPalPalleteDL
         CASE DP_DestPalPalleteBrowseBT
+            LoadGPLFile BrowseForGPLFile$(_STARTDIR$ + "/resources/palettes/")
         CASE DP_DestPalPaletteColorsPB
 
         'RC:RESIZE / CROP
