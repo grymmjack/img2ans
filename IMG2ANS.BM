@@ -51,6 +51,26 @@ SUB ClearPBs
     ClearImageFromPB DestPalIMG, DP_DestPalPB
     ClearImageFromPB ResizeCropIMG, RC_ResizeCropPB
     ClearImageFromPB PreviewIMG, P_PreviewPB
+    ClearImgFocus
+    Text(S_SauceTitleTB) = ""
+    Text(S_SauceAuthorTB) = ""
+    Text(S_SauceGroupTB) = ""
+    Text(S_SauceCommentTB) = ""
+    Text(E_ExportAsFileTB) = ""
+    Text(E_ExportToDirTB) = ""
+    Text(SI_SourceImgBrightnessTB) = "50"
+    Text(SI_SourceImgContrastTB) = "50"
+    Text(SI_SourceImgPosterizeTB) = "0"
+    Control(SI_SourceImgBrightnessSlider).Value = 50
+    Control(SI_SourceImgContrastSlider).Value = 50
+    Control(SI_SourceImgPosterizeSlider).Value = 0
+    Text(RC_ResizeCropXTB) = ""
+    Text(RC_ResizeCropYTB) = ""
+    Text(RC_ResizeCropWTB) = ""
+    Text(RC_ResizeCropHTB) = ""
+    Control(DP_DestPalCB).Value = FALSE
+    Control(RC_ResizeCropCB).Value = FALSE
+    Control(DP_DestPalPalleteDL).Value = 1
 END SUB
 
 
@@ -80,6 +100,9 @@ SUB LoadImageIntoPB(img AS IMAGE, pb&, directory$)
     PutImageIntoPB DestPalIMG, DP_DestPalPB, image_file$
     PutImageIntoPB ResizeCropIMG, RC_ResizeCropPB, image_file$
     PutImageIntoPB PreviewIMG, P_PreviewPB, image_file$
+    Text(S_SauceTitleTB) = img.file_name$
+    Text(E_ExportAsFileTB) = img.file_name$ + ".ans"
+    Text(E_ExportToDirTB) = MID$(img.file_path$, 0, _INSTRREV(img.file_path$, SLASH$) + 1)
 END SUB
 
 
@@ -199,19 +222,19 @@ END SUB
 '
 SUB ChangeDestPal
     console.info "ChangeDestPal"
-    DIM AS STRING pal_sel, pal_1
+    DIM AS STRING pal_sel, pal_2
     DIM AS _BYTE checked
-    pal_1$   = GetItem$(DP_DestPalPalleteDL, 1)
+    pal_2$   = GetItem$(DP_DestPalPalleteDL, 2)
     pal_sel$ = GetItem$(DP_DestPalPalleteDL, Control(DP_DestPalPalleteDL).Value)
     checked%% = Control(DP_DestPalCB).Value
     IF checked%% THEN ' Use destination palette
         IF pal_sel$ = "" THEN ' If no choice made, pick first option
-            pal_sel$ = pal_1$
-            Control(DP_DestPalPalleteDL).Value = 1
+            pal_sel$ = pal_2$
+            Control(DP_DestPalPalleteDL).Value = 2
         END IF
         ApplyPalToImg _STARTDIR$ + pal_sel$, Control(DP_DestPalPB).HelperCanvas&, TRUE        
     ELSE
-        Control(DP_DestPalCB).Value = TRUE    
+        Control(DP_DestPalPalleteDL).Value = 1
     END IF
 END SUB
 

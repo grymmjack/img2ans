@@ -94,7 +94,7 @@ SUB __UI_LoadForm
     __UI_RegisterResult = 0
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).Max = 10
-    Control(__UI_NewID).CanHaveFocus = False
+    Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).Min = 0
     Control(__UI_NewID).Max = 100
     Control(__UI_NewID).Value = 50
@@ -120,7 +120,7 @@ SUB __UI_LoadForm
     Control(__UI_NewID).Min = 0
     Control(__UI_NewID).Max = 100
     Control(__UI_NewID).Value = 50
-    Control(__UI_NewID).CanHaveFocus = False
+    Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).Interval = 10
 
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "SI_SourceImgContrastTB", 50, 23, 268, 347, 0)
@@ -143,10 +143,10 @@ SUB __UI_LoadForm
     Control(__UI_NewID).Min = 0
     Control(__UI_NewID).Max = 100
     Control(__UI_NewID).Value = 0
-    Control(__UI_NewID).CanHaveFocus = False
+    Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).Interval = 10
 
-    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "SI_SourceImagePosterizeTB", 50, 23, 268, 384, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "SI_SourceImgPosterizeTB", 50, 23, 268, 384, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "POSTERIZE VALUE"
     Text(__UI_NewID) = "0"
@@ -176,6 +176,7 @@ SUB __UI_LoadForm
     __UI_RegisterResult = 0
     'https://en.wikipedia.org/wiki/List_of_video_game_console_palettes
     'https://en.wikipedia.org/wiki/List_of_color_palettes
+    AddItem __UI_NewID, ""
     AddItem __UI_NewID, "1BIT (2)"
     AddItem __UI_NewID, "2BIT (4)"
     AddItem __UI_NewID, "6BIT (64)"
@@ -272,7 +273,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "RC_ResizeCropWTB", 50, 23, 725, 316, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "WIDTH VALUE"
-    Text(__UI_NewID) = "80"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -286,7 +287,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "RC_ResizeCropHTB", 50, 23, 725, 346, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "HEIGHT VALUE"
-    Text(__UI_NewID) = "120"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -300,7 +301,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "RC_ResizeCropXTB", 50, 23, 815, 316, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "X"
-    Text(__UI_NewID) = "10"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -314,7 +315,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "RC_ResizeCropYTB", 50, 23, 815, 346, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Y"
-    Text(__UI_NewID) = "15"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -340,7 +341,7 @@ SUB __UI_LoadForm
 
 
     'S:SAUCE
-    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "S_SauceFrame", 950, 121, 17, 438, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "S_SauceFrame", 801, 121, 17, 438, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "SAUCE"
     Control(__UI_NewID).HasBorder = True
@@ -356,8 +357,8 @@ SUB __UI_LoadForm
 
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "S_SauceTitleTB", 200, 23, 100, 25, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
-    SetCaption __UI_NewID, "Width"
-    Text(__UI_NewID) = "DUNGEON!.png"
+    SetCaption __UI_NewID, "TITLE"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -372,7 +373,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "S_SauceAuthorTB", 200, 23, 100, 53, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "AUTHOR"
-    Text(__UI_NewID) = "grymmjack"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -387,7 +388,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "S_SauceGroupTB", 200, 23, 100, 81, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "GROUP"
-    Text(__UI_NewID) = "MiSTiGRiS"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -402,7 +403,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "S_SauceCommentTB", 210, 86, 413, 25, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "COMMENT"
-    Text(__UI_NewID) = "Scan of the DUNGEON! box"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -412,6 +413,7 @@ SUB __UI_LoadForm
     SetCaption __UI_NewID, "8PX FONT"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
+    Control(__UI_NewID).Value = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "S_SauceFontSize16pxRB", 100, 23, 655, 53, __UI_GetID("S_SauceFrame"))
     __UI_RegisterResult = 0
@@ -425,13 +427,21 @@ SUB __UI_LoadForm
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "S_SauceiCEColorsCB", 100, 23, 780, 25, __UI_GetID("S_SauceFrame"))
+    __UI_NewID = __UI_NewControl(__UI_Type_Frame, "S_ColorsFrame", 138, 121, 829, 438, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "COLORS"
+    Control(__UI_NewID).HasBorder = True
+    Control(__UI_NewID).Value = 1
+    Control(__UI_NewID).BorderSize = 1
+
+    __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "S_SauceiCEColorsRB", 100, 23, 23, 25, __UI_GetID("S_ColorsFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "iCE COLORS"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
+    Control(__UI_NewID).Value = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_CheckBox, "S_SauceRGBColorsCB", 100, 23, 780, 53, __UI_GetID("S_SauceFrame"))
+    __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "S_SauceRGBColorsRB", 100, 23, 23, 53, __UI_GetID("S_ColorsFrame"))
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "RGB Colors"
     Control(__UI_NewID).HasBorder = False
@@ -445,6 +455,7 @@ SUB __UI_LoadForm
     SetCaption __UI_NewID, "EXPORT TO IMAGE SOURCE DIRECTORY"
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
+    Control(__UI_NewID).Value = True
 
     __UI_NewID = __UI_NewControl(__UI_Type_RadioButton, "E_ExportToDirRB", 200, 23, 341, 580, 0)
     __UI_RegisterResult = 0
@@ -455,7 +466,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "E_ExportToDirTB", 295, 23, 507, 580, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "EXPORT TO DIRECTORY"
-    Text(__UI_NewID) = "/home/grymmjack/git/qb64-dungeon"
+    Text(__UI_NewID) = _STARTDIR$
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -475,7 +486,7 @@ SUB __UI_LoadForm
     __UI_NewID = __UI_NewControl(__UI_Type_TextBox, "E_ExportAsFileTB", 300, 23, 990, 580, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "AS FILENAME"
-    Text(__UI_NewID) = "box.ans"
+    Text(__UI_NewID) = ""
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
@@ -569,8 +580,9 @@ SUB __UI_AssignIDs
     S_SauceFontSize8pxRB = __UI_GetID("S_SauceFontSize8pxRB")
     S_SauceFontSize16pxRB = __UI_GetID("S_SauceFontSize16pxRB")
     S_Sauce9pxWidthCB = __UI_GetID("S_Sauce9pxWidthCB")
-    S_SauceiCEColorsCB = __UI_GetID("S_SauceiCEColorsCB")
-    S_SauceRGBColorsCB = __UI_GetID("S_SauceRGBColorsCB")
+    S_ColorsFrame = __UI_GetID("S_ColorsFrame")
+    S_SauceiCEColorsRB = __UI_GetID("S_SauceiCEColorsRB")
+    S_SauceRGBColorsRB = __UI_GetID("S_SauceRGBColorsRB")
 
     'E:EXPORT
     E_ExportToImgSrcDirRB = __UI_GetID("E_ExportToImgSrcDirRB")

@@ -56,6 +56,7 @@ DIM SHARED P_PreviewPB AS LONG
 
 'S:SAUCE
 DIM SHARED S_SauceFrame AS LONG
+DIM SHARED S_ColorsFrame AS LONG
 DIM SHARED S_SauceTitleLB AS LONG
 DIM SHARED S_SauceTitleTB AS LONG
 DIM SHARED S_SauceAuthorLB AS LONG
@@ -67,8 +68,8 @@ DIM SHARED S_SauceCommentTB AS LONG
 DIM SHARED S_SauceFontSize8pxRB AS LONG
 DIM SHARED S_SauceFontSize16pxRB AS LONG
 DIM SHARED S_Sauce9pxWidthCB AS LONG
-DIM SHARED S_SauceiCEColorsCB AS LONG
-DIM SHARED S_SauceRGBColorsCB AS LONG
+DIM SHARED S_SauceiCEColorsRB AS LONG
+DIM SHARED S_SauceRGBColorsRB AS LONG
 
 'E:EXPORT
 DIM SHARED E_ExportToImgSrcDirRB AS LONG
@@ -350,6 +351,7 @@ SUB __UI_Click (id AS LONG)
 
         'S:SAUCE
         CASE S_SauceFrame
+        CASE S_ColorsFrame
         CASE S_SauceTitleLB
         CASE S_SauceTitleTB
         CASE S_SauceAuthorLB
@@ -361,8 +363,8 @@ SUB __UI_Click (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -431,6 +433,7 @@ SUB __UI_MouseEnter (id AS LONG)
 
         'S:SAUCE
         CASE S_SauceFrame
+        CASE S_ColorsFrame
         CASE S_SauceTitleLB
         CASE S_SauceTitleTB
         CASE S_SauceAuthorLB
@@ -442,8 +445,8 @@ SUB __UI_MouseEnter (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -512,6 +515,7 @@ SUB __UI_MouseLeave (id AS LONG)
 
         'S:SAUCE
         CASE S_SauceFrame
+        CASE S_ColorsFrame
         CASE S_SauceTitleLB
         CASE S_SauceTitleTB
         CASE S_SauceAuthorLB
@@ -523,8 +527,8 @@ SUB __UI_MouseLeave (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -574,8 +578,8 @@ SUB __UI_FocusIn (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -626,8 +630,8 @@ SUB __UI_FocusOut (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -690,6 +694,7 @@ SUB __UI_MouseDown (id AS LONG)
 
         'S:SAUCE
         CASE S_SauceFrame
+        CASE S_ColorsFrame
         CASE S_SauceTitleLB
         CASE S_SauceTitleTB
         CASE S_SauceAuthorLB
@@ -701,8 +706,8 @@ SUB __UI_MouseDown (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -770,6 +775,7 @@ SUB __UI_MouseUp (id AS LONG)
 
         'S:SAUCE
         CASE S_SauceFrame
+        CASE S_ColorsFrame
         CASE S_SauceTitleLB
         CASE S_SauceTitleTB
         CASE S_SauceAuthorLB
@@ -781,8 +787,8 @@ SUB __UI_MouseUp (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -835,8 +841,8 @@ SUB __UI_KeyPress (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
@@ -896,15 +902,14 @@ SUB __UI_ValueChanged (id AS LONG)
         CASE S_SauceFontSize8pxRB
         CASE S_SauceFontSize16pxRB
         CASE S_Sauce9pxWidthCB
-        CASE S_SauceiCEColorsCB
-        CASE S_SauceRGBColorsCB
+        CASE S_SauceiCEColorsRB
+        CASE S_SauceRGBColorsRB
 
         'E:EXPORT
         CASE E_ExportToImgSrcDirRB
         CASE E_ExportToDirRB
 
         'ST:STATUS
-        CASE ST_StatusFrame
         CASE ST_StatusLB
 
     END SELECT
