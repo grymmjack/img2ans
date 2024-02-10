@@ -176,20 +176,12 @@ Sauce support includes:
 
 
 ## COMPILING AND BUILDING / INSTALLATION
-You need [InForm-PE](https://github.com/a740g/InForm-PE/). I recommend checking out this repo adjacent as a sibling to
-`IMG2ANS` like so:
+After cloning this repo, run the following:
 
-> If you have checked out img2ans in `~/git/img2ans` ...
-
-`cd ~/git`  
-`gh repo clone a740g/InForm-PE`  
-
-> Read the README for setup of InForm-PE: https://github.com/a740g/InForm-PE/blob/master/README.md
-
-> Symlink InForm-PE to `~/git/img2ans`:
-`cd ~/git/img2ans/include`
-`ln -s ../../InForm-PE/InForm`
-
+```sh
+git submodule init
+git submodule update
+```
 Now you can build it.
 
 # Thank you and attribution
