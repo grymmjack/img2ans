@@ -43,12 +43,17 @@ DIM SHARED RC_ResizeCropCB AS LONG
 DIM SHARED RC_ResizeCropPB AS LONG
 DIM SHARED RC_ResizeCropXLB AS LONG
 DIM SHARED RC_ResizeCropXTB AS LONG
+DIM SHARED RC_ResizeCrop80x25BT AS LONG
+DIM SHARED RC_ResizeCrop80x50BT AS LONG
+DIM SHARED RC_ResizeCrop132x100BT AS LONG
 DIM SHARED RC_ResizeCropYLB AS LONG
 DIM SHARED RC_ResizeCropYTB AS LONG
 DIM SHARED RC_ResizeCropWLB AS LONG
 DIM SHARED RC_ResizeCropWTB AS LONG
 DIM SHARED RC_ResizeCropHLB AS LONG
 DIM SHARED RC_ResizeCropHTB AS LONG
+DIM SHARED RC_ResizeCropZoomLB AS LONG
+DIM SHARED RC_ResizeCropZoomSlider AS LONG
 
 'P:PREVIEW
 DIM SHARED P_PreviewLB AS LONG
@@ -99,63 +104,6 @@ SUB __UI_OnLoad
     __UI_DefaultButtonID = SI_SourceImgBrowseButtonBT
 END SUB
 
-' SUB __UI_BeforeUpdateDisplay
-'     'This event occurs at approximately 60 frames per second.
-'     'You can change the update frequency by calling SetFrameRate DesiredRate%
-'     SetFrameRate 120
-
-'     ' Input handling
-'     IF __UI_HasInput%% THEN
-'         ' Keyboard input handling
-'         DIM AS _UNSIGNED _BYTE IS_SHIFT, IS_ALT, IS_CTRL
-'         IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN IS_SHIFT~%% = TRUE
-'         IF _KEYDOWN(KEY_LALT&)   OR _KEYDOWN(KEY_RALT&)   THEN IS_ALT~%% = TRUE
-'         IF _KEYDOWN(KEY_LCTRL&)  OR _KEYDOWN(KEY_RCTRL&)  THEN IS_CTRL~%% = TRUE
-'         DIM AS STRING msg
-'         msg$ = ""
-'         IF IS_CTRL~%%  THEN msg$ = msg$ + "[CTRL]+"
-'         IF IS_ALT~%%   THEN msg$ = msg$ + "[ALT]+"
-'         IF IS_SHIFT~%% THEN msg$ = msg$ + "[SHIFT]+"
-
-'         IF __UI_KeyHit THEN
-'             SELECT CASE __UI_KeyHit
-'                 CASE KEY_ESCAPE:
-'                     console.box msg$ + "ESCAPE", BRIGHT_MAGENTA
-'                     SYSTEM
-'                 CASE KEY_SPACE:
-'                     console.box msg$ + "SPACE", BRIGHT_MAGENTA
-'                 CASE KEY_LEFT:
-'                     console.box msg$ + "LEFT", BRIGHT_MAGENTA
-'                 CASE KEY_RIGHT:
-'                     console.box msg$ + "RIGHT", BRIGHT_MAGENTA
-'                 CASE KEY_UP:
-'                     console.box msg$ + "UP", BRIGHT_MAGENTA
-'                 CASE KEY_DOWN:
-'                     console.box msg$ + "DOWN", BRIGHT_MAGENTA
-'                 CASE ELSE:
-'                     console.box msg$ + CHR$(__UI_KeyHit), BRIGHT_MAGENTA
-'             END SELECT
-'         END IF
-
-'         ' Mouse input handling
-'         ' Update mouse properties from InForm-PE READ-ONLY
-'         IMOUSE_update
-
-'         ' Log the mouse action
-'         IF SourceIMG.has_mouse%% THEN
-'             IF MOUSE.dragging%% = TRUE THEN
-'                 console.box "DRAGGING", BRIGHT_GREEN
-'             END IF
-'             IF MOUSE.dropping%% THEN
-'                 console.box "DROPPING", BRIGHT_RED
-'             END IF
-'             IF MOUSE.w_up%% OR MOUSE.w_down%% THEN
-'                 console.box "MOUSEWHEEL=" + _TRIM$(STR$(MOUSE.w_raw%)), CYAN
-'             END IF
-'         END IF
-'     END If
-' END SUB
-
 SUB __UI_BeforeUpdateDisplay
     'This event occurs at approximately 60 frames per second.
     'You can change the update frequency by calling SetFrameRate DesiredRate%
@@ -191,37 +139,6 @@ SUB __UI_BeforeUpdateDisplay
 
     ' Mouse input loop
     IF __UI_HasInput THEN
-        ' Keyboard input handling
-        ' DIM AS _UNSIGNED _BYTE IS_SHIFT, IS_ALT, IS_CTRL
-        ' IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN IS_SHIFT~%% = TRUE
-        ' IF _KEYDOWN(KEY_LALT&)   OR _KEYDOWN(KEY_RALT&)   THEN IS_ALT~%% = TRUE
-        ' IF _KEYDOWN(KEY_LCTRL&)  OR _KEYDOWN(KEY_RCTRL&)  THEN IS_CTRL~%% = TRUE
-        ' DIM AS STRING msg
-        ' msg$ = ""
-        ' IF IS_CTRL~%%  THEN msg$ = msg$ + "[CTRL]+"
-        ' IF IS_ALT~%%   THEN msg$ = msg$ + "[ALT]+"
-        ' IF IS_SHIFT~%% THEN msg$ = msg$ + "[SHIFT]+"
-
-        ' IF __UI_KeyHit THEN
-        '     SELECT CASE __UI_KeyHit
-        '         CASE KEY_ESCAPE:
-        '             console.box msg$ + "ESCAPE", BRIGHT_MAGENTA
-        '             SYSTEM
-        '         CASE KEY_SPACE:
-        '             console.box msg$ + "SPACE", BRIGHT_MAGENTA
-        '         CASE KEY_LEFT:
-        '             console.box msg$ + "LEFT", BRIGHT_MAGENTA
-        '         CASE KEY_RIGHT:
-        '             console.box msg$ + "RIGHT", BRIGHT_MAGENTA
-        '         CASE KEY_UP:
-        '             console.box msg$ + "UP", BRIGHT_MAGENTA
-        '         CASE KEY_DOWN:
-        '             console.box msg$ + "DOWN", BRIGHT_MAGENTA
-        '         CASE ELSE:
-        '             console.box msg$ + LCASE$(CHR$(__UI_KeyHit)), BRIGHT_MAGENTA
-        '     END SELECT
-        ' END IF
-
         ' Mouse input handling (thanks @a740g!)
         IMOUSE_update
 
@@ -343,7 +260,13 @@ SUB __UI_Click (id AS LONG)
         CASE RC_ResizeCropWTB
         CASE RC_ResizeCropHLB
         CASE RC_ResizeCropHTB
-
+        CASE RC_ResizeCrop80x25BT
+            SetCropSize 80, 25
+        CASE RC_ResizeCrop80x50BT
+            SetCropSize 80, 50
+        CASE RC_ResizeCrop132x100BT        
+            SetCropSize 132, 100
+ 
         'P:PREVIEW
         CASE P_PreviewLB
         CASE P_PreviewPB

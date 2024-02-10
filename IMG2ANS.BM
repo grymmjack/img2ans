@@ -16,6 +16,17 @@ $END IF
 
 
 ''
+' Sets the size of the crop bounding box
+' @param INTEGER w Width of the box
+' @param INTEGER h Height of the box
+'
+SUB SetCropSize(w%, h%)
+    Text(RC_ResizeCropWTB) = _TRIM$(STR$(w%))
+    Text(RC_ResizeCropHTB) = _TRIM$(STR$(h%))
+END SUB
+
+
+''
 ' Sets input focus to image
 ' @param LONG pb picturebox control
 '
@@ -233,7 +244,9 @@ SUB ChangeDestPal
             pal_sel$ = pal_2$
             Control(DP_DestPalPalleteDL).Value = 2
         END IF
-        ApplyPalToImg _STARTDIR$ + pal_sel$, Control(DP_DestPalPB).HelperCanvas&, TRUE        
+        ApplyPalToImg _STARTDIR$ + "/resources/palettes/" + pal_sel$ + ".GPL", _
+            Control(DP_DestPalPB).HelperCanvas&, _
+            TRUE
     ELSE
         Control(DP_DestPalPalleteDL).Value = 1
     END IF

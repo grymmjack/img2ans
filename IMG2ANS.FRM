@@ -177,6 +177,15 @@ SUB __UI_LoadForm
     'https://en.wikipedia.org/wiki/List_of_video_game_console_palettes
     'https://en.wikipedia.org/wiki/List_of_color_palettes
     AddItem __UI_NewID, ""
+    AddItem __UI_NewID, "EGA (16)"
+    AddItem __UI_NewID, "CGA32 (32)"
+    AddItem __UI_NewID, "CGA0-HIGH (4)"
+    AddItem __UI_NewID, "CGA0-LOW (4)"
+    AddItem __UI_NewID, "CGA1-HIGH (4)"
+    AddItem __UI_NewID, "CGA1-LOW (4)"
+    AddItem __UI_NewID, "CGA2-HIGH (4)"
+    AddItem __UI_NewID, "CGA2-LOW (4)"
+    AddItem __UI_NewID, "VGA (256)"
     AddItem __UI_NewID, "1BIT (2)"
     AddItem __UI_NewID, "2BIT (4)"
     AddItem __UI_NewID, "6BIT (64)"
@@ -189,19 +198,11 @@ SUB __UI_LoadForm
     AddItem __UI_NewID, "BBCMICRO (16)"
     AddItem __UI_NewID, "BLOODMOON21 (9)"
     AddItem __UI_NewID, "C=64 (16)"
-    AddItem __UI_NewID, "CGA0-HIGH (4)"
-    AddItem __UI_NewID, "CGA0-LOW (4)"
-    AddItem __UI_NewID, "CGA1-HIGH (4)"
-    AddItem __UI_NewID, "CGA1-LOW (4)"
-    AddItem __UI_NewID, "CGA2-HIGH (4)"
-    AddItem __UI_NewID, "CGA2-LOW (4)"
-    AddItem __UI_NewID, "CGA32 (32)"
     AddItem __UI_NewID, "COLODORE (16)"
     AddItem __UI_NewID, "CYBERPUNK-NEONS (11)"
     AddItem __UI_NewID, "DAWNBRINGER-16 (16)"
     AddItem __UI_NewID, "DAWNBRINGER-32 (32)"
     AddItem __UI_NewID, "DAWNBRINGERS-8-COLOR (8)"
-    AddItem __UI_NewID, "EGA (16)"
     AddItem __UI_NewID, "ENDESGA-16 (16)"
     AddItem __UI_NewID, "ENDESGA-32 (32)"
     AddItem __UI_NewID, "ENDESGA-36 (36)"
@@ -225,7 +226,6 @@ SUB __UI_LoadForm
     AddItem __UI_NewID, "SHOVEL-KNIGHT-NES (59)"
     AddItem __UI_NewID, "SYNTHEWAVE-CITY (8)"
     AddItem __UI_NewID, "TELETEXT (8)"
-    AddItem __UI_NewID, "VGA (256)"
     AddItem __UI_NewID, "VINES-FLEXIBLE-LINEAR-RAMPS (38)"
     AddItem __UI_NewID, "ZXSPECTRUM (16)"
     Control(__UI_NewID).HasBorder = True
@@ -306,6 +306,24 @@ SUB __UI_LoadForm
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
 
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "RC_ResizeCrop80x25BT", 80, 23, 887, 316, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "80x25"
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).CanHaveFocus = True
+
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "RC_ResizeCrop80x50BT", 80, 23, 887, 346, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "80x50"
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).CanHaveFocus = True
+
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "RC_ResizeCrop132x100BT", 80, 23, 887, 376, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "132x100"
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).CanHaveFocus = True
+
     __UI_NewID = __UI_NewControl(__UI_Type_Label, "RC_ResizeCropYLB", 20, 19, 798, 346, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "Y"
@@ -319,6 +337,21 @@ SUB __UI_LoadForm
     Control(__UI_NewID).HasBorder = True
     Control(__UI_NewID).CanHaveFocus = True
     Control(__UI_NewID).BorderSize = 1
+
+    __UI_NewID = __UI_NewControl(__UI_Type_Label, "RC_ResizeCropZoomLB", 30, 19, 670, 376, 0)
+    __UI_RegisterResult = 0
+    SetCaption __UI_NewID, "ZOOM"
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).VAlign = __UI_Middle
+
+    __UI_NewID = __UI_NewControl(__UI_Type_TrackBar, "RC_ResizeCropZoomSlider", 142, 40, 725, 376, 0)
+    __UI_RegisterResult = 0
+    Control(__UI_NewID).HasBorder = False
+    Control(__UI_NewID).Max = 5
+    Control(__UI_NewID).CanHaveFocus = True
+    Control(__UI_NewID).Min = -5
+    Control(__UI_NewID).Value = 0
+    Control(__UI_NewID).Interval = 1
 
 
 
@@ -556,12 +589,17 @@ SUB __UI_AssignIDs
     RC_ResizeCropPB = __UI_GetID("RC_ResizeCropPB")
     RC_ResizeCropXLB = __UI_GetID("RC_ResizeCropXLB")
     RC_ResizeCropXTB = __UI_GetID("RC_ResizeCropXTB")
+    RC_ResizeCrop80x25BT = __UI_GetID("RC_ResizeCrop80x25BT")
+    RC_ResizeCrop80x50BT = __UI_GetID("RC_ResizeCrop80x50BT")
+    RC_ResizeCrop132x100BT = __UI_GetID("RC_ResizeCrop132x100BT")
     RC_ResizeCropYLB = __UI_GetID("RC_ResizeCropYLB")
     RC_ResizeCropYTB = __UI_GetID("RC_ResizeCropYTB")
     RC_ResizeCropWLB = __UI_GetID("RC_ResizeCropWLB")
     RC_ResizeCropWTB = __UI_GetID("RC_ResizeCropWTB")
     RC_ResizeCropHLB = __UI_GetID("RC_ResizeCropHLB")
     RC_ResizeCropHTB = __UI_GetID("RC_ResizeCropHTB")
+    RC_ResizeCropZoomLB = __UI_GetID("RC_ResizeCropZoomLB")
+    RC_ResizeCropZoomSlider = __UI_GetID("RC_ResizeCropZoomSlider")
 
     'P:PREVIEW
     P_PreviewLB = __UI_GetID("P_PreviewLB")
