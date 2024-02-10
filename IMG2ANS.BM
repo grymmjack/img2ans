@@ -7,7 +7,8 @@
 ' @depends include/InForm-PE/InForm/InFormCommon.bi
 ' @depends include/InForm-PE/InForm/InForm.bi
 ' @depends include/InForm-PE/InForm/InForm.ui
-' @depends include/QB64_GJ_LIB/STRINGS/STRINGS.BM
+' @depends include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM
+' @depends include/QB64_GJ_LIB/MISC/MISC.BM
 '
 $IF IMG2ANS_BM = UNDEFINED THEN
     $LET IMG2ANS_BM = TRUE
@@ -266,123 +267,6 @@ SUB console.dir_image(img AS IMAGE)
     console.warn "}"
 END SUB
 
-
-''
-' Log a boxed message to console if DEBUGGING
-' @param STRING msg message to send
-' @param INTEGER kolor% color to use
-'
-SUB console.box(msg$, kolor%)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e, color_code, lines, intensity
-        DIM AS INTEGER fg, afg
-        intensity$ = "0"
-        e$ = CHR$(27)
-        afg% = ANSI_COLOR%(kolor%)
-        color_code$ = e$ + "["
-        IF kolor% > 7 THEN intensity$ = "1"
-        color_code$ = color_code$ + intensity$ + ";3"
-        color_code$ = color_code$ + _TRIM$(STR$(afg%)) + "m"
-        lines$ = "+" + STRING$(LEN(msg$)+2, "-") + "+"
-        _ECHO color_code$ + lines$
-        _ECHO "| " + msg$ + " |"
-        _ECHO lines$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log a banner to console if DEBUGGING
-' @param STRING msg message to send
-' @param INTEGER kolor% color to use
-'
-SUB console.banner(msg$, kolor%)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e, color_code, intensity
-        DIM AS INTEGER fg, afg
-        intensity$ = "0"
-        e$ = CHR$(27)
-        afg% = ANSI_COLOR(kolor%)
-        msg$ = STR.replace$(msg$, "\n", CHR$(10), -1)
-        msg$ = STR.replace$(msg$, "\t", CHR$(9), -1)
-        color_code$ = e$ + "["
-        IF kolor% > 7 THEN intensity$ = "1"
-        color_code$ = color_code$ + intensity$ + ";3"
-        color_code$ = color_code$ + _TRIM$(STR$(afg%)) + "m"
-        _ECHO color_code$ + msg$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log to console if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.log(msg$)
-    $IF DEBUGGING = TRUE THEN
-        _ECHO msg$
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log to console as info if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.info(msg$)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e
-        e$ = CHR$(27)
-        _ECHO e$ + "[1;36m" + msg$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log to console as warning if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.warn(msg$)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e
-        e$ = CHR$(27)
-        _ECHO e$ + "[1;33m" + msg$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log to console as error if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.error(msg$)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e
-        e$ = CHR$(27)
-        _ECHO e$ + "[1;31m" + msg$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Clamps a number between a minimum and maximum range
-' @param INTEGER num number to clamp
-' @param INTEGER min minimum allowed
-' @param INTEGER max maximum allowed
-' @return INTEGER clamped number
-'
-FUNCTION clamp_int%(num%, min%, max%)
-    IF num% > max% THEN num% = max%
-    IF num% < min% THEN num% = min%
-    clamp_int% = num%
-END FUNCTION
-
-
 '$INCLUDE:'include/MOUSE/MOUSE.BM'
-'$INCLUDE:'include/QB64_GJ_LIB/STRINGS/STRINGS.BM'
+'$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM'
+'$INCLUDE:'include/QB64_GJ_LIB/MISC/MISC.BM'

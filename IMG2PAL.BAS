@@ -12,6 +12,9 @@
 ' @version 0.1
 '
 
+'$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BI'
+'$INCLUDE:'include/QB64_GJ_LIB/MISC/MISC.BI'
+
 OPTION _EXPLICIT
 '$DYNAMIC
 
@@ -23,29 +26,48 @@ $IF NDEBUG = FALSE THEN
         $CONSOLE
         $ASSERTS:CONSOLE
 $END IF
+CONST KEY_RSHIFT& = 100303
+CONST KEY_LSHIFT& = 100304
 
 'Setup screen
 DIM SHARED CANVAS AS LONG
 CANVAS = _NEWIMAGE(3000, 2000, 32)
 SCREEN CANVAS
-_FULLSCREEN _SQUAREPIXELS
+' _FULLSCREEN _SQUAREPIXELS
 
 DIM SHARED AS LONG img_orig, img_pal
 DIM SHARED AS STRING k, img_file, pal_file
 DIM SHARED AS _BYTE no_dithering
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
-zoom = 1.0
-zoom_adj = 0.5
-zoom_min = 0.5
-zoom_max = 3.0
+zoom = 0.1
+IF _DESKTOPWIDTH >= _WIDTH(CANVAS&) THEN
+    zoom = 1.0
+END IF
+zoom_adj = 0.1
+zoom_min = 0.1
+zoom_max = 5.0
 
 draw_output
 DO
     _LIMIT 30
     k$ = INKEY$
+    IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN 
+        zoom_adj = 0.5
+    ELSE
+        zoom_adj = 0.1
+    END IF
     SELECT CASE k
         CASE CHR$(27)
             EXIT DO
+        CASE "1"
+            zoom = 1
+            draw_output
+        CASE "0"
+            zoom = zoom_min
+            draw_output
+        CASE "9"
+            zoom = zoom_max
+            draw_output
         CASE CHR$(0) + CHR$(72) 'up arrow
             _ASSERT 1, "Up"
             zoom = zoom + zoom_adj
@@ -143,10 +165,10 @@ SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
     IF no_dithering THEN
-        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=DITHERING, UP/DOWN=ZOOM, ESC=QUIT - ";
+        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=DITHERING, UP/DOWN=ZOOM (+SHIFT=MORE,0=MIN,1=100%,9=MAX), ESC=QUIT - ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
     ELSE
-        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=NO DITHERING, UP/DOWN=ZOOM,  ESC=QUIT - ";
+        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=NO DITHERING, UP/DOWN=ZOOM (+SHIFT=MORE,0=MIN,1=100%,9=MAX), ESC=QUIT - ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
     END IF
 
@@ -394,3 +416,6 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
 
     CLOSE fh
 END SUB
+
+'$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM'
+'$INCLUDE:'include/QB64_GJ_LIB/MISC/MISC.BM'
