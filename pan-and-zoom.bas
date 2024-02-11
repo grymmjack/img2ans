@@ -21,7 +21,7 @@ CONST BOX_TOP = 2
 CONST BOX_BOT = 3
 CONST BOX_INIT_W = 80
 CONST BOX_INIT_H = 50
-CONST BOX_LINE_W = 10
+CONST BOX_LINE_W = 2
 
 CONST TARGET_WIN = 0
 CONST TARGET_BOX = 1
@@ -242,15 +242,15 @@ DO
                         box_w% = box_w% + nudge_amount%
                     ELSEIF mouse_dragging_right~%% THEN
                         box_off_x% = box_off_x% + nudge_amount%
-                        box_w% = box_w% + nudge_amount%
+                        box_w% = box_w% - nudge_amount%
                     END IF
                 ELSEIF OVER~%% = BOX_TOP THEN
                     IF mouse_dragging_down~%% THEN
-                        box_h% = box_h% + nudge_amount%
                         box_off_y% = box_off_y% + nudge_amount%
+                        box_h% = box_h% - nudge_amount%
                     ELSEIF mouse_dragging_up~%% THEN
-                        box_h% = box_h% + nudge_amount%
                         box_off_y% = box_off_y% - nudge_amount%
+                        box_h% = box_h% + nudge_amount%
                     END IF
                 ELSEIF OVER~%% = BOX_BOT THEN
                     IF mouse_dragging_down~%% THEN
@@ -313,15 +313,16 @@ END SUB
 ' @param LONG img to outline
 ' @param LONG kolor to outline in
 ' @param INTEGER thickness of line
+' @param LONG pattern for line
 '
-SUB outline_image(img&, kolor&, thickness%)
+SUB outline_image(img&, kolor&, thickness%, pattern&)
     ' console.info "outline_image(" + _TRIM$(STR$(img&)) + ", " + _TRIM$(STR$(kolor&)) + ", " + _TRIM$(STR$(thickness%)) +  ")"
     DIM AS INTEGER i
     DIM AS LONG old_dest
     old_dest& = _DEST
     _DEST img&
     FOR i% = 0 TO thickness%
-        LINE (i%, i%)-(_WIDTH(img&)-i%-1, _HEIGHT(img&)-i%-1), kolor&, B, &B0000111100001111
+        LINE (i%, i%)-(_WIDTH(img&)-i%-1, _HEIGHT(img&)-i%-1), kolor&, B, pattern&
     NEXT i%
     _DEST old_dest&
 END SUB
@@ -378,10 +379,10 @@ SUB draw_output
         CANVAS1&, _
         (OFF_X%, OFF_Y%)-(INT(WIN_W * zoom!) + OFF_X%, INT(WIN_H * zoom!) + OFF_Y%)
     IF FOCUS~%% = WIN_HAS_FOCUS THEN
-        outline_image CANVAS1&, _RGB32(255, 0, 0), BOX_LINE_W
-        outline_image BOX&, _RGB32(255, 255, 0), BOX_LINE_W
+        outline_image CANVAS1&, _RGB32(255, 0, 0), BOX_LINE_W, &B0000111100001111
+        outline_image BOX&, _RGB32(255, 255, 0), BOX_LINE_W, &B00000000111111111
     ELSEIF FOCUS~%% = BOX_HAS_FOCUS THEN
-        outline_image BOX&, _RGB32(255, 0, 0), BOX_LINE_W
+        outline_image BOX&, _RGB32(255, 0, 0), BOX_LINE_W, &B0000000011111111
     END IF
     draw_bounding_box
     _DISPLAY
