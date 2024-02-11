@@ -70,7 +70,7 @@ IMAGE& = _LOADIMAGE(_STARTDIR$ + "/resources/images/progress5.png")
 
 draw_output
 DO
-    _LIMIT 60
+    ' _LIMIT 60
 
     ' Keyboard handling
     k$ = INKEY$
@@ -179,6 +179,9 @@ DO
         IF (_MOUSEX>= (box_off_x% + box_w% - PAD)) AND (_MOUSEX<= (box_off_x% + box_w%)) THEN OVER~%% = BOX_RIGHT
         IF (_MOUSEY >= box_off_y%) AND (_MOUSEY <= (box_off_y% + PAD)) THEN OVER~%% = BOX_TOP
         IF (_MOUSEY >= (box_off_y% + box_h% - PAD)) AND (_MOUSEY <= (box_off_y% + box_h%)) THEN OVER~%% = BOX_BOT
+        IF ((_MOUSEX >= box_off_x%) AND (_MOUSEX <= (box_off_x% + box_w%))) _
+        AND ((_MOUSEY >= box_off_y%) AND (_MOUSEY <= (box_off_y% + box_h%))) THEN OVER_BOX~%% = TRUE
+
         SELECT EVERYCASE OVER~%%
             CASE BOX_LEFT
                 console.info "Over box left edge"
@@ -197,8 +200,8 @@ DO
         IF _MOUSEBUTTON(1) = -1 THEN
             IF TARGET~%% = TARGET_BOX THEN
                 IF OFF_MBX% = 0 AND OFF_MBY% = 0 THEN
-                    OFF_MBX% =  _MOUSEX + box_off_x%
-                    OFF_MBY% =  _MOUSEY + box_off_y%
+                    OFF_MBX% = _MOUSEX + box_off_x%
+                    OFF_MBY% = _MOUSEY + box_off_y%
                 END IF
             ELSE
                 IF OFF_MX% = 0 AND OFF_MY% = 0 THEN
@@ -210,12 +213,6 @@ DO
         IF _MOUSEBUTTON(1) = 0 THEN ' Focus and target stuff
             console.warn "MOUSE B1 CLICKED"
             ' Check if clicking on bounding box
-            ' Over box
-            IF (_MOUSEX >= box_off_x%) AND (_MOUSEX <= (box_off_x% + box_w%)) _
-            AND (_MOUSEY >= box_off_y%) AND (_MOUSEY <= (box_off_y% + box_h%)) THEN 
-                OVER_BOX~%% = TRUE
-                console.box "Over box", 12
-            END IF
             IF OVER_BOX~%% THEN
                 ' Clicked on box
                 console.log "Clicked on box"
@@ -240,19 +237,37 @@ DO
                 OFF_XBDIST% = OFF_MBX% - _MOUSEX
                 OFF_YBDIST% = OFF_MBY% - _MOUSEY
                 IF OVER~%% = BOX_RIGHT THEN
-                    box_w% = box_w% + OFF_XBDIST% * -TARGET~%%
+                    IF mouse_dragging_right~%% THEN
+                        box_w% = box_w% + nudge_amount%
+                    ELSEIF mouse_dragging_left~%% THEN
+                        box_w% = box_w% - nudge_amount%
+                    END IF
                 ELSEIF OVER~%% = BOX_LEFT THEN
-                    box_w% = box_w% + OFF_XBDIST% * -TARGET~%%
-                    box_off_x% = box_off_x% - OFF_XBDIST% * -TARGET~%%
+                    IF mouse_dragging_left~%% THEN
+                        box_off_x% = box_off_x% - nudge_amount%
+                        box_w% = box_w% + nudge_amount%
+                    ELSEIF mouse_dragging_right~%% THEN
+                        box_off_x% = box_off_x% + nudge_amount%
+                        box_w% = box_w% + nudge_amount%
+                    END IF
                 ELSEIF OVER~%% = BOX_TOP THEN
-                    box_h% = box_h% + OFF_YBDIST% * -TARGET~%%
-                    box_off_y% = box_off_y% - OFF_YBDIST% * -TARGET~%%
+                    IF mouse_dragging_down~%% THEN
+                        box_h% = box_h% + nudge_amount%
+                        box_off_y% = box_off_y% + nudge_amount%
+                    ELSEIF mouse_dragging_up~%% THEN
+                        box_h% = box_h% + nudge_amount%
+                        box_off_y% = box_off_y% - nudge_amount%
+                    END IF
                 ELSEIF OVER~%% = BOX_BOT THEN
-                    box_h% = box_h% + OFF_YBDIST% * -TARGET~%%
+                    IF mouse_dragging_down~%% THEN
+                        box_h% = box_h% + nudge_amount%
+                    ELSEIF mouse_dragging_up~%% THEN
+                        box_h% = box_h% - nudge_amount%
+                    END IF
                 ELSE
                     ' Set offset to distance
-                    box_off_x% = OFF_XBDIST% * -TARGET~%%
-                    box_off_y% = OFF_YBDIST% * -TARGET~%%
+                    box_off_x% = OFF_XBDIST% * -1
+                    box_off_y% = OFF_YBDIST% * -1
                 END IF
             END IF
         ELSEIF mouse_b1_up~%% THEN ' Mouse up stuff
@@ -273,7 +288,7 @@ DO
             ' mouse_b1_clicked~%% = 0
             ' DO : LOOP UNTIL _MOUSEINPUT = 0 ' clear buffered mouse input
         END IF
-        trace_mouse
+        ' trace_mouse
         draw_output
     WEND 
 LOOP
@@ -348,6 +363,7 @@ END SUB
 '
 SUB draw_output
     ' console.info "draw_output"
+    BOX& = _NEWIMAGE(box_w%, box_h%, 32)
     _DEST CANVAS1& : CLS
     _PUTIMAGE (0, 0)-(WIN_W, WIN_H), _
         IMAGE&, _
@@ -381,7 +397,7 @@ SUB draw_bounding_box
     ' IF box_off_y% < 0 THEN box_off_y% = 0
     ' IF box_off_x% + box_off_w% > WIN_W THEN box_off_x% = WIN_W - box_off_x%
     ' IF box_off_y% + box_off_y% > WIN_H THEN box_off_y% = WIN_H - box_off_y%
-    ' trace_box
+    trace_box
     DIM AS LONG old_dest
     old_dest& = _DEST
     _DEST BOX&
