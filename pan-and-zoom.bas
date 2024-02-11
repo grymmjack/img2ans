@@ -25,7 +25,6 @@ CONST BOX_LINE_W = 10
 
 CONST TARGET_WIN = 0
 CONST TARGET_BOX = 1
-CONST PAD = BOX_LINE_W
 
 DIM SHARED AS SINGLE zoom, zoom_int
 zoom! = 1.0
@@ -43,7 +42,7 @@ OFF_XBDIST = 0 : OFF_YBDIST = 0
 nudge_amount% = 1
 
 DIM SHARED AS _BYTE mouse_b1, mouse_b2, mouse_b3, mouse_old_b1, mouse_old_b2, mouse_old_b3
-DIM SHARED AS INTEGER mouse_w
+DIM SHARED AS INTEGER mouse_w, PAD
 DIM SHARED AS INTEGER mouse_x, mouse_y, mouse_old_x, mouse_old_y
 DIM SHARED AS _UNSIGNED _BYTE mouse_w_up, mouse_w_down
 DIM SHARED AS _UNSIGNED _BYTE FOCUS, OVER, TARGET, OVER_BOX
@@ -53,6 +52,7 @@ DIM SHARED AS _UNSIGNED _BYTE mouse_moved_up, mouse_moved_down
 DIM SHARED AS _UNSIGNED _BYTE mouse_moved_left, mouse_moved_right
 DIM SHARED AS _UNSIGNED _BYTE mouse_dragging_up, mouse_dragging_down
 DIM SHARED AS _UNSIGNED _BYTE mouse_dragging_left, mouse_dragging_right
+PAD% = BOX_LINE_W
 FOCUS~%% = WIN_HAS_FOCUS
 OVER~%% = BOX_NONE
 OVER_BOX~%% = FALSE
@@ -173,14 +173,7 @@ DO
 
         'Over stuff
         OVER~%% = BOX_NONE : OVER_BOX~%% = FALSE
-
-        ' Over edges
-        IF (_MOUSEX>= box_off_x%) AND (_MOUSEX<= (box_off_x% + PAD)) THEN OVER~%% = BOX_LEFT
-        IF (_MOUSEX>= (box_off_x% + box_w% - PAD)) AND (_MOUSEX<= (box_off_x% + box_w%)) THEN OVER~%% = BOX_RIGHT
-        IF (_MOUSEY >= box_off_y%) AND (_MOUSEY <= (box_off_y% + PAD)) THEN OVER~%% = BOX_TOP
-        IF (_MOUSEY >= (box_off_y% + box_h% - PAD)) AND (_MOUSEY <= (box_off_y% + box_h%)) THEN OVER~%% = BOX_BOT
-        IF ((_MOUSEX >= box_off_x%) AND (_MOUSEX <= (box_off_x% + box_w%))) _
-        AND ((_MOUSEY >= box_off_y%) AND (_MOUSEY <= (box_off_y% + box_h%))) THEN OVER_BOX~%% = TRUE
+        box_over_calc
 
         SELECT EVERYCASE OVER~%%
             CASE BOX_LEFT
@@ -236,6 +229,7 @@ DO
                 ' Calculate x and y distance relative to mouse offset
                 OFF_XBDIST% = OFF_MBX% - _MOUSEX
                 OFF_YBDIST% = OFF_MBY% - _MOUSEY
+                box_over_calc
                 IF OVER~%% = BOX_RIGHT THEN
                     IF mouse_dragging_right~%% THEN
                         box_w% = box_w% + nudge_amount%
@@ -302,6 +296,19 @@ SYSTEM 1
 
 
 ''
+' Calculates the bounding box over states
+'
+SUB box_over_calc
+    IF (_MOUSEX >= box_off_x% - PAD%) AND (_MOUSEX<= (box_off_x% + PAD%)) THEN OVER~%% = BOX_LEFT
+    IF (_MOUSEX >= (box_off_x% + box_w% - PAD%)) AND (_MOUSEX<= (box_off_x% + box_w%)) THEN OVER~%% = BOX_RIGHT
+    IF (_MOUSEY >= box_off_y% - PAD%) AND (_MOUSEY <= (box_off_y% + PAD%)) THEN OVER~%% = BOX_TOP
+    IF (_MOUSEY >= (box_off_y% + box_h% - PAD%)) AND (_MOUSEY <= (box_off_y% + box_h%)) THEN OVER~%% = BOX_BOT
+    IF ((_MOUSEX >= box_off_x% - PAD%) AND (_MOUSEX <= (box_off_x% + box_w% + PAD%))) _
+    AND ((_MOUSEY >= box_off_y% - PAD%) AND (_MOUSEY <= (box_off_y% + box_h% + PAD%))) THEN OVER_BOX~%% = TRUE
+END SUB
+
+
+''
 ' Outline an image
 ' @param LONG img to outline
 ' @param LONG kolor to outline in
@@ -352,6 +359,7 @@ END SUB
 '
 SUB trace_box
     console.log "FOCUS: " + _TRIM$(STR$(FOCUS~%%)) + ", OVER: " + _TRIM$(STR$(OVER~%%)) + ", TARGET: " + _TRIM$(STR$(TARGET~%%))
+    console.log "PAD: " + _TRIM$(STR$(PAD%))
     console.log "box_x: " + _TRIM$(STR$(box_x%)) + ", box_y: " + _TRIM$(STR$(box_y%))
     console.log "box_w: " + _TRIM$(STR$(box_w%)) + ", box_h: " + _TRIM$(STR$(box_h%))
     console.log "box_off_x: " + _TRIM$(STR$(box_off_x%)) + ", box_off_y: " + _TRIM$(STR$(box_off_y%))
