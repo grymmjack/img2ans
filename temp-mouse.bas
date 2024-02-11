@@ -60,6 +60,7 @@ TYPE __MOUSE_STATUS
 END TYPE
 
 TYPE __MOUSE
+    has_events AS INTEGER
     new_state  AS __MOUSE_STATE
     old_state  AS __MOUSE_STATE
     drag_start AS __POINT
@@ -71,65 +72,64 @@ DIM SHARED MOUSE AS __MOUSE : MOUSE_init
 SCREEN _NEWIMAGE(1920, 1080, 32)
 
 DO
+    DO WHILE _MOUSEINPUT : LOOP : MOUSE_update : MOUSE_refresh
+    IF MOUSE_dragged THEN
+        PRINT "DRAGGING DISTANCE: ", MOUSE.status.drag_distance.x, MOUSE.status.drag_distance.y
+    END IF
+    IF MOUSE.status.b1_clicked THEN
+        PRINT "FINAL DRAG DISTANCE: ", MOUSE.status.drag_distance.x, MOUSE.status.drag_distance.y
+    END IF
     k$ = INKEY$
     IF k$ = CHR$(27) THEN EXIT DO
-    WHILE _MOUSEINPUT
-        MOUSE_update
-        ' IF MOUSE.status.moving THEN PRINT "MOVING: "; MOUSE.new_state.pos.x, MOUSE.new_state.pos.y
-        ' IF MOUSE.status.wheel_changed THEN PRINT "WHEEL CHANGED: "; MOUSE.new_state.wheel
-        ' IF MOUSE.status.wheeling_up THEN PRINT "WHEEL: UP"
-        ' IF MOUSE.status.wheeling_down THEN PRINT "WHEEL: DOWN"
-        ' IF MOUSE.status.moving_left THEN PRINT "MOVING: LEFT"
-        ' IF MOUSE.status.moving_right THEN PRINT "MOVING: RIGHT"
-        ' IF MOUSE.status.moving_up THEN PRINT "MOVING: UP"
-        ' IF MOUSE.status.moving_down THEN PRINT "MOVING: DOWN"
-        ' IF MOUSE.status.b1_changed THEN PRINT "B1 CHANGED:"; MOUSE.new_state.b1
-        ' IF MOUSE.status.b2_changed THEN PRINT "B2 CHANGED:"; MOUSE.new_state.b2
-        ' IF MOUSE.status.b3_changed THEN PRINT "B3 CHANGED:"; MOUSE.new_state.b3
-        ' IF MOUSE.status.b1_down THEN PRINT "B1: DOWN"
-        ' IF MOUSE.status.b2_down THEN PRINT "B2: DOWN"
-        ' IF MOUSE.status.b3_down THEN PRINT "B3: DOWN"
-        ' IF MOUSE.status.b1_clicked THEN PRINT "B1: CLICKED"
-        ' IF MOUSE.status.b2_clicked THEN PRINT "B2: CLICKED"
-        ' IF MOUSE.status.b3_clicked THEN PRINT "B3: CLICKED"
-        IF MOUSE_dragged THEN
-            PRINT "DRAGGING DISTANCE: ", MOUSE.status.drag_distance.x, MOUSE.status.drag_distance.y
-        END IF
-        IF MOUSE.status.b1_clicked THEN
-            PRINT "FINAL DRAG DISTANCE: ", MOUSE.status.drag_distance.x, MOUSE.status.drag_distance.y
-        END IF
-    WEND
+    _LIMIT 30
 LOOP
 SYSTEM
 
+
+''
+' Initialize the mouse
+'
 SUB MOUSE_init
     MOUSE.status.stopping_drag = 0
     MOUSE.status.starting_drag = 0
 END SUB
 
 
+''
+' Checks if the mouse has been dragged
+' @return INTEGER -1 if dragged 0 if not
+'
 FUNCTION MOUSE_dragged%
     MOUSE_dragged = MOUSE.status.b1_down AND (MOUSE.status.drag_distance.x <> 0 OR MOUSE.status.drag_distance.y <> 0)
 END FUNCTION
 
 
+''
+' Update the mouse states
+'
 SUB MOUSE_update
     ' track old state
-    MOUSE.old_state.pos.x       = MOUSE.new_state.pos.x
-    MOUSE.old_state.pos.y       = MOUSE.new_state.pos.y
-    MOUSE.old_state.b1          = MOUSE.new_state.b1
-    MOUSE.old_state.b2          = MOUSE.new_state.b2
-    MOUSE.old_state.b3          = MOUSE.new_state.b3
-    MOUSE.old_state.wheel       = MOUSE.new_state.wheel
+    MOUSE.old_state.pos.x = MOUSE.new_state.pos.x
+    MOUSE.old_state.pos.y = MOUSE.new_state.pos.y
+    MOUSE.old_state.b1    = MOUSE.new_state.b1
+    MOUSE.old_state.b2    = MOUSE.new_state.b2
+    MOUSE.old_state.b3    = MOUSE.new_state.b3
+    MOUSE.old_state.wheel = MOUSE.new_state.wheel
 
     ' track new state
-    MOUSE.new_state.pos.x       = _MOUSEX
-    MOUSE.new_state.pos.y       = _MOUSEY
-    MOUSE.new_state.b1          = _MOUSEBUTTON(1)
-    MOUSE.new_state.b2          = _MOUSEBUTTON(2)
-    MOUSE.new_state.b3          = _MOUSEBUTTON(3)
-    MOUSE.new_state.wheel       = _MOUSEWHEEL
+    MOUSE.new_state.pos.x = _MOUSEX
+    MOUSE.new_state.pos.y = _MOUSEY
+    MOUSE.new_state.b1    = _MOUSEBUTTON(1)
+    MOUSE.new_state.b2    = _MOUSEBUTTON(2)
+    MOUSE.new_state.b3    = _MOUSEBUTTON(3)
+    MOUSE.new_state.wheel = _MOUSEWHEEL
+END SUB
 
+
+''
+' Refresh mouse status
+'
+SUB MOUSE_refresh
     ' set status
     ' changes
     MOUSE.status.x_changed      = MOUSE.old_state.pos.x <> MOUSE.new_state.pos.x
