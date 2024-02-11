@@ -20,11 +20,12 @@ CONST BOX_RIGHT = 1
 CONST BOX_TOP = 2
 CONST BOX_BOT = 3
 CONST BOX_INIT_W = 80
-CONST BOX_INTI_H = 50
+CONST BOX_INIT_H = 50
+CONST BOX_LINE_W = 10
 
 CONST TARGET_WIN = 0%%
 CONST TARGET_BOX = 1%%
-CONST PAD = 3%%
+CONST PAD = BOX_LINE_W
 
 DIM SHARED AS SINGLE zoom, zoom_int
 zoom! = 1.0
@@ -32,15 +33,20 @@ zoom_int! = 0.25
 
 DIM AS STRING k
 DIM SHARED AS LONG CANVAS1, CANVAS2, IMAGE, BOX
-DIM SHARED AS INTEGER OFF_X, OFF_Y, OFF_MX, OFF_MY, OFF_XDIST, OFF_YDIST, nudge_amount
-OFF_X = 0 : OFF_Y = 0 : nudge_amount% = 1
+DIM SHARED AS INTEGER OFF_X, OFF_Y, OFF_MX, OFF_MY, OFF_MBX, OFF_MBY
+DIM SHARED AS INTEGER OFF_XDIST, OFF_YDIST, OFF_XBDIST, OFF_YBDIST, nudge_amount
+OFF_X = 0 : OFF_Y = 0
+OFF_MX = 0 : OFF_MY = 0
+OFF_MBX = 0 : OFF_MBY = 0
+nudge_amount% = 1
 
 DIM SHARED AS INTEGER mouse_w
 DIM SHARED AS _UNSIGNED _BYTE mouse_w_up, mouse_w_down
 
-DIM SHARED AS _UNSIGNED _BYTE FOCUS, OVER, TARGET
-DIM SHARED AS _BYTE mouse_b1, mouse_b2, mouse_b3
+DIM SHARED AS _UNSIGNED _BYTE FOCUS, OVER, TARGET, OVER_BOX
+DIM SHARED AS _BYTE mouse_b1, mouse_b2, mouse_b3, mouse_old_b1, mouse_old_b2, mouse_old_b3
 DIM SHARED AS INTEGER mouse_x, mouse_y, mouse_old_x, mouse_old_y
+DIM SHARED AS _UNSIGNED _BYTE mouse_clicked_b1, mouse_clicked_b2, mouse_clicked_b3
 DIM SHARED AS _UNSIGNED _BYTE mouse_moved, mouse_clicked, mouse_dragging
 DIM SHARED AS _UNSIGNED _BYTE mouse_moved_up, mouse_moved_down
 DIM SHARED AS _UNSIGNED _BYTE mouse_moved_left, mouse_moved_right
@@ -48,13 +54,13 @@ DIM SHARED AS _UNSIGNED _BYTE mouse_dragging_up, mouse_dragging_down
 DIM SHARED AS _UNSIGNED _BYTE mouse_dragging_left, mouse_dragging_right
 FOCUS~%% = WIN_HAS_FOCUS
 OVER~%% = BOX_NONE
+OVER_BOX~%% = FALSE
 
 'bounding box
 DIM SHARED AS INTEGER box_x, box_y, box_w, box_h, box_off_x, box_off_y
 box_x% = 0 : box_y% = 0 : box_w% = BOX_INIT_W : box_h% = BOX_INIT_H
 BOX& = _NEWIMAGE(box_w%, box_h%, 32)
 _CLEARCOLOR _RGB32(0, 0, 0), BOX&
-
 CANVAS1& = _NEWIMAGE(WIN_W, WIN_H, 32) : CANVAS2& = _NEWIMAGE(IMG_W, IMG_H, 32)
 
 _DEST CANVAS1&
@@ -77,13 +83,10 @@ DO
             EXIT DO
         CASE "1"
             zoom! = 1.0
-            draw_output
         CASE "+"
             change_zoom -zoom_int!
-            draw_output
         CASE "-"
             change_zoom zoom_int!
-            draw_output
         CASE "0"
             OFF_X% = 0
             OFF_Y% = 0
@@ -93,7 +96,6 @@ DO
             box_y% = 0
             box_w% = BOX_INIT_W
             box_h% = BOX_INIT_H
-            draw_output
         CASE CHR$(0) + CHR$(72) 'up arrow
             SELECT CASE TARGET~%%
                 CASE TARGET_WIN
@@ -101,7 +103,6 @@ DO
                 CASE TARGET_BOX
                     box_off_y% = box_off_y% - nudge_amount%
             END SELECT
-            draw_output
         CASE CHR$(0) + CHR$(80) 'down arrow
             SELECT CASE TARGET~%%
                 CASE TARGET_WIN
@@ -109,29 +110,30 @@ DO
                 CASE TARGET_BOX
                     box_off_y% = box_off_y% + nudge_amount%
             END SELECT
-            draw_output
         CASE CHR$(0) + CHR$(75) 'right arrow
             SELECT CASE TARGET~%%
                 CASE TARGET_WIN
                     OFF_X% = OFF_X% + nudge_amount%
                 CASE TARGET_BOX
-                    box_off_x% = box_off_x% + nudge_amount%
+                    box_off_x% = box_off_x% - nudge_amount%
             END SELECT
-            draw_output
         CASE CHR$(0) + CHR$(77) 'left arrow
             SELECT CASE TARGET~%%
                 CASE TARGET_WIN
                     OFF_X% = OFF_X% - nudge_amount%
                 CASE TARGET_BOX
-                    box_off_x% = box_off_x% - nudge_amount%
+                    box_off_x% = box_off_x% + nudge_amount%
             END SELECT
-            draw_output
     END SELECT
+    IF k$ <> "" THEN draw_output
 
     ' Mouse handling
     WHILE _MOUSEINPUT
         mouse_old_x%            = mouse_x%
         mouse_old_y%            = mouse_y%
+        mouse_old_b1%%          = mouse_b1%%
+        mouse_old_b2%%          = mouse_b2%%
+        mouse_old_b3%%          = mouse_b3%%
         mouse_x%                = _MOUSEX
         mouse_y%                = _MOUSEY
         mouse_w%                = _MOUSEWHEEL
@@ -152,6 +154,9 @@ DO
         mouse_moved_left~%%     = mouse_old_x% > mouse_x%
         mouse_moved_right~%%    = mouse_old_x% < mouse_x%
         mouse_clicked~%%        = mouse_b1%% OR mouse_b2%% OR mouse_b3%%
+        mouse_clicked_b1~%%     = mouse_old_b1%% AND mouse_b1_up~%%
+        mouse_clicked_b2~%%     = mouse_old_b2%% AND mouse_b2_up~%%
+        mouse_clicked_b3~%%     = mouse_old_b3%% AND mouse_b3_up~%%
         mouse_dragging~%%       = mouse_b1%% AND mouse_moved~%%
         mouse_dragging_up~%%    = mouse_dragging~%% AND mouse_moved_up~%%
         mouse_dragging_down~%%  = mouse_dragging~%% AND mouse_moved_down~%%
@@ -161,76 +166,103 @@ DO
         'Zoom stuff
         IF mouse_w_up~%% THEN
             change_zoom -zoom_int!
-            draw_output
         ELSEIF mouse_w_down~%% THEN
             change_zoom zoom_int!
-            draw_output
         END IF
 
         'Over stuff
-        OVER~%% = BOX_NONE
-        IF (mouse_x% >= (box_x% - PAD)) AND (mouse_x% <= (box_x% + PAD)) THEN OVER~%% = BOX_LEFT
-        IF (mouse_x% >= (box_x% - PAD) + box_w%) AND (mouse_x% <= (box_x% + box_w% + PAD)) THEN OVER~%% = BOX_RIGHT
-        IF (mouse_y% >= (box_y% - PAD)) AND (mouse_y% <= (box_y% + PAD)) THEN OVER~%% = BOX_TOP
-        IF (mouse_y% >= (box_y% - PAD) + box_h%) AND (mouse_y% <= (box_y% + box_h% + PAD)) THEN OVER~%% = BOX_BOT
-        SELECT EVERYCASE OVER~%%
-            CASE BOX_LEFT
-                console.info "Over box left edge"
-            CASE BOX_RIGHT
-                console.info "Over box right edge"
-            CASE BOX_TOP
-                console.info "Over box top edge"
-            CASE BOX_BOT
-                console.info "Over box bottom edge"
-            CASE BOX_NONE
-            CASE ELSE
-                ' console.info "Not over box edges"
-        END SELECT
+        OVER~%% = BOX_NONE : OVER_BOX~%% = FALSE
 
-        'Drag stuff
+        ' Over box
+        IF (mouse_x% >= box_off_x%) AND (mouse_x% <= (box_off_x% + box_w%)) _
+        AND (mouse_y% >= box_off_y%) AND (mouse_y% <= (box_off_y% + box_h%)) THEN 
+            OVER_BOX~%% = TRUE
+            console.box "Over box", 12
+        END IF
+
+        ' Over edges
+        IF (mouse_x% >= box_off_x%) AND (mouse_x% <= (box_off_x% + PAD)) THEN OVER~%% = BOX_LEFT
+        IF (mouse_x% >= (box_off_x% + box_w% - PAD)) AND (mouse_x% <= (box_off_x% + box_w%)) THEN OVER~%% = BOX_RIGHT
+        IF (mouse_y% >= box_off_y%) AND (mouse_y% <= (box_off_y% + PAD)) THEN OVER~%% = BOX_TOP
+        IF (mouse_y% >= (box_off_y% + box_h% - PAD)) AND (mouse_y% <= (box_off_y% + box_h%)) THEN OVER~%% = BOX_BOT
+        ' SELECT EVERYCASE OVER~%%
+        '     CASE BOX_LEFT
+        '         console.info "Over box left edge"
+        '     CASE BOX_RIGHT
+        '         console.info "Over box right edge"
+        '     CASE BOX_TOP
+        '         console.info "Over box top edge"
+        '     CASE BOX_BOT
+        '         console.info "Over box bottom edge"
+        '     CASE BOX_NONE
+        '     CASE ELSE
+        '         console.info "Not over box edges"
+        ' END SELECT
+
+        ' Capture mouse offset for drag
         IF mouse_b1_down~%% THEN
-            ' Capture mouse offset for drag
             IF OFF_MX% = 0 AND OFF_MY% = 0 THEN
                 OFF_MX% = OFF_X% + mouse_x%
                 OFF_MY% = OFF_Y% + mouse_y%
             END IF
-
+            IF OFF_MBX% = 0 AND OFF_MBY% = 0 THEN
+                OFF_MBX% = box_off_x% + mouse_x%
+                OFF_MBY% = box_off_y% + mouse_y%
+            END IF
+        END IF
+        IF mouse_dragging~%% THEN
+            IF TARGET~%% = TARGET_WIN THEN
+                ' Calculate x and y distance relative to mouse offset
+                OFF_XDIST% = OFF_MX% - mouse_x%
+                OFF_YDIST% = OFF_MY% - mouse_y%
+                ' Set offset to distance
+                OFF_X% = OFF_XDIST%
+                OFF_Y% = OFF_YDIST%
+            ELSEIF TARGET~%% = TARGET_BOX THEN
+                ' Calculate x and y distance relative to mouse offset
+                OFF_XBDIST% = OFF_MBX% - mouse_x%
+                OFF_YBDIST% = OFF_MBY% - mouse_y%
+                ' Set offset to distance
+                box_off_x% = OFF_XBDIST% * -1
+                box_off_y% = OFF_YBDIST% * -1
+                ' IF OVER~%% = BOX_RIGHT THEN
+                '     box_w% = box_w% + (box_off_x% + box_w% + mouse_x%)
+                ' ELSEIF OVER~%% = BOX_LEFT THEN
+                '     box_w% = box_w% + (box_off_x% + box_w% + mouse_x%)
+                ' ELSEIF OVER~%% = BOX_TOP THEN
+                '     box_h% = box_h% + (box_off_y% + box_h% + mouse_y%)
+                ' ELSEIF OVER~%% = BOX_BOT THEN
+                '     box_h% = box_h% + (box_off_y% + box_h% + mouse_y%)
+                ' END IF
+            END IF
+        ELSEIF mouse_clicked_b1~%% THEN ' Focus and target stuff
+            console.warn "MOUSE B1 CLICKED"
             ' Check if clicking on bounding box
-            IF (mouse_x% >= box_x% AND mouse_x% <= box_x% + box_w%) _
-           AND (mouse_y% >= box_y% AND mouse_y% <= box_y% + box_h%) THEN
+            IF OVER_BOX~%% THEN
                 ' Clicked on box
                 console.log "Clicked on box"
                 FOCUS~%% = BOX_HAS_FOCUS
                 TARGET~%% = TARGET_BOX
-                draw_output
             ELSE
                 ' Clicked on window
                 console.log "Clicked on window"
                 FOCUS~%% = WIN_HAS_FOCUS
                 TARGET~%% = TARGET_WIN
-                draw_output
             END IF
-        ELSE
+        ELSEIF mouse_b1_up~%% THEN ' Mouse up stuff
+            console.warn "MOUSE B1 UP"
             ' Reset mouse offset
             OFF_MX% = 0
             OFF_MY% = 0
+            OFF_MBX% = 0
+            OFF_MBY% = 0
+            OFF_XDIST% = 0
+            OFF_YDIST% = 0
+            OFF_XBDIST% = 0
+            OFF_YBDIST% = 0
         END IF
-        IF mouse_dragging~%% THEN
-            ' Calculate x and y distance relative to mouse offset
-            OFF_XDIST% = OFF_MX% - mouse_x%
-            OFF_YDIST% = OFF_MY% - mouse_y%
-            ' Set offset to distance
-            OFF_X% = OFF_XDIST%
-            OFF_Y% = OFF_YDIST%
-            IF OVER~%% = BOX_RIGHT OR OVER~%% = BOX_LEFT THEN
-                box_w% = box_w% + OFF_XDIST%
-            END IF
-            IF OVER~%% = BOX_TOP OR OVER~%% = BOX_BOT THEN
-                box_h% = box_h% + OFF_YDIST%
-            END IF
-            draw_output
-        END IF
-        ' trace_mouse
+        trace_mouse
+        draw_output
     WEND 
 LOOP
 SCREEN 0
@@ -246,11 +278,19 @@ SYSTEM 1
 ' Outline an image
 ' @param LONG img to outline
 ' @param LONG kolor to outline in
+' @param INTEGER thickness of line
 '
-SUB outline_image(img&, kolor&)    
-    LINE (0, 0)-(_WIDTH(img&)-1, _HEIGHT(img&)-1), kolor&, B
+SUB outline_image(img&, kolor&, thickness%)
+    console.info "outline_image(" + _TRIM$(STR$(img&)) + ", " + _TRIM$(STR$(kolor&)) + ", " + _TRIM$(STR$(thickness%)) +  ")"
+    DIM AS INTEGER i
+    DIM AS LONG old_dest
+    old_dest& = _DEST
+    _DEST img&
+    FOR i% = 0 TO thickness%
+        LINE (i%, i%)-(_WIDTH(img&)-i%-1, _HEIGHT(img&)-i%-1), kolor&, B, &B0000111100001111
+    NEXT i%
+    _DEST old_dest&
 END SUB
-
 
 
 ''
@@ -270,10 +310,12 @@ END SUB
 ' Trace the mouse with console
 '
 SUB trace_mouse
+    console.log "MOUSE_CLICKED_B1: " + _TRIM$(STR$(mouse_clicked_b1~%%))
     console.log "FOCUS: " + _TRIM$(STR$(FOCUS~%%)) + ", OVER: " + _TRIM$(STR$(OVER~%%)) + ", TARGET: " + _TRIM$(STR$(TARGET~%%))
     console.log "MOUSE_*: " + _TRIM$(STR$(mouse_x%)) + ", " + _TRIM$(STR$(mouse_y%))
     console.log "OFF_*: " + _TRIM$(STR$(OFF_X%)) + ", " + _TRIM$(STR$(OFF_Y%))
     console.log "OFF_M*: " + _TRIM$(STR$(OFF_MX%)) + ", " + _TRIM$(STR$(OFF_MY%))
+    console.log "OFF_MB*: " + _TRIM$(STR$(OFF_MBX%)) + ", " + _TRIM$(STR$(OFF_MBY%))
     console.log "OFF_*DIST: " + _TRIM$(STR$(OFF_XDIST%)) + ", " + _TRIM$(STR$(OFF_YDIST%))
 END SUB
 
@@ -295,28 +337,15 @@ END SUB
 SUB draw_output
     console.info "draw_output"
     _DEST CANVAS1& : CLS
-    IF TARGET~%% = TARGET_WIN THEN
-        console.info "DRAW TARGET = WIN"
-        'draw moved window
-        _PUTIMAGE (0, 0)-(WIN_W, WIN_H), _
-            IMAGE&, _
-            CANVAS1&, _
-            (OFF_X%, OFF_Y%)-(INT(WIN_W * zoom!) + OFF_X%, INT(WIN_H * zoom!) + OFF_Y%)
-    ELSEIF TARGET~%% = TARGET_BOX THEN
-        console.info "DRAW TARGET = BOX"
-        'draw unmoved window
-        _PUTIMAGE (0, 0)-(WIN_W, WIN_H), _
-            IMAGE&, _
-            CANVAS1&, _
-            (0, 0)-(INT(WIN_W * zoom!), INT(WIN_H * zoom!))
-        ' box_x% = box_x% + box_off_x%
-        ' box_y% = box_y% + box_off_y%
-    END IF
+    _PUTIMAGE (0, 0)-(WIN_W, WIN_H), _
+        IMAGE&, _
+        CANVAS1&, _
+        (OFF_X%, OFF_Y%)-(INT(WIN_W * zoom!) + OFF_X%, INT(WIN_H * zoom!) + OFF_Y%)
     IF FOCUS~%% = WIN_HAS_FOCUS THEN
-        outline_image CANVAS1&, _RGB32(255, 0, 0)
-        outline_image BOX&, _RGB32(255, 255, 0)
+        outline_image CANVAS1&, _RGB32(255, 0, 0), BOX_LINE_W
+        outline_image BOX&, _RGB32(255, 255, 0), BOX_LINE_W
     ELSEIF FOCUS~%% = BOX_HAS_FOCUS THEN
-        outline_image BOX&, _RGB32(255, 0, 0)
+        outline_image BOX&, _RGB32(255, 0, 0), BOX_LINE_W
     END IF
     draw_bounding_box
     _DISPLAY
@@ -328,19 +357,26 @@ END SUB
 '
 SUB draw_bounding_box
     console.info "draw_bounding_box"
-    IF box_w% > WIN_W THEN box_w% = WIN_W
-    IF box_h% > WIN_H THEN box_h% = WIN_H
-    IF box_w% <= 0 THEN box_w% = 1
-    IF box_h% <= 0 THEN box_h% = 1
-    IF box_x% < 0 THEN box_x% = 0
-    IF box_y% < 0 THEN box_y% = 0
-    IF box_x% + box_w% > WIN_W THEN box_x% = WIN_W - box_x%
-    IF box_y% + box_y% > WIN_H THEN box_y% = WIN_H - box_y%
+    ' IF box_w% > WIN_W THEN box_w% = WIN_W
+    ' IF box_h% > WIN_H THEN box_h% = WIN_H
+    ' IF box_w% <= 0 THEN box_w% = 1
+    ' IF box_h% <= 0 THEN box_h% = 1
+    ' IF box_x% < 0 THEN box_x% = 0
+    ' IF box_y% < 0 THEN box_y% = 0
+    ' IF box_x% + box_w% > WIN_W THEN box_x% = WIN_W - box_x%
+    ' IF box_y% + box_y% > WIN_H THEN box_y% = WIN_H - box_y%
+    ' IF box_off_x% < 0 THEN box_off_x% = 0
+    ' IF box_off_y% < 0 THEN box_off_y% = 0
+    ' IF box_off_x% + box_off_w% > WIN_W THEN box_off_x% = WIN_W - box_off_x%
+    ' IF box_off_y% + box_off_y% > WIN_H THEN box_off_y% = WIN_H - box_off_y%
     trace_box
-    _PUTIMAGE (0, 0)-(box_w%, box_h%), _
+    DIM AS LONG old_dest
+    old_dest& = _DEST
+    _DEST BOX&
+    _PUTIMAGE (box_off_x%, box_off_y%), _
         BOX&, _
-        CANVAS1&, _
-        (box_off_x%, box_off_y%)
+        CANVAS1&
+    _DEST old_dest&
 END SUB
 
 '$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM'
