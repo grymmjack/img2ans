@@ -212,10 +212,12 @@ SUB __UI_Click (id AS LONG)
     SELECT CASE id
         'H:HEADER
         CASE H_IMG2ANSLB
+            open_url_in_browser "https://github.com/grymmjack/img2ans"
         CASE H_VersionLB
         CASE H_CodeIdeaLB
         CASE H_CodeIdeaAuthorLB
         CASE H_LinksLB
+            open_url_in_browser "https://www.youtube.com/grymmjack"
 
         'SI:SOURCE IMAGE
         CASE SI_SourceImgLB

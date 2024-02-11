@@ -1,5 +1,7 @@
 # IMG2ANS
 
+## NOTE THE GUI IS NOT READY! ONLY THE INDIVIDUAL CLI PROGRAMS ARE!
+
 `IMG2ANS` converts pixels into textmode art using [ANSI codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
 
 > Why did I make this?
@@ -47,7 +49,7 @@ The end goal is to have one big GUI program that has options that make the separ
 
 -----
 
-![IMG2ANS GUI](resources/images/img2ans-screenshot-v0.2.png)
+![IMG2ANS GUI](resources/images/progress5.png)
 
 ### Cross Platform Support:
 `IMG2ANS` is written using [QB64-PE](https://github.com/QB64-Phoenix-Edition/QB64pe) and as a result is 100% cross platform compatible with:
