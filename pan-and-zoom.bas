@@ -354,8 +354,8 @@ SUB draw_output
         CANVAS1&, _
         (OFF_X%, OFF_Y%)-(INT(WIN_W * zoom!) + OFF_X%, INT(WIN_H * zoom!) + OFF_Y%)
     IF FOCUS~%% = WIN_HAS_FOCUS THEN
-        outline_image BOX&, _RGB32(255, 255, 0), BOX_LINE_W
         outline_image CANVAS1&, _RGB32(255, 0, 0), BOX_LINE_W
+        outline_image BOX&, _RGB32(255, 255, 0), BOX_LINE_W
     ELSEIF FOCUS~%% = BOX_HAS_FOCUS THEN
         outline_image BOX&, _RGB32(255, 0, 0), BOX_LINE_W
     END IF
