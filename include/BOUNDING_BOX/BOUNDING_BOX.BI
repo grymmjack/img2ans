@@ -39,10 +39,11 @@ TYPE __BOX_STATUS
 END TYPE
 
 TYPE __BOUNDING_BOX
-    style          AS __STYLE
-    pos            AS __POINT
-    w              AS INTEGER
-    h              AS INTEGER
+    status AS __BOX_STATUS
+    style  AS __STYLE
+    pos    AS __POINT
+    w      AS INTEGER
+    h      AS INTEGER
 END TYPE
 
-DIM SHARED BOUNDING_BOX AS __BOUNDING_BOX
+DIM SHARED BBOX AS __BOUNDING_BOX
