@@ -43,11 +43,11 @@ SUB IMOUSE_update
     MOUSE.old_state = MOUSE.new_state
 
     ' track new state
-    MOUSE.new_state.pos.x = __UI.MouseLeft%
-    MOUSE.new_state.pos.y = __UI.MouseTop%
+    MOUSE.new_state.pos.x = __UI_MouseLeft%
+    MOUSE.new_state.pos.y = __UI_MouseTop%
     MOUSE.new_state.b1    = __UI_MouseButton1%%
     MOUSE.new_state.b2    = __UI_MouseButton2%%
-    MOUSE.new_state.b3    = __UI_MouseButton3%%
+    MOUSE.new_state.b3    = 0'__UI_MouseButton3%%
     MOUSE.new_state.wheel = __UI_MouseWheel%
 END SUB
 
