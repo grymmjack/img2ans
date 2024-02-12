@@ -1,6 +1,7 @@
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB_COMMON.BI'
 '$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BI'
 '$INCLUDE:'include/MOUSE/MOUSE.BI'
+'$INCLUDE:'include/BOUNDING_BOX/BOUNDING_BOX.BI'
 
 CONST MIN_ZOOM = 0.25!
 CONST MAX_ZOOM = 5.00!
@@ -145,19 +146,15 @@ DO
     'Over stuff
     OVER~%% = BOX_NONE : OVER_BOX~%% = FALSE
     box_over_calc
-
-    SELECT EVERYCASE OVER~%%
+    SELECT CASE OVER~%%
         CASE BOX_LEFT
-            console.info "Over box left edge"
+            console.box "Over box left edge", 12
         CASE BOX_RIGHT
-            console.info "Over box right edge"
+            console.box "Over box right edge", 12
         CASE BOX_TOP
-            console.info "Over box top edge"
+            console.box "Over box top edge", 12
         CASE BOX_BOT
-            console.info "Over box bottom edge"
-        CASE BOX_NONE
-        CASE ELSE
-            console.info "Not over box edges"
+            console.box "Over box bottom edge", 12
     END SELECT
 
     ' Capture mouse offset for drag
@@ -269,12 +266,39 @@ SYSTEM 1
 ' Calculates the bounding box over states
 '
 SUB box_over_calc
-    IF (MOUSE.new_state.pos.x >= box_off_x% - PAD%) AND (MOUSE.new_state.pos.x<= (box_off_x% + PAD%)) THEN OVER~%% = BOX_LEFT
-    IF (MOUSE.new_state.pos.x >= (box_off_x% + box_w% - PAD%)) AND (MOUSE.new_state.pos.x<= (box_off_x% + box_w%)) THEN OVER~%% = BOX_RIGHT
-    IF (MOUSE.new_state.pos.y >= box_off_y% - PAD%) AND (MOUSE.new_state.pos.y <= (box_off_y% + PAD%)) THEN OVER~%% = BOX_TOP
-    IF (MOUSE.new_state.pos.y >= (box_off_y% + box_h% - PAD%)) AND (MOUSE.new_state.pos.y <= (box_off_y% + box_h%)) THEN OVER~%% = BOX_BOT
-    IF ((MOUSE.new_state.pos.x >= box_off_x% - PAD%) AND (MOUSE.new_state.pos.x <= (box_off_x% + box_w% + PAD%))) _
-    AND ((MOUSE.new_state.pos.y >= box_off_y% - PAD%) AND (MOUSE.new_state.pos.y <= (box_off_y% + box_h% + PAD%))) THEN OVER_BOX~%% = TRUE
+    DIM AS INTEGER in_horiz, in_vert
+    DIM AS INTEGER on_left_edge, on_right_edge, on_top_edge, on_bot_edge
+    
+    'left edge
+    on_left_edge = (MOUSE.new_state.pos.x >= box_off_x% - PAD%) _
+               AND (MOUSE.new_state.pos.x <= (box_off_x% + PAD%))
+    IF on_left_edge THEN OVER~%% = BOX_LEFT
+    
+    'right edge
+    on_right_edge = (MOUSE.new_state.pos.x >= (box_off_x% + box_w% - PAD%)) _
+                AND (MOUSE.new_state.pos.x <= (box_off_x% + box_w%)) 
+    IF on_right_edge THEN OVER~%% = BOX_RIGHT
+
+    'top edge
+    on_top_edge = (MOUSE.new_state.pos.y >= box_off_y% - PAD%) _
+              AND (MOUSE.new_state.pos.y <= (box_off_y% + PAD%)) 
+    IF on_top_edge THEN OVER~%% = BOX_TOP
+
+    'bottom edge
+    on_bot_edge = (MOUSE.new_state.pos.y >= (box_off_y% + box_h% - PAD%)) _
+              AND (MOUSE.new_state.pos.y <= (box_off_y% + box_h%)) 
+    IF on_bot_edge THEN OVER~%% = BOX_BOT
+
+    'horizontal
+    in_horiz = ((MOUSE.new_state.pos.x >= box_off_x% - PAD%) _
+           AND (MOUSE.new_state.pos.x <= (box_off_x% + box_w% + PAD%)))
+
+    'vertical
+    in_vert = ((MOUSE.new_state.pos.y >= box_off_y% - PAD%) _
+          AND (MOUSE.new_state.pos.y <= (box_off_y% + box_h% + PAD%)))
+
+    'over box
+    IF in_horiz AND in_vert THEN OVER_BOX~%% = TRUE
 END SUB
 
 
@@ -388,3 +412,4 @@ END SUB
 
 '$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM'
 '$INCLUDE:'include/MOUSE/MOUSE.BM'
+'$INCLUDE:'include/BOUNDING_BOx/BOUNDING_BOx.BM'

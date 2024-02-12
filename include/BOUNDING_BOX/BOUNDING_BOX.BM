@@ -1,0 +1,35 @@
+SUB BBOX_draw
+END SUB
+
+SUB BBOX_select
+END SUB
+
+SUB BBOX_deselect
+END SUB
+
+SUB BBOX_set_visibility
+END SUB
+
+SUB BBOX_set_pos
+END SUB
+
+SUB BBOX_set_size
+END SUB
+
+SUB BBOX_hide
+END SUB
+
+SUB BBOX_show
+END SUB
+
+SUB BBOX_resize_left
+END SUB
+
+SUB BBOX_resize_right
+END SUB
+
+SUB BBOX_resize_top
+END SUB
+
+SUB BBOX_resize_bot
+END SUB
