@@ -1,74 +1,109 @@
 ''
-' Update MOUSE object properties using InForm-PE READ-ONLY 
+' Initialize the mouse
 '
-SUB IMOUSE_update
-    MOUSE.l_down%%       = __UI_MouseButton1%%
-    MOUSE.l_up%%         = NOT __UI_MouseButton1%%
-    MOUSE.r_down%%       = __UI_MouseButton2%%
-    MOUSE.r_up%%         = NOT __UI_MouseButton2%%
-    ' At this time InForm-PE does not support middle click
-    ' MOUSE.m_down%%     = _MOUSEBUTTON(3)
-    ' MOUSE.m_up%%       = NOT _MOUSEBUTTON(3)
-    MOUSE.w_raw%         = __UI_MouseWheel%
-    MOUSE.w_up%%         = MOUSE.w_raw% = 1
-    MOUSE.w_down%%       = MOUSE.w_raw% = -1
-    MOUSE.old_x%         = MOUSE.x%
-    MOUSE.old_y%         = MOUSE.y%
-    MOUSE.x%             = __UI_MouseLeft%
-    MOUSE.y%             = __UI_MouseTop%
-    MOUSE.was_dragging%% = MOUSE.dragging%%
-    MOUSE.dragging%%     = (MOUSE.l_down%% AND MOUSE.old_x% <> MOUSE.x%) _
-                        OR (MOUSE.l_down%% AND MOUSE.old_y% <> MOUSE.y%)
-    MOUSE.dropping%%     = MOUSE.was_dragging%% AND MOUSE.l_up%%
-    IF MOUSE.dropping%% THEN MOUSE.was_dragging%% = FALSE
+SUB MOUSE_init
+    MOUSE.status.stopped_drag = 0
+    MOUSE.status.started_drag = 0
 END SUB
 
 
 ''
-' Update MOUSE object properties
+' Checks if the mouse has been dragged
+' @return INTEGER -1 if dragged 0 if not
+'
+FUNCTION MOUSE_dragged%
+    MOUSE_dragged = MOUSE.status.b1_down AND (MOUSE.status.drag_distance.x <> 0 OR MOUSE.status.drag_distance.y <> 0)
+END FUNCTION
+
+
+''
+' Update the mouse states
 '
 SUB MOUSE_update
-    MOUSE.l_down%%       = _MOUSEBUTTON(1)
-    MOUSE.l_up%%         = NOT _MOUSEBUTTON(1)
-    MOUSE.r_down%%       = _MOUSEBUTTON(2)
-    MOUSE.r_up%%         = NOT _MOUSEBUTTON(2)
-    MOUSE.m_down%%       = _MOUSEBUTTON(3)
-    MOUSE.m_up%%         = NOT _MOUSEBUTTON(3)
-    MOUSE.w_raw%         = _MOUSEWHEEL
-    MOUSE.w_up%%         = _MOUSEWHEEL = -1
-    MOUSE.w_down%%       = _MOUSEWHEEL = 1
-    MOUSE.old_x%         = MOUSE.x%
-    MOUSE.old_y%         = MOUSE.y%
-    MOUSE.x%             = _MOUSEX
-    MOUSE.y%             = _MOUSEY
-    MOUSE.was_dragging%% = MOUSE.dragging%%
-    MOUSE.dragging%%     = (MOUSE.l_down%% AND MOUSE.old_x% <> MOUSE.x%) _
-                        OR (MOUSE.l_down%% AND MOUSE.old_y% <> MOUSE.y%)
-    MOUSE.dropping%%     = MOUSE.was_dragging%% AND MOUSE.l_up%%
-    IF MOUSE.dropping%% THEN MOUSE.was_dragging%% = FALSE
+    ' track old state
+    MOUSE.old_state = MOUSE.new_state
+
+    DO WHILE _MOUSEINPUT
+        ' track new state
+        MOUSE.new_state.pos.x = _MOUSEX
+        MOUSE.new_state.pos.y = _MOUSEY
+        MOUSE.new_state.b1    = _MOUSEBUTTON(1)
+        MOUSE.new_state.b2    = _MOUSEBUTTON(2)
+        MOUSE.new_state.b3    = _MOUSEBUTTON(3)
+        MOUSE.new_state.wheel = _MOUSEWHEEL
+    LOOP
 END SUB
 
 
 ''
-' Log MOUSE properties if DEBUGGING
+' Update the mouse states using InForm-PE READ-ONLY 
 '
-SUB console.dir_mouse()
-    console.warn "MOUSE {"
-    console.log "   l_down%%       = " + _TRIM$(STR$(MOUSE.l_down%%))
-    console.log "   l_up%%         = " + _TRIM$(STR$(MOUSE.l_up%%))
-    console.log "   r_down%%       = " + _TRIM$(STR$(MOUSE.r_down%%))
-    console.log "   r_up%%         = " + _TRIM$(STR$(MOUSE.r_up%%))
-    console.log "   m_down%%       = " + _TRIM$(STR$(MOUSE.m_down%%))
-    console.log "   m_up%%         = " + _TRIM$(STR$(MOUSE.m_up%%))
-    console.log "   w_raw%         = " + _TRIM$(STR$(MOUSE.w_raw%))
-    console.log "   w_down%%       = " + _TRIM$(STR$(MOUSE.w_down%%))
-    console.log "   w_up%%         = " + _TRIM$(STR$(MOUSE.w_up%%))
-    console.log "   old_x%         = " + _TRIM$(STR$(MOUSE.old_x%))
-    console.log "   old_y%         = " + _TRIM$(STR$(MOUSE.old_y%))
-    console.log "   x%             = " + _TRIM$(STR$(MOUSE.x%))
-    console.log "   y%             = " + _TRIM$(STR$(MOUSE.y%))
-    console.log "   was_dragging%% = " + _TRIM$(STR$(MOUSE.was_dragging%%))
-    console.log "   dragging%%     = " + _TRIM$(STR$(MOUSE.dragging%%))
-    console.log "   dropping%%     = " + _TRIM$(STR$(MOUSE.dropping%%))
-    console.warn "}"
+SUB IMOUSE_update
+    ' track old state
+    MOUSE.old_state = MOUSE.new_state
+
+    ' track new state
+    MOUSE.new_state.pos.x = __UI.MouseLeft%
+    MOUSE.new_state.pos.y = __UI.MouseTop%
+    MOUSE.new_state.b1    = __UI_MouseButton1%%
+    MOUSE.new_state.b2    = __UI_MouseButton2%%
+    MOUSE.new_state.b3    = __UI_MouseButton3%%
+    MOUSE.new_state.wheel = __UI_MouseWheel%
+END SUB
+
+
+''
+' Refresh mouse status
+'
+SUB MOUSE_refresh
+    ' changes
+    MOUSE.status.x_changed      = MOUSE.old_state.pos.x <> MOUSE.new_state.pos.x
+    MOUSE.status.y_changed      = MOUSE.old_state.pos.y <> MOUSE.new_state.pos.y
+    MOUSE.status.b1_changed     = MOUSE.old_state.b1 <> MOUSE.new_state.b1
+    MOUSE.status.b2_changed     = MOUSE.old_state.b2 <> MOUSE.new_state.b2
+    MOUSE.status.b3_changed     = MOUSE.old_state.b3 <> MOUSE.new_state.b3
+    MOUSE.status.wheel_changed  = MOUSE.old_state.wheel <> MOUSE.new_state.wheel
+
+    ' moving
+    MOUSE.status.moving         = MOUSE.status.x_changed OR MOUSE.status.y_changed
+    MOUSE.status.moving_left    = MOUSE.new_state.pos.x < MOUSE.old_state.pos.x
+    MOUSE.status.moving_right   = MOUSE.new_state.pos.x > MOUSE.old_state.pos.x
+    MOUSE.status.moving_up      = MOUSE.new_state.pos.y < MOUSE.old_state.pos.y
+    MOUSE.status.moving_down    = MOUSE.new_state.pos.y > MOUSE.old_state.pos.y
+
+    ' buttons
+    MOUSE.status.b1_down        = MOUSE.new_state.b1
+    MOUSE.status.b2_down        = MOUSE.new_state.b2
+    MOUSE.status.b3_down        = MOUSE.new_state.b3
+    MOUSE.status.b1_up          = NOT MOUSE.new_state.b1
+    MOUSE.status.b2_up          = NOT MOUSE.new_state.b2
+    MOUSE.status.b3_up          = NOT MOUSE.new_state.b3
+    MOUSE.status.b1_clicked     = MOUSE.old_state.b1 AND NOT MOUSE.new_state.b1
+    MOUSE.status.b2_clicked     = MOUSE.old_state.b2 AND NOT MOUSE.new_state.b2
+    MOUSE.status.b3_clicked     = MOUSE.old_state.b3 AND NOT MOUSE.new_state.b3
+
+    ' wheel
+    MOUSE.status.wheeling_up    = MOUSE.new_state.wheel < 0
+    MOUSE.status.wheeling_down  = MOUSE.new_state.wheel > 0
+    MOUSE.status.wheeling_stop  = MOUSE.new_state.wheel = 0
+
+    ' dragging and dropping
+    MOUSE.status.dragging_left  = MOUSE.status.b1_down AND MOUSE.status.moving_left
+    MOUSE.status.dragging_right = MOUSE.status.b1_down AND MOUSE.status.moving_right
+    MOUSE.status.dragging_up    = MOUSE.status.b1_down AND MOUSE.status.moving_up
+    MOUSE.status.dragging_down  = MOUSE.status.b1_down AND MOUSE.status.moving_down
+
+    IF MOUSE.status.b1_down AND NOT MOUSE.status.started_drag THEN
+        MOUSE.status.started_drag    = TRUE
+        MOUSE.status.stopped_drag    = FALSE
+        MOUSE.drag_start             = MOUSE.new_state.pos
+
+    ELSEIF MOUSE.status.b1_clicked AND MOUSE.status.started_drag THEN
+        MOUSE.status.stopped_drag    = TRUE
+        MOUSE.status.started_drag    = FALSE
+        MOUSE.drag_stop              = MOUSE.new_state.pos
+        MOUSE.status.drag_distance.x = MOUSE.drag_stop.x - MOUSE.drag_start.x
+        MOUSE.status.drag_distance.y = MOUSE.drag_stop.y - MOUSE.drag_start.y
+
+    END IF
 END SUB
