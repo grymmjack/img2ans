@@ -39,6 +39,17 @@ END SUB
 ' Update the mouse states using InForm-PE READ-ONLY 
 '
 SUB IMOUSE_update
+    ' InForm shimmed mouse vars if not in use, create dummies instead
+    ' Assume if __UI_MouseLeft% is not defined, not doing InForm stuff
+    $IF __UI_MouseLeft = UNDEFINED THEN
+        DIM AS INTEGER __UI_MouseWheel
+        DIM AS INTEGER __UI_MouseLeft
+        DIM AS INTEGER __UI_MouseTop
+        DIM AS _BYTE __UI_MouseButton1
+        DIM AS _BYTE __UI_MouseButton2
+        DIM AS _BYTE __UI_MouseButton3
+    $END IF
+
     ' track old state
     MOUSE.old_state = MOUSE.new_state
 
