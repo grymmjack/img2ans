@@ -1,35 +1,308 @@
-SUB BBOX_draw
+''
+' QB64_GJ_LIB
+' GRYMMJACK'S BOUNDING BOX OBJECT
+'
+' A bounding box simply is a box with some styles, and it can be resized.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+'
+' @depends QB64_GJ_LIB/_GJ_LIB_COMMON.BI
+' @depends QB64_GJ_LIB/_GJ_LIB_COMMON.BM
+' @depends BOUNDING_BOX.BI
+'
+$LET GJ_LIB_BOUNDING_BOX_INC_BM = 1
+
+
+''
+' Draw the bounding box
+' @param __BOUNDING_BOX bb bounding box to target
+' @param LONG destination image to draw to
+' @param INTEGER x position
+' @param INTEGER y position
+SUB BBOX_draw(bb AS __BOUNDING_BOX, dest_image&, x%, y%)
+    bb.image = dest_image&
+    bb.pos.x = x%
+    bb.pos.y = y%
+    bb.status.ready = FALSE
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_select
+
+''
+' Renders the bounding box (called when visible changes occur)
+'
+SUB BBOX_render(bb AS __BOUNDING_BOX)
+    bb.status.ready = FALSE
+    ' render here
+    bb.status.ready = TRUE
 END SUB
 
-SUB BBOX_deselect
+
+''
+' Set the bounding boxes style state
+' @param __BOUNDING_BOX bb bounding box to target
+' @param STRING style_state ("idle", "over", "selected", "resizing", "moving")
+'
+SUB BBOX_set_style_state(bb AS __BOUNDING_BOX, style_state$)
+    SELECT EVERYCASE style_state$
+        CASE "idle"
+        CASE "over"
+        CASE "selected"
+        CASE "resizing"
+        CASE "moving"
+            bb.style$ = style_state$
+    END SELECT
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_set_visibility
+
+''
+' Set the bounding box resizing status
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER state% (bool) TRUE is resizing, FALSE not resizing
+' @param STRING edge used to resize ("top", "bot", "left", "right")
+'
+SUB BBOX_set_resizing(bb AS __BOUNDING_BOX, state%, edge$)
+    bb.status.resizing = state%
+    IF state% = TRUE THEN
+        CALL BBOX_set_style_state(bb, "resizing")
+    END IF
+    SELECT CASE edge$
+        CASE "top": 
+            bb.status.resizing_top = state%
+        CASE "bot":
+            bb.status.resizing_bot = state%
+        CASE "left":
+            bb.status.resizing_left = state%
+        CASE "right":
+            bb.status.resizing_right = state%
+    END SELECT
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_set_pos
+
+''
+' Set the bounding box moving status
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER state% (bool) TRUE is moving, FALSE not moving
+' @param STRING edge used to resize ("up", "down", "left", "right")
+'
+SUB BBOX_set_moving(bb AS __BOUNDING_BOX, state%, edge$)
+    bb.status.moving = state%
+    IF state% = TRUE THEN
+        CALL BBOX_set_style_state(bb, "moving")
+    END IF
+    SELECT CASE edge$
+        CASE "top": 
+            bb.status.moving_up = state%
+        CASE "bot":
+            bb.status.moving_down = state%
+        CASE "left":
+            bb.status.moving_left = state%
+        CASE "right":
+            bb.status.moving_right = state%
+    END SELECT
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_set_size
+
+''
+' Select the bounding box
+' @param __BOUNDING_BOX bb bounding box to target
+'
+SUB BBOX_select(bb AS __BOUNDING_BOX)
+    CALL BBOX_set_style_state(bb, "selected")
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_hide
+
+''
+' Deselect the bounding box
+' @param __BOUNDING_BOX bb bounding box to target
+'
+SUB BBOX_deselect(bb AS __BOUNDING_BOX)
+    CALL BBOX_set_style_state(bb, "idle")
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_show
+
+''
+' Set the bounding box visibility
+' @param __BOUNDING_BOX bb bounding box to target
+' @param _BYTE is_visible (bool) TRUE = shown, FALSE = hidden
+'
+SUB BBOX_set_visibility(bb AS __BOUNDING_BOX, is_visible%%)
+    bb.status.visible = is_visible%%
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_resize_left
+
+''
+' Set the bounding box position
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER x position
+' @param INTEGER y position
+'
+SUB BBOX_set_pos(bb AS __BOUNDING_BOX, x%, y%)
+    bb.pos.x% = x%
+    bb.pos.y% = y%
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_resize_right
+
+''
+' Set the bounding box width and height
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER w width
+' @param INTEGER h height
+'
+SUB BBOX_set_size(bb AS __BOUNDING_BOX, w%, h%)
+    bb.w% = w%
+    bb.h% = h%
+    CALL BBOX_render(bb)
 END SUB
 
-SUB BBOX_resize_top
+
+''
+' Hide the bounding box
+' @param __BOUNDING_BOX bb bounding box to target
+'
+SUB BBOX_hide(bb AS __BOUNDING_BOX)
+    CALL BBOX_set_visibility(bb, FALSE)
 END SUB
 
-SUB BBOX_resize_bot
+
+''
+' Show the bounding box
+' @param __BOUNDING_BOX bb bounding box to target
+'
+SUB BBOX_show(bb AS __BOUNDING_BOX)
+    CALL BBOX_set_visibility(bb, TRUE)
 END SUB
+
+
+''
+' Resize the bounding box from the left edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
+'
+SUB BBOX_resize_left(bb AS __BOUNDING_BOX, amount%)
+    CALL BBOX_set_style_state(bb, "resizing")
+    CALL BBOX_set_resizing(bb, TRUE, "left")
+    ' do resize
+    CALL BBOX_render(bb)
+END SUB
+
+
+''
+' Resize the bounding box from the right edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
+'
+SUB BBOX_resize_right(bb AS __BOUNDING_BOX, amount%)
+    CALL BBOX_set_style_state(bb, "resizing")
+    CALL BBOX_set_resizing(bb, TRUE, "right")
+    ' do resize
+    CALL BBOX_render(bb)
+END SUB
+
+
+''
+' Resize the bounding box from the top edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
+'
+SUB BBOX_resize_top(bb AS __BOUNDING_BOX, amount%)
+    CALL BBOX_set_style_state(bb, "resizing")
+    CALL BBOX_set_resizing(bb, TRUE, "top")
+    ' do resize
+    CALL BBOX_render(bb)
+END SUB
+
+
+''
+' Resize the bounding box from the bottom edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
+'
+SUB BBOX_resize_bot(bb AS __BOUNDING_BOX, amount%)
+    CALL BBOX_set_style_state(bb, "resizing")
+    CALL BBOX_set_resizing(bb, TRUE, "bot")
+    ' do resize
+    CALL BBOX_render(bb)
+END SUB
+
+
+''
+' Dumps a bounding box object
+'
+' @param __BOUNDING_BOX bb bounding box to dump
+' @param STRING label$ to give the dump block
+' @return STRING dump block
+'
+FUNCTION DUMP.bbox$(bb AS __BOUNDING_BOX, label$)
+    DIM AS STRING r, t1, t2
+    t1$ = STRING$(4, " ") : t2$ = t1$ + t1$
+    r$ = GJ_LIB_NL$ + "BBOX " + label$ + " : {" + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".image: " + _TRIM$(STR$(bb.image)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".w: " + _TRIM$(STR$(bb.w)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".h: " + _TRIM$(STR$(bb.h)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".pos.x: " + _TRIM$(STR$(bb.pos.x)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".pos.y: " + _TRIM$(STR$(bb.pos.y)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".style: " + bb.style$ + GJ_LIB_NL$
+    r$ = r$ + GJ_LIB_NL$
+    r$ = r$ + t1$ + "status: {" + _TRIM$(STR$(bb.pos.y)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".ready: " + _TRIM$(STR$(bb.status.ready)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".visible: " + _TRIM$(STR$(bb.status.visible)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".selected: " + _TRIM$(STR$(bb.status.selected)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".resizing: " + _TRIM$(STR$(bb.status.resizing)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".resizing_left: " + _TRIM$(STR$(bb.status.resizing_left)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".resizing_right: " + _TRIM$(STR$(bb.status.resizing_right)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".resizing_top: " + _TRIM$(STR$(bb.status.resizing_top)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".resizing_bot: " + _TRIM$(STR$(bb.status.resizing_bot)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".moving: " + _TRIM$(STR$(bb.status.moving)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".moving_left: " + _TRIM$(STR$(bb.status.moving_left)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".moving_right: " + _TRIM$(STR$(bb.status.moving_right)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".moving_top: " + _TRIM$(STR$(bb.status.moving_up)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".moving_bot: " + _TRIM$(STR$(bb.status.moving_down)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + "}" + GJ_LIB_NL$
+    r$ = r$ + "}"
+    DUMP.bbox$ = r$
+END FUNCTION
+
+
+''
+' Dumps a bounding box style object
+'
+' @param __BOUNDING_BOX bb bounding box to dump
+' @param STRING label$ to give the dump block
+' @param STRING style$ bounding box style to dump
+' @return STRING dump block
+'
+FUNCTION DUMP.bbox_style$(bb AS __BOUNDING_BOX, label$, style$)
+    DIM AS STRING r, t1, t2
+    DIM s AS __STYLE
+    SELECT CASE style$
+        CASE "idle"
+            s = bb.styles.idle
+        CASE "over"
+            s = bb.styles.over
+        CASE "selected"
+            s = bb.styles.selected
+        CASE "resizing"
+            s = bb.styles.resizing
+        CASE "moving"
+            s = bb.styles.moving
+    END SELECT
+    t1$ = STRING$(4, " ") : t2$ = t1$ + t1$
+    r$ = GJ_LIB_NL$ + "BBOX.style." + style$ + " " + label$ + " : {" + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".fg: " + _TRIM$(STR$(s.fg)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".bg: " + _TRIM$(STR$(s.bg)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".border: { "+ GJ_LIB_NL$
+    r$ = r$ + t2$ + ".fg: " + _TRIM$(STR$(s.border.fg)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".w: " + _TRIM$(STR$(s.border.w)) + "px" + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".pattern: " + _TRIM$(STR$(s.border.pattern)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + "}"+ GJ_LIB_NL$
+    r$ = r$ + "}"
+    DUMP.bbox_style$ = r$
+END FUNCTION
