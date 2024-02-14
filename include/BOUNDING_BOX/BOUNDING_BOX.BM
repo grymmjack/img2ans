@@ -10,7 +10,7 @@
 ' @depends QB64_GJ_LIB/_GJ_LIB_COMMON.BM
 ' @depends BOUNDING_BOX.BI
 '
-$LET GJ_LIB_BOUNDING_BOX_INC_BM = 1
+$INCLUDEONCE
 
 
 ''
@@ -34,6 +34,7 @@ END SUB
 SUB BBOX_render(bb AS __BOUNDING_BOX)
     bb.status.ready = FALSE
     ' render here
+
     bb.status.ready = TRUE
 END SUB
 
@@ -240,18 +241,17 @@ END SUB
 ' @param STRING label$ to give the dump block
 ' @return STRING dump block
 '
-FUNCTION DUMP.bbox$(bb AS __BOUNDING_BOX, label$)
+FUNCTION BBOX_dump$(bb AS __BOUNDING_BOX, label$)
     DIM AS STRING r, t1, t2
     t1$ = STRING$(4, " ") : t2$ = t1$ + t1$
-    r$ = GJ_LIB_NL$ + "BBOX " + label$ + " : {" + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".image: " + _TRIM$(STR$(bb.image)) + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".w: " + _TRIM$(STR$(bb.w)) + GJ_LIB_NL$
+    r$ = GJ_LIB_NL$ + "BBOX " + label$ + ": {" + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".image: " + BBOX_str$(bb.image, TRUE)
+    r$ = r$ + t1$ + ".w: " + BBOX_str$(bb.w, TRUE)
     r$ = r$ + t1$ + ".h: " + _TRIM$(STR$(bb.h)) + GJ_LIB_NL$
     r$ = r$ + t1$ + ".pos.x: " + _TRIM$(STR$(bb.pos.x)) + GJ_LIB_NL$
     r$ = r$ + t1$ + ".pos.y: " + _TRIM$(STR$(bb.pos.y)) + GJ_LIB_NL$
     r$ = r$ + t1$ + ".style: " + bb.style$ + GJ_LIB_NL$
-    r$ = r$ + GJ_LIB_NL$
-    r$ = r$ + t1$ + "status: {" + _TRIM$(STR$(bb.pos.y)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + "status: {" + GJ_LIB_NL$
     r$ = r$ + t2$ + ".ready: " + _TRIM$(STR$(bb.status.ready)) + GJ_LIB_NL$
     r$ = r$ + t2$ + ".visible: " + _TRIM$(STR$(bb.status.visible)) + GJ_LIB_NL$
     r$ = r$ + t2$ + ".selected: " + _TRIM$(STR$(bb.status.selected)) + GJ_LIB_NL$
@@ -267,7 +267,15 @@ FUNCTION DUMP.bbox$(bb AS __BOUNDING_BOX, label$)
     r$ = r$ + t2$ + ".moving_bot: " + _TRIM$(STR$(bb.status.moving_down)) + GJ_LIB_NL$
     r$ = r$ + t1$ + "}" + GJ_LIB_NL$
     r$ = r$ + "}"
-    DUMP.bbox$ = r$
+    BBOX_dump$ = r$
+END FUNCTION
+
+
+FUNCTION BBOX_str$(value, new_line)
+    DIM r AS STRING
+    r$ = _TRIM$(STR$(value))
+    IF new_line THEN r$ = r$ + GJ_LIB_NL$
+    BBOX_str$ = r$
 END FUNCTION
 
 
@@ -279,7 +287,7 @@ END FUNCTION
 ' @param STRING style$ bounding box style to dump
 ' @return STRING dump block
 '
-FUNCTION DUMP.bbox_style$(bb AS __BOUNDING_BOX, label$, style$)
+FUNCTION BBOX_dump_style$(bb AS __BOUNDING_BOX, label$, style$)
     DIM AS STRING r, t1, t2
     DIM s AS __STYLE
     SELECT CASE style$
@@ -294,8 +302,8 @@ FUNCTION DUMP.bbox_style$(bb AS __BOUNDING_BOX, label$, style$)
         CASE "moving"
             s = bb.styles.moving
     END SELECT
-    t1$ = STRING$(4, " ") : t2$ = t1$ + t1$
-    r$ = GJ_LIB_NL$ + "BBOX.style." + style$ + " " + label$ + " : {" + GJ_LIB_NL$
+    t1$ = STRING$(4, " "): t2$ = t1$ + t1$
+    r$ = GJ_LIB_NL$ + "BBOX.style." + style$ + " " + label$ + ": {" + GJ_LIB_NL$
     r$ = r$ + t1$ + ".fg: " + _TRIM$(STR$(s.fg)) + GJ_LIB_NL$
     r$ = r$ + t1$ + ".bg: " + _TRIM$(STR$(s.bg)) + GJ_LIB_NL$
     r$ = r$ + t1$ + ".border: { "+ GJ_LIB_NL$
@@ -304,5 +312,5 @@ FUNCTION DUMP.bbox_style$(bb AS __BOUNDING_BOX, label$, style$)
     r$ = r$ + t2$ + ".pattern: " + _TRIM$(STR$(s.border.pattern)) + GJ_LIB_NL$
     r$ = r$ + t1$ + "}"+ GJ_LIB_NL$
     r$ = r$ + "}"
-    DUMP.bbox_style$ = r$
+    BBOX_dump_style$ = r$
 END FUNCTION

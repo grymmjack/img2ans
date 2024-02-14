@@ -43,18 +43,8 @@ OFF_XDIST = 0 : OFF_YDIST = 0
 OFF_XBDIST = 0 : OFF_YBDIST = 0
 nudge_amount% = 1
 
-' DIM SHARED AS _BYTE mouse_b1, mouse_b2, mouse_b3, mouse_old_b1, mouse_old_b2, mouse_old_b3
-' DIM SHARED AS INTEGER mouse_w
 DIM SHARED AS INTEGER PAD
-' DIM SHARED AS INTEGER mouse_x, mouse_y, mouse_old_x, mouse_old_y
-' DIM SHARED AS _UNSIGNED _BYTE mouse_w_up, mouse_w_down
 DIM SHARED AS _UNSIGNED _BYTE FOCUS, OVER, TARGET, OVER_BOX
-' DIM SHARED AS _UNSIGNED _BYTE mouse_clicked_b1, mouse_clicked_b2, mouse_clicked_b3
-' DIM SHARED AS _UNSIGNED _BYTE mouse_moved, mouse_clicked, mouse_dragging
-' DIM SHARED AS _UNSIGNED _BYTE mouse_moved_up, mouse_moved_down
-' DIM SHARED AS _UNSIGNED _BYTE mouse_moved_left, mouse_moved_right
-' DIM SHARED AS _UNSIGNED _BYTE mouse_dragging_up, mouse_dragging_down
-' DIM SHARED AS _UNSIGNED _BYTE mouse_dragging_left, mouse_dragging_right
 PAD% = BOX_LINE_W
 FOCUS~%% = WIN_HAS_FOCUS
 OVER~%% = BOX_NONE
@@ -412,4 +402,4 @@ END SUB
 
 '$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM'
 '$INCLUDE:'include/MOUSE/MOUSE.BM'
-'$INCLUDE:'include/BOUNDING_BOx/BOUNDING_BOX.BM'
+'$INCLUDE:'include/BOUNDING_BOX/BOUNDING_BOX.BM'

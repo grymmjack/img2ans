@@ -25,6 +25,16 @@ OPTION _EXPLICITARRAY
 '$INCLUDE:'./BOUNDING_BOX.BI'
 
 DIM AS LONG CANVAS
+CANVAS = _NEWIMAGE(1920, 1080, 32)
+SCREEN CANVAS
+PRINT BBOX_dump(BBOX, "test")
+' PRINT BBOX_dump_style(BBOX, "", "idle")
+' PRINT BBOX_dump_style(BBOX, "", "over")
+' PRINT BBOX_dump_style(BBOX, "", "selected")
+' PRINT BBOX_dump_style(BBOX, "", "resizing")
+' PRINT BBOX_dump_style(BBOX, "", "moving")
+
+BBOX_draw BBOX, CANVAS, 1, 1
 
 '$INCLUDE:'../QB64_GJ_LIB/DUMP/DUMP.BM'
 '$INCLUDE:'../QB64_GJ_LIB/CONSOLE/CONSOLE.BM'

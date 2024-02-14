@@ -6,7 +6,7 @@
 '
 ' @author Rick Christy <grymmjack@gmail.com>
 '
-$LET GJ_LIB_BOUNDING_BOX_INC_BI = 1
+$INCLUDEONCE
 
 $IF __POINT_INC = UNDEFINED THEN
 $LET __POINT_INC = 1

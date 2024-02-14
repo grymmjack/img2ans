@@ -51,6 +51,29 @@
             }
         },
         {
+            "label": "HELP: OLD QB64 Wiki",
+            "command": "OpenWebPage",
+            "type": "shell",
+            "linux": {
+                "command": "setsid xdg-open https://qb64forum.alephc.xyz/index.php",
+            },
+            "osx": {
+                "command": "open https://qb64forum.alephc.xyz/index.php",
+            },
+            "windows": {
+                "command": "start https://qb64forum.alephc.xyz/index.php",
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "never",
+                "focus": false,
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": false,
+                "close": true
+            }
+        },
+        {
             "label": "EXECUTE: Run",
             "dependsOn": "BUILD: Compile",
             "type": "shell",
