@@ -10,10 +10,7 @@
 ' @depends include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM
 ' @depends include/QB64_GJ_LIB/MISC/MISC.BM
 '
-$IF IMG2ANS_BM = UNDEFINED THEN
-    $LET IMG2ANS_BM = TRUE
-$END IF
-
+$INCLUDEONCE
 
 ''
 ' Sets the size of the crop bounding box

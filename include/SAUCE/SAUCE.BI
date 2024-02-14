@@ -1,3 +1,5 @@
+$INCLUDEONCE
+
 ''
 ' Sauce Reader (this will eventually also be a QB64_GJ_LIB module)
 '

@@ -4,6 +4,7 @@
 ': Samuel Gomes, (2023 - 2024) - @a740g
 ': https://github.com/a740g/InForm-PE
 '-----------------------------------------------------------
+$INCLUDEONCE
 SUB __UI_LoadForm
 
     DIM __UI_NewID AS LONG, __UI_RegisterResult AS LONG

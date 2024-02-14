@@ -5,6 +5,8 @@
 ': https://github.com/a740g/InForm-PE
 '-----------------------------------------------------------
 
+_ALLOWFULLSCREEN _OFF
+
 ': Controls' IDs: ------------------------------------------------------------------
 'WINDOW
 DIM SHARED IMG2ANS AS LONG
