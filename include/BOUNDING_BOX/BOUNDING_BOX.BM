@@ -19,15 +19,15 @@ $INCLUDEONCE
 ' @param LONG dest_image destination image to draw to
 ' @param INTEGER x position
 ' @param INTEGER y position
+' @param INTEGER w width
+' @param INTEGER h height
 '
-SUB BBOX_draw(bb AS __BOUNDING_BOX, dest_image&, x%, y%)
-    DIM AS LONG old_dest
-    old_dest = _DEST
+SUB BBOX_draw(bb AS __BOUNDING_BOX, dest_image&, x%, y%, w%, h%)
     bb.canvas = dest_image&
-    _SOURCE bb.canvas : _DEST bb.canvas_clean : _PUTIMAGE
-    _DEST old_dest
-    bb.pos.x = x%
-    bb.pos.y = y%
+    bb.pos.x  = x%
+    bb.pos.y  = y%
+    bb.w      = w%
+    bb.h      = h%
     CALL BBOX_render(bb)
 END SUB
 
@@ -64,9 +64,6 @@ SUB BBOX_render(bb AS __BOUNDING_BOX)
                 bb.styles.moving.border.w, _
                 bb.styles.moving.border.pattern 
     END SELECT
-    _PUTIMAGE (0, 0), bb.canvas_clean, bb.canvas
-    _CLEARCOLOR _RGB32(0, 0, 0), bb.image
-    _PUTIMAGE (bb.pos.x, bb.pos.y), bb.image, bb.canvas_clean
     bb.status.ready = TRUE
 END SUB
 
@@ -79,20 +76,18 @@ END SUB
 ' @param LONG pattern to use for border line
 '
 SUB BBOX_decorate(bb AS __BOUNDING_BOX, fg~&, w%, pattern&)
-    DIM AS INTEGER i, cw, ch
-    DIM AS LONG old_dest
-    old_dest& = _DEST
-    _DEST bb.image
-    _CLEARCOLOR _NONE, bb.image
-    CLS
-    cw = _WIDTH(bb.image) : ch = _HEIGHT(bb.image)
+    DIM AS INTEGER i
+    DIM AS LONG old_dest : old_dest = _DEST
+    _DEST bb.canvas
+    'clear
     FOR i% = 0 TO w%
-        LINE (i%, i%)-(cw-i%-1, ch-i%-1), _RGB32(0, 0, 0), B, pattern&
+        LINE (bb.pos.x+i%, bb.pos.y+i%)-(bb.pos.x+bb.w-i%-1, bb.pos.y+bb.h-i%-1), _RGB32(0, 0, 0), B
     NEXT i%
+    'decorate
     FOR i% = 0 TO w%
-        LINE (i%, i%)-(cw-i%-1, ch-i%-1), fg~&, B, pattern&
+        LINE (bb.pos.x+i%, bb.pos.y+i%)-(bb.pos.x+bb.w-i%-1, bb.pos.y+bb.h-i%-1), fg~&, B, pattern&
     NEXT i%
-    _DEST old_dest&
+    _DEST old_dest
 END SUB
 
 
@@ -296,16 +291,6 @@ END SUB
 
 
 ''
-' Destroy the bounding box
-' @param __BOUNDING_BOX bb bounding box to destroy
-'
-SUB BBOX_destroy(bb AS __BOUNDING_BOX)
-    _FREEIMAGE bb.image
-    _FREEIMAGE bb.canvas_clean
-END SUB
-
-
-''
 ' Dumps a bounding box object
 '
 ' @param __BOUNDING_BOX bb bounding box to dump
@@ -316,37 +301,42 @@ FUNCTION BBOX_dump$(bb AS __BOUNDING_BOX, label$)
     DIM AS STRING r, t1, t2
     t1$ = STRING$(4, " ") : t2$ = t1$ + t1$
     r$ = GJ_LIB_NL$ + "BBOX " + label$ + ": {" + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".image: " + BBOX_str$(bb.image, TRUE)
-    r$ = r$ + t1$ + ".w: " + BBOX_str$(bb.w, TRUE)
-    r$ = r$ + t1$ + ".h: " + _TRIM$(STR$(bb.h)) + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".pos.x: " + _TRIM$(STR$(bb.pos.x)) + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".pos.y: " + _TRIM$(STR$(bb.pos.y)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".w: " + BBOX_n$(bb.w, TRUE)
+    r$ = r$ + t1$ + ".h: " + BBOX_n$(bb.h, TRUE)
+    r$ = r$ + t1$ + ".pos.x: " + BBOX_n$(bb.pos.x, TRUE)
+    r$ = r$ + t1$ + ".pos.y: " + BBOX_n$(bb.pos.y, TRUE)
     r$ = r$ + t1$ + ".style: " + bb.style$ + GJ_LIB_NL$
     r$ = r$ + t1$ + "status: {" + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".ready: " + _TRIM$(STR$(bb.status.ready)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".visible: " + _TRIM$(STR$(bb.status.visible)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".selected: " + _TRIM$(STR$(bb.status.selected)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".resizing: " + _TRIM$(STR$(bb.status.resizing)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".resizing_left: " + _TRIM$(STR$(bb.status.resizing_left)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".resizing_right: " + _TRIM$(STR$(bb.status.resizing_right)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".resizing_top: " + _TRIM$(STR$(bb.status.resizing_top)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".resizing_bot: " + _TRIM$(STR$(bb.status.resizing_bot)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".moving: " + _TRIM$(STR$(bb.status.moving)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".moving_left: " + _TRIM$(STR$(bb.status.moving_left)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".moving_right: " + _TRIM$(STR$(bb.status.moving_right)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".moving_top: " + _TRIM$(STR$(bb.status.moving_up)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".moving_bot: " + _TRIM$(STR$(bb.status.moving_down)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".ready: " + BBOX_n$(bb.status.ready, TRUE)
+    r$ = r$ + t2$ + ".visible: " + BBOX_n$(bb.status.visible, TRUE)
+    r$ = r$ + t2$ + ".selected: " + BBOX_n$(bb.status.selected, TRUE)
+    r$ = r$ + t2$ + ".resizing: " + BBOX_n$(bb.status.resizing, TRUE)
+    r$ = r$ + t2$ + ".resizing_left: " + BBOX_n$(bb.status.resizing_left, TRUE)
+    r$ = r$ + t2$ + ".resizing_right: " + BBOX_n$(bb.status.resizing_right, TRUE)
+    r$ = r$ + t2$ + ".resizing_top: " + BBOX_n$(bb.status.resizing_top, TRUE)
+    r$ = r$ + t2$ + ".resizing_bot: " + BBOX_n$(bb.status.resizing_bot, TRUE)
+    r$ = r$ + t2$ + ".moving: " + BBOX_n$(bb.status.moving, TRUE)
+    r$ = r$ + t2$ + ".moving_left: " + BBOX_n$(bb.status.moving_left, TRUE)
+    r$ = r$ + t2$ + ".moving_right: " + BBOX_n$(bb.status.moving_right, TRUE)
+    r$ = r$ + t2$ + ".moving_top: " + BBOX_n$(bb.status.moving_up, TRUE)
+    r$ = r$ + t2$ + ".moving_bot: " + BBOX_n$(bb.status.moving_down, TRUE)
     r$ = r$ + t1$ + "}" + GJ_LIB_NL$
     r$ = r$ + "}"
     BBOX_dump$ = r$
 END FUNCTION
 
 
-FUNCTION BBOX_str$(value, new_line)
+''
+' String helper for trimming numbers
+' @param INTEGER ANY non float
+' @param INTEGER new_line append?
+' @return STRING trimmed number with or without newline
+'
+FUNCTION BBOX_n$(value, new_line)
     DIM r AS STRING
     r$ = _TRIM$(STR$(value))
     IF new_line THEN r$ = r$ + GJ_LIB_NL$
-    BBOX_str$ = r$
+    BBOX_n$ = r$
 END FUNCTION
 
 
@@ -375,12 +365,12 @@ FUNCTION BBOX_dump_style$(bb AS __BOUNDING_BOX, label$, style$)
     END SELECT
     t1$ = STRING$(4, " "): t2$ = t1$ + t1$
     r$ = GJ_LIB_NL$ + "BBOX.style." + style$ + " " + label$ + ": {" + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".fg: " + _TRIM$(STR$(s.fg)) + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".bg: " + _TRIM$(STR$(s.bg)) + GJ_LIB_NL$
+    r$ = r$ + t1$ + ".fg: " + BBOX_n$(s.fg, TRUE)
+    r$ = r$ + t1$ + ".bg: " + BBOX_n$(s.bg, TRUE)
     r$ = r$ + t1$ + ".border: { "+ GJ_LIB_NL$
-    r$ = r$ + t2$ + ".fg: " + _TRIM$(STR$(s.border.fg)) + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".w: " + _TRIM$(STR$(s.border.w)) + "px" + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".pattern: " + _TRIM$(STR$(s.border.pattern)) + GJ_LIB_NL$
+    r$ = r$ + t2$ + ".fg: " + BBOX_n$(s.border.fg, TRUE)
+    r$ = r$ + t2$ + ".w: " + BBOX_n$(s.border.w, TRUE)
+    r$ = r$ + t2$ + ".pattern: " + BBOX_n$(s.border.pattern, TRUE)
     r$ = r$ + t1$ + "}"+ GJ_LIB_NL$
     r$ = r$ + "}"
     BBOX_dump_style$ = r$

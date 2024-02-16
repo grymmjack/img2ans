@@ -65,9 +65,7 @@ TYPE __BOUNDING_BOX
     pos          AS __POINT
     w            AS INTEGER
     h            AS INTEGER
-    image        AS LONG
     canvas       AS LONG
-    canvas_clean AS LONG
 END TYPE
 
 DIM SHARED BBOX AS __BOUNDING_BOX
@@ -116,11 +114,8 @@ BBOX_INIT.pos.y = 0
 'dimensions
 BBOX_INIT.w = 128
 BBOX_INIT.h = 128
-'image
-BBOX_INIT.image = 0
 'canvas
 BBOX_INIT.canvas = 0
-BBOX_INIT.canvas_clean = 0
 
 'initialize the BBOX
 BBOX.status = BBOX_INIT.status
@@ -130,9 +125,6 @@ BBOX.pos = BBOX_INIT.pos
 BBOX.w = BBOX_INIT.w
 BBOX.h = BBOX_INIT.h
 BBOX.canvas = BBOX_INIT.canvas
-BBOX.canvas_clean = BBOX_INIT.canvas_clean
-BBOX.image = _NEWIMAGE(BBOX.w, BBOX.h, 32)
-_CLEARCOLOR _RGB32(0, 0, 0), BBOX.image
 
 
 $IF GJ_LIB_NL = UNDEFINED THEN

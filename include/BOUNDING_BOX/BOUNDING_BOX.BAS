@@ -34,7 +34,7 @@ PRINT BBOX_dump(BBOX, "test")
 ' PRINT BBOX_dump_style(BBOX, "", "resizing")
 ' PRINT BBOX_dump_style(BBOX, "", "moving")
 
-BBOX_draw BBOX, CANVAS, 100, 10
+BBOX_draw BBOX, CANVAS, 50, 25, 50, 100
 SLEEP
 BBOX_set_style_state BBOX, "selected"
 SLEEP
