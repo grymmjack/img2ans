@@ -16,14 +16,18 @@ $INCLUDEONCE
 ''
 ' Draw the bounding box
 ' @param __BOUNDING_BOX bb bounding box to target
-' @param LONG destination image to draw to
+' @param LONG dest_image destination image to draw to
 ' @param INTEGER x position
 ' @param INTEGER y position
+'
 SUB BBOX_draw(bb AS __BOUNDING_BOX, dest_image&, x%, y%)
-    bb.image = dest_image&
+    DIM AS LONG old_dest
+    old_dest = _DEST
+    bb.canvas = dest_image&
+    _SOURCE bb.canvas : _DEST bb.canvas_clean : _PUTIMAGE
+    _DEST old_dest
     bb.pos.x = x%
     bb.pos.y = y%
-    bb.status.ready = FALSE
     CALL BBOX_render(bb)
 END SUB
 
@@ -33,9 +37,61 @@ END SUB
 '
 SUB BBOX_render(bb AS __BOUNDING_BOX)
     bb.status.ready = FALSE
-    ' render here
-
+    SELECT CASE bb.style$
+        CASE "idle"
+            BBOX_decorate bb, _
+                bb.styles.idle.border.fg, _
+                bb.styles.idle.border.w, _
+                bb.styles.idle.border.pattern 
+        CASE "over"
+            BBOX_decorate bb, _
+                bb.styles.over.border.fg, _
+                bb.styles.over.border.w, _
+                bb.styles.over.border.pattern 
+        CASE "selected"
+            BBOX_decorate bb, _
+                bb.styles.selected.border.fg, _
+                bb.styles.selected.border.w, _
+                bb.styles.selected.border.pattern 
+        CASE "resizing"
+            BBOX_decorate bb, _
+                bb.styles.resizing.border.fg, _
+                bb.styles.resizing.border.w, _
+                bb.styles.resizing.border.pattern 
+        CASE "moving"
+            BBOX_decorate bb, _
+                bb.styles.moving.border.fg, _
+                bb.styles.moving.border.w, _
+                bb.styles.moving.border.pattern 
+    END SELECT
+    _PUTIMAGE (0, 0), bb.canvas_clean, bb.canvas
+    _PUTIMAGE (bb.pos.x, bb.pos.y), bb.image, bb.canvas
     bb.status.ready = TRUE
+END SUB
+
+
+''
+' Decorate the bounding box
+' @param __BOUNDING_BOX bb bounding box to decorate
+' @param _UNSIGNED LONG fg foreground color of the box border
+' @param INTEGER w width of the bounding box border
+' @param LONG pattern to use for border line
+'
+SUB BBOX_decorate(bb AS __BOUNDING_BOX, fg~&, w%, pattern&)
+    DIM AS INTEGER i, cw, ch
+    DIM AS LONG old_dest
+    old_dest& = _DEST
+    _DEST bb.image
+    _DONTBLEND bb.image
+    CLS
+    _BLEND bb.image
+    _SETALPHA 0, _RGB32(0, 0, 0), bb.image
+    ' _CLEARCOLOR _RGB32(0, 0, 0), bb.image
+    cw = _WIDTH(bb.image) : ch = _HEIGHT(bb.image)
+    FOR i% = 0 TO w%
+        LINE (i%, i%)-(cw-i%-1, ch-i%-1), fg~&, B, pattern&
+    NEXT i%
+    _DEST old_dest&
 END SUB
 
 
@@ -45,11 +101,15 @@ END SUB
 ' @param STRING style_state ("idle", "over", "selected", "resizing", "moving")
 '
 SUB BBOX_set_style_state(bb AS __BOUNDING_BOX, style_state$)
-    SELECT EVERYCASE style_state$
+    SELECT CASE style_state$
         CASE "idle"
+            bb.style$ = style_state$
         CASE "over"
+            bb.style$ = style_state$
         CASE "selected"
+            bb.style$ = style_state$
         CASE "resizing"
+            bb.style$ = style_state$
         CASE "moving"
             bb.style$ = style_state$
     END SELECT
@@ -231,6 +291,16 @@ SUB BBOX_resize_bot(bb AS __BOUNDING_BOX, amount%)
     CALL BBOX_set_resizing(bb, TRUE, "bot")
     ' do resize
     CALL BBOX_render(bb)
+END SUB
+
+
+''
+' Destroy the bounding box
+' @param __BOUNDING_BOX bb bounding box to destroy
+'
+SUB BBOX_destroy(bb AS __BOUNDING_BOX)
+    _FREEIMAGE bb.image
+    _FREEIMAGE bb.canvas_clean
 END SUB
 
 

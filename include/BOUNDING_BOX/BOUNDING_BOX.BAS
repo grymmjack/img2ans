@@ -34,7 +34,15 @@ PRINT BBOX_dump(BBOX, "test")
 ' PRINT BBOX_dump_style(BBOX, "", "resizing")
 ' PRINT BBOX_dump_style(BBOX, "", "moving")
 
-BBOX_draw BBOX, CANVAS, 1, 1
+BBOX_draw BBOX, CANVAS, 100, 10
+SLEEP
+BBOX_set_style_state BBOX, "selected"
+SLEEP
+BBOX_set_style_state BBOX, "over"
+SLEEP
+BBOX_set_style_state BBOX, "resizing"
+SLEEP
+BBOX_set_style_state BBOX, "moving"
 
 '$INCLUDE:'../QB64_GJ_LIB/DUMP/DUMP.BM'
 '$INCLUDE:'../QB64_GJ_LIB/CONSOLE/CONSOLE.BM'

@@ -21,7 +21,7 @@ $LET __BORDER_INC = 1
     TYPE __BORDER
         fg      AS _UNSIGNED LONG
         w       AS INTEGER
-        pattern AS _UNSIGNED LONG
+        pattern AS LONG
     END TYPE
 $END IF
 
@@ -59,13 +59,15 @@ TYPE __BOX_STATUS
 END TYPE
 
 TYPE __BOUNDING_BOX
-    status AS __BOX_STATUS
-    styles AS __STYLE_STATES
-    style  AS STRING
-    pos    AS __POINT
-    w      AS INTEGER
-    h      AS INTEGER
-    image  AS LONG
+    status       AS __BOX_STATUS
+    styles       AS __STYLE_STATES
+    style        AS STRING
+    pos          AS __POINT
+    w            AS INTEGER
+    h            AS INTEGER
+    image        AS LONG
+    canvas       AS LONG
+    canvas_clean AS LONG
 END TYPE
 
 DIM SHARED BBOX AS __BOUNDING_BOX
@@ -103,9 +105,9 @@ BBOX_INIT.styles.moving.border.w         = 3
 'patterns
 BBOX_INIT.styles.idle.border.pattern     = &B0000111100001111
 BBOX_INIT.styles.over.border.pattern     = &B0000111100001111
-BBOX_INIT.styles.selected.border.pattern = &B0000111100001111
-BBOX_INIT.styles.resizing.border.pattern = &B0000111100001111
-BBOX_INIT.styles.moving.border.pattern   = &B0000111100001111
+BBOX_INIT.styles.selected.border.pattern = &B1100110011001100
+BBOX_INIT.styles.resizing.border.pattern = &B1111000011110000
+BBOX_INIT.styles.moving.border.pattern   = &B0101010101010101
 'style
 BBOX_INIT.style$ = "idle"
 'position
@@ -116,6 +118,9 @@ BBOX_INIT.w = 128
 BBOX_INIT.h = 128
 'image
 BBOX_INIT.image = 0
+'canvas
+BBOX_INIT.canvas = 0
+BBOX_INIT.canvas_clean = 0
 
 'initialize the BBOX
 BBOX.status = BBOX_INIT.status
@@ -124,14 +129,16 @@ BBOX.style$ = BBOX_INIT.style$
 BBOX.pos = BBOX_INIT.pos
 BBOX.w = BBOX_INIT.w
 BBOX.h = BBOX_INIT.h
-BBOX.image = BBOX_INIT.image
+BBOX.canvas = BBOX_INIT.canvas
+BBOX.canvas_clean = BBOX_INIT.canvas_clean
+BBOX.image = _NEWIMAGE(BBOX.w, BBOX.h, 32)
 
 $IF GJ_LIB_NL = UNDEFINED THEN
-$LET GJ_LIB_NL = 1
-DIM SHARED GJ_LIB_NL AS STRING
-$IF WIN THEN
-    GJ_LIB_NL$ = CHR$(13)
-$ELSE
-    GJ_LIB_NL$ = CHR$(10)
-$END IF
+    $LET GJ_LIB_NL = 1
+    DIM SHARED GJ_LIB_NL AS STRING
+    $IF WIN THEN
+        GJ_LIB_NL$ = CHR$(13)
+    $ELSE
+        GJ_LIB_NL$ = CHR$(10)
+    $END IF
 $END IF
