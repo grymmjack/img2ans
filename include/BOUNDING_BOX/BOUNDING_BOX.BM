@@ -65,7 +65,8 @@ SUB BBOX_render(bb AS __BOUNDING_BOX)
                 bb.styles.moving.border.pattern 
     END SELECT
     _PUTIMAGE (0, 0), bb.canvas_clean, bb.canvas
-    _PUTIMAGE (bb.pos.x, bb.pos.y), bb.image, bb.canvas
+    _CLEARCOLOR _RGB32(0, 0, 0), bb.image
+    _PUTIMAGE (bb.pos.x, bb.pos.y), bb.image, bb.canvas_clean
     bb.status.ready = TRUE
 END SUB
 
@@ -82,12 +83,12 @@ SUB BBOX_decorate(bb AS __BOUNDING_BOX, fg~&, w%, pattern&)
     DIM AS LONG old_dest
     old_dest& = _DEST
     _DEST bb.image
-    _DONTBLEND bb.image
+    _CLEARCOLOR _NONE, bb.image
     CLS
-    _BLEND bb.image
-    _SETALPHA 0, _RGB32(0, 0, 0), bb.image
-    ' _CLEARCOLOR _RGB32(0, 0, 0), bb.image
     cw = _WIDTH(bb.image) : ch = _HEIGHT(bb.image)
+    FOR i% = 0 TO w%
+        LINE (i%, i%)-(cw-i%-1, ch-i%-1), _RGB32(0, 0, 0), B, pattern&
+    NEXT i%
     FOR i% = 0 TO w%
         LINE (i%, i%)-(cw-i%-1, ch-i%-1), fg~&, B, pattern&
     NEXT i%

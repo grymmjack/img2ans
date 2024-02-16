@@ -132,6 +132,8 @@ BBOX.h = BBOX_INIT.h
 BBOX.canvas = BBOX_INIT.canvas
 BBOX.canvas_clean = BBOX_INIT.canvas_clean
 BBOX.image = _NEWIMAGE(BBOX.w, BBOX.h, 32)
+_CLEARCOLOR _RGB32(0, 0, 0), BBOX.image
+
 
 $IF GJ_LIB_NL = UNDEFINED THEN
     $LET GJ_LIB_NL = 1
