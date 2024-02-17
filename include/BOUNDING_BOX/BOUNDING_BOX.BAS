@@ -24,7 +24,7 @@ OPTION _EXPLICITARRAY
 '$INCLUDE:'../MOUSE/MOUSE.BI'
 '$INCLUDE:'./BOUNDING_BOX.BI'
 
-DIM AS LONG CANVAS
+DIM SHARED AS LONG CANVAS
 CANVAS = _NEWIMAGE(1920, 1080, 32)
 SCREEN CANVAS
 
@@ -50,6 +50,17 @@ DO
         CASE "s"
             CONSOLE.log "show"
             BBOX_show BBOX
+        CASE "m"
+            CONSOLE.log "macro move and update"
+            CLS
+            PRINT "STUFF IS HAPPENING"
+            PRINT BBOX_dump(BBOX, "test 2 - macro")
+            BBOX_update_canvas BBOX, CANVAS
+        CASE "c"
+            CONSOLE.log "clear and reset"
+            CLS
+            PRINT BBOX_dump(BBOX, "test")
+            BBOX_update_canvas BBOX, CANVAS
     END SELECT
     IF k$ <> "" OR MOUSE.has_events THEN 
         draw_output
@@ -65,17 +76,16 @@ SYSTEM
 ' Draw the output :D
 '
 SUB draw_output
-    DIM AS INTEGER over
-    over% = BBOX_point_over(BBOX, MOUSE.new_state.pos.x, MOUSE.new_state.pos.y)
-    IF over% THEN
+    IF BBOX_point_over(BBOX, MOUSE.new_state.pos.x, MOUSE.new_state.pos.y) THEN
         BBOX_set_style_state BBOX, "over"
-        IF MOUSE.status.b1_clicked THEN
-            BBOX_toggle_selected BBOX
+        IF MOUSE.status.b1_down THEN
+            BBOX_select BBOX
         END IF
     ELSE
         BBOX_set_style_state BBOX, "idle"
     END IF
     BBOX_render BBOX
+    _DISPLAY
 END SUB
 
 

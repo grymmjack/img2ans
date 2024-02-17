@@ -53,42 +53,38 @@ END SUB
 
 ''
 ' Renders the bounding box (called when visible changes occur)
+' @param __BOUNDING_BOX bb bounding box to target
 '
 SUB BBOX_render(bb AS __BOUNDING_BOX)
     bb.status.ready = FALSE
     IF bb.status.visible THEN
-        IF NOT bb.status.selected THEN        
-            SELECT CASE bb.style$
-                CASE "idle"
-                    BBOX_decorate bb, _
-                        bb.styles.idle.border.fg, _
-                        bb.styles.idle.border.w, _
-                        bb.styles.idle.border.pattern 
-                CASE "over"
-                    BBOX_decorate bb, _
-                        bb.styles.over.border.fg, _
-                        bb.styles.over.border.w, _
-                        bb.styles.over.border.pattern
-            END SELECT
-        ELSE
-            SELECT CASE bb.style$
-                CASE "selected"
-                    BBOX_decorate bb, _
-                        bb.styles.selected.border.fg, _
-                        bb.styles.selected.border.w, _
-                        bb.styles.selected.border.pattern 
-                CASE "resizing"
-                    BBOX_decorate bb, _
-                        bb.styles.resizing.border.fg, _
-                        bb.styles.resizing.border.w, _
-                        bb.styles.resizing.border.pattern 
-                CASE "moving"
-                    BBOX_decorate bb, _
-                        bb.styles.moving.border.fg, _
-                        bb.styles.moving.border.w, _
-                        bb.styles.moving.border.pattern 
-            END SELECT
-        END IF
+        SELECT CASE bb.style$
+            CASE "idle"
+                BBOX_decorate bb, _
+                    bb.styles.idle.border.fg, _
+                    bb.styles.idle.border.w, _
+                    bb.styles.idle.border.pattern 
+            CASE "over"
+                BBOX_decorate bb, _
+                    bb.styles.over.border.fg, _
+                    bb.styles.over.border.w, _
+                    bb.styles.over.border.pattern
+            CASE "selected"
+                BBOX_decorate bb, _
+                    bb.styles.selected.border.fg, _
+                    bb.styles.selected.border.w, _
+                    bb.styles.selected.border.pattern 
+            CASE "resizing"
+                BBOX_decorate bb, _
+                    bb.styles.resizing.border.fg, _
+                    bb.styles.resizing.border.w, _
+                    bb.styles.resizing.border.pattern 
+            CASE "moving"
+                BBOX_decorate bb, _
+                    bb.styles.moving.border.fg, _
+                    bb.styles.moving.border.w, _
+                    bb.styles.moving.border.pattern 
+        END SELECT
     ELSE
         _PUTIMAGE (0, 0), BBOX.clean_canvas, BBOX.canvas
     END IF

@@ -86,12 +86,12 @@ BBOX_INIT.status.moving_up               = FALSE
 BBOX_INIT.status.moving_down             = FALSE
 'colors
 BBOX_INIT.styles.idle.fg                 = _RGB32(255, 255, 0)
-BBOX_INIT.styles.over.fg                 = _RGB32(255, 255, 255)
+BBOX_INIT.styles.over.fg                 = _RGB32(0, 255, 255)
 BBOX_INIT.styles.selected.fg             = _RGB32(255, 0, 0)
 BBOX_INIT.styles.resizing.fg             = _RGB32(255, 255, 0)
 BBOX_INIT.styles.moving.fg               = _RGB32(255, 255, 0)
 BBOX_INIT.styles.idle.border.fg          = _RGB32(255, 255, 0)
-BBOX_INIT.styles.over.border.fg          = _RGB32(255, 255, 255)
+BBOX_INIT.styles.over.border.fg          = _RGB32(0, 255, 255)
 BBOX_INIT.styles.selected.border.fg      = _RGB32(255, 0, 0)
 BBOX_INIT.styles.resizing.border.fg      = _RGB32(255, 255, 0)
 BBOX_INIT.styles.moving.border.fg        = _RGB32(255, 255, 0)
