@@ -19,4 +19,5 @@
 *.cmp-out
 *.bas-backup
 
-InForm
+include/InForm-PE
+include/QB64_GJ_LIB
