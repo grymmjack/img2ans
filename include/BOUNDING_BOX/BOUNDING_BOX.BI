@@ -66,23 +66,24 @@ TYPE __BOUNDING_BOX
     w            AS INTEGER
     h            AS INTEGER
     canvas       AS LONG
+    clean_canvas AS LONG
 END TYPE
 
 DIM SHARED BBOX AS __BOUNDING_BOX
 DIM SHARED BBOX_INIT AS __BOUNDING_BOX
-BBOX_INIT.status.ready                   = 0
-BBOX_INIT.status.visible                 = -1
-BBOX_INIT.status.selected                = 0
-BBOX_INIT.status.resizing                = 0
-BBOX_INIT.status.resizing_left           = 0
-BBOX_INIT.status.resizing_right          = 0
-BBOX_INIT.status.resizing_top            = 0
-BBOX_INIT.status.resizing_bot            = 0
-BBOX_INIT.status.moving                  = 0
-BBOX_INIT.status.moving_left             = 0
-BBOX_INIT.status.moving_right            = 0
-BBOX_INIT.status.moving_up               = 0
-BBOX_INIT.status.moving_down             = 0
+BBOX_INIT.status.ready                   = FALSE
+BBOX_INIT.status.visible                 = TRUE
+BBOX_INIT.status.selected                = FALSE
+BBOX_INIT.status.resizing                = FALSE
+BBOX_INIT.status.resizing_left           = FALSE
+BBOX_INIT.status.resizing_right          = FALSE
+BBOX_INIT.status.resizing_top            = FALSE
+BBOX_INIT.status.resizing_bot            = FALSE
+BBOX_INIT.status.moving                  = FALSE
+BBOX_INIT.status.moving_left             = FALSE
+BBOX_INIT.status.moving_right            = FALSE
+BBOX_INIT.status.moving_up               = FALSE
+BBOX_INIT.status.moving_down             = FALSE
 'colors
 BBOX_INIT.styles.idle.fg                 = _RGB32(255, 255, 0)
 BBOX_INIT.styles.over.fg                 = _RGB32(255, 255, 255)
@@ -116,6 +117,7 @@ BBOX_INIT.w = 128
 BBOX_INIT.h = 128
 'canvas
 BBOX_INIT.canvas = 0
+BBOX_INIT.clean_canvas = 0
 
 'initialize the BBOX
 BBOX.status = BBOX_INIT.status
@@ -125,7 +127,7 @@ BBOX.pos = BBOX_INIT.pos
 BBOX.w = BBOX_INIT.w
 BBOX.h = BBOX_INIT.h
 BBOX.canvas = BBOX_INIT.canvas
-
+BBOX.clean_canvas = BBOX_INIT.clean_canvas
 
 $IF GJ_LIB_NL = UNDEFINED THEN
     $LET GJ_LIB_NL = 1

@@ -117,6 +117,12 @@ SUB MOUSE_refresh
         MOUSE.drag_stop              = MOUSE.new_state.pos
         MOUSE.status.drag_distance.x = MOUSE.drag_stop.x - MOUSE.drag_start.x
         MOUSE.status.drag_distance.y = MOUSE.drag_stop.y - MOUSE.drag_start.y
-
     END IF
+
+    MOUSE.has_events = MOUSE.status.x_changed _
+                    OR MOUSE.status.y_changed _
+                    OR MOUSE.status.b1_changed _
+                    OR MOUSE.status.b2_changed _
+                    OR MOUSE.status.b3_changed _
+                    OR MOUSE.status.wheel_changed
 END SUB

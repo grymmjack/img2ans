@@ -14,7 +14,7 @@ $INCLUDEONCE
 
 
 ''
-' Draw the bounding box
+' Creates the bounding box
 ' @param __BOUNDING_BOX bb bounding box to target
 ' @param LONG dest_image destination image to draw to
 ' @param INTEGER x position
@@ -22,13 +22,32 @@ $INCLUDEONCE
 ' @param INTEGER w width
 ' @param INTEGER h height
 '
-SUB BBOX_draw(bb AS __BOUNDING_BOX, dest_image&, x%, y%, w%, h%)
-    bb.canvas = dest_image&
-    bb.pos.x  = x%
-    bb.pos.y  = y%
-    bb.w      = w%
-    bb.h      = h%
+SUB BBOX_create(bb AS __BOUNDING_BOX, dest_image&, x%, y%, w%, h%)
+    'setup bounding box
+    bb.pos.x        = x%
+    bb.pos.y        = y%
+    bb.w            = w%
+    bb.h            = h%
+    CALL BBOX_update_canvas(bb, dest_image&)
     CALL BBOX_render(bb)
+END SUB
+
+
+''
+' Updates the canvases of the bounding box - used after create
+' @param __BOUNDING_BOX bb bounding box to target
+' @param LONG dest_image destination image bbox is drawn to
+'
+SUB BBOX_update_canvas(bb AS __BOUNDING_BOX, dest_image&)
+    DIM AS LONG old_dest
+    'create clean canvas
+    old_dest = _DEST
+    bb.clean_canvas = _NEWIMAGE(_WIDTH(dest_image&), _HEIGHT(dest_image&), 32)  
+    _DEST bb.clean_canvas
+    CLS
+    _PUTIMAGE (0, 0), dest_image&, bb.clean_canvas
+    _DEST old_dest
+    bb.canvas = dest_image&
 END SUB
 
 
@@ -37,33 +56,42 @@ END SUB
 '
 SUB BBOX_render(bb AS __BOUNDING_BOX)
     bb.status.ready = FALSE
-    SELECT CASE bb.style$
-        CASE "idle"
-            BBOX_decorate bb, _
-                bb.styles.idle.border.fg, _
-                bb.styles.idle.border.w, _
-                bb.styles.idle.border.pattern 
-        CASE "over"
-            BBOX_decorate bb, _
-                bb.styles.over.border.fg, _
-                bb.styles.over.border.w, _
-                bb.styles.over.border.pattern 
-        CASE "selected"
-            BBOX_decorate bb, _
-                bb.styles.selected.border.fg, _
-                bb.styles.selected.border.w, _
-                bb.styles.selected.border.pattern 
-        CASE "resizing"
-            BBOX_decorate bb, _
-                bb.styles.resizing.border.fg, _
-                bb.styles.resizing.border.w, _
-                bb.styles.resizing.border.pattern 
-        CASE "moving"
-            BBOX_decorate bb, _
-                bb.styles.moving.border.fg, _
-                bb.styles.moving.border.w, _
-                bb.styles.moving.border.pattern 
-    END SELECT
+    IF bb.status.visible THEN
+        IF NOT bb.status.selected THEN        
+            SELECT CASE bb.style$
+                CASE "idle"
+                    BBOX_decorate bb, _
+                        bb.styles.idle.border.fg, _
+                        bb.styles.idle.border.w, _
+                        bb.styles.idle.border.pattern 
+                CASE "over"
+                    BBOX_decorate bb, _
+                        bb.styles.over.border.fg, _
+                        bb.styles.over.border.w, _
+                        bb.styles.over.border.pattern
+            END SELECT
+        ELSE
+            SELECT CASE bb.style$
+                CASE "selected"
+                    BBOX_decorate bb, _
+                        bb.styles.selected.border.fg, _
+                        bb.styles.selected.border.w, _
+                        bb.styles.selected.border.pattern 
+                CASE "resizing"
+                    BBOX_decorate bb, _
+                        bb.styles.resizing.border.fg, _
+                        bb.styles.resizing.border.w, _
+                        bb.styles.resizing.border.pattern 
+                CASE "moving"
+                    BBOX_decorate bb, _
+                        bb.styles.moving.border.fg, _
+                        bb.styles.moving.border.w, _
+                        bb.styles.moving.border.pattern 
+            END SELECT
+        END IF
+    ELSE
+        _PUTIMAGE (0, 0), BBOX.clean_canvas, BBOX.canvas
+    END IF
     bb.status.ready = TRUE
 END SUB
 
@@ -168,6 +196,7 @@ END SUB
 ' @param __BOUNDING_BOX bb bounding box to target
 '
 SUB BBOX_select(bb AS __BOUNDING_BOX)
+    bb.status.selected = TRUE
     CALL BBOX_set_style_state(bb, "selected")
     CALL BBOX_render(bb)
 END SUB
@@ -178,8 +207,22 @@ END SUB
 ' @param __BOUNDING_BOX bb bounding box to target
 '
 SUB BBOX_deselect(bb AS __BOUNDING_BOX)
+    bb.status.selected = FALSE
     CALL BBOX_set_style_state(bb, "idle")
     CALL BBOX_render(bb)
+END SUB
+
+
+''
+' Toggle the selected state of the bounding box
+' @param __BOUNDING_BOX bb bounding box to toggle state for
+'
+SUB BBOX_toggle_selected(bb AS __BOUNDING_BOX)
+    IF bb.status.selected THEN
+        BBOX_deselect bb
+    ELSE
+        BBOX_select bb
+    END IF
 END SUB
 
 
@@ -225,6 +268,7 @@ END SUB
 ' @param __BOUNDING_BOX bb bounding box to target
 '
 SUB BBOX_hide(bb AS __BOUNDING_BOX)
+    _PUTIMAGE (0, 0), bb.clean_canvas, bb.canvas
     CALL BBOX_set_visibility(bb, FALSE)
 END SUB
 
@@ -288,6 +332,19 @@ SUB BBOX_resize_bot(bb AS __BOUNDING_BOX, amount%)
     ' do resize
     CALL BBOX_render(bb)
 END SUB
+
+
+''
+' Checks to see if the mouse pointer is inside or on the bounding box
+' @param __BOUNDING_BOX bb to check
+' @param INTEGER x point x position
+' @param INTEGER y point y position
+' @return INTEGER TRUE if inside or on, FALSE otherwise
+'
+FUNCTION BBOX_point_over%(bb AS __BOUNDING_BOX, x%, y%)
+    BBOX_point_over% = (x% >= bb.pos.x AND x% <= bb.pos.x + bb.w) _
+                   AND (y% >= bb.pos.y AND y% <= bb.pos.y + bb.h)
+END FUNCTION
 
 
 ''
