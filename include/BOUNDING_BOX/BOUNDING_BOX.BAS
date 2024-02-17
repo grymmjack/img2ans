@@ -61,6 +61,9 @@ DO
             CLS
             PRINT BBOX_dump(BBOX, "test")
             BBOX_update_canvas BBOX, CANVAS
+        CASE "p"
+            CONSOLE.log "set position"
+            BBOX_set_pos BBOX, 100, 100
     END SELECT
     IF k$ <> "" OR MOUSE.has_events THEN 
         draw_output
@@ -76,13 +79,19 @@ SYSTEM
 ' Draw the output :D
 '
 SUB draw_output
+    DIM res AS INTEGER
     IF BBOX_point_over(BBOX, MOUSE.new_state.pos.x, MOUSE.new_state.pos.y) THEN
-        BBOX_set_style_state BBOX, "over"
-        IF MOUSE.status.b1_down THEN
-            BBOX_select BBOX
+        IF MOUSE.status.b1_clicked THEN
+            IF BBOX.status.selected THEN
+                BBOX_deselect BBOX
+            ELSE
+                BBOX_select BBOX
+            END IF
+        ELSE
+            res = BBOX_set_style(BBOX, "over")
         END IF
     ELSE
-        BBOX_set_style_state BBOX, "idle"
+        res = BBOX_set_style(BBOX, "idle")
     END IF
     BBOX_render BBOX
     _DISPLAY

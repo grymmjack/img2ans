@@ -35,11 +35,12 @@ $LET __STYLE_INC = 1
 $END IF
 
 TYPE __STYLE_STATES
-    idle     AS __STYLE
-    over     AS __STYLE
-    selected AS __STYLE
-    resizing AS __STYLE
-    moving   AS __STYLE
+    idle       AS __STYLE
+    over       AS __STYLE
+    selected   AS __STYLE
+    deselected AS __STYLE
+    resizing   AS __STYLE
+    moving     AS __STYLE
 END TYPE
 
 TYPE __BOX_STATUS
@@ -93,20 +94,23 @@ BBOX_INIT.styles.moving.fg               = _RGB32(255, 255, 0)
 BBOX_INIT.styles.idle.border.fg          = _RGB32(255, 255, 0)
 BBOX_INIT.styles.over.border.fg          = _RGB32(0, 255, 255)
 BBOX_INIT.styles.selected.border.fg      = _RGB32(255, 0, 0)
+BBOX_INIT.styles.deselected.border.fg    = _RGB32(255, 255, 0)
 BBOX_INIT.styles.resizing.border.fg      = _RGB32(255, 255, 0)
 BBOX_INIT.styles.moving.border.fg        = _RGB32(255, 255, 0)
 'widths
 BBOX_INIT.styles.idle.border.w           = 3
 BBOX_INIT.styles.over.border.w           = 3
 BBOX_INIT.styles.selected.border.w       = 3
+BBOX_INIT.styles.deselected.border.w     = 3
 BBOX_INIT.styles.resizing.border.w       = 3
 BBOX_INIT.styles.moving.border.w         = 3
 'patterns
-BBOX_INIT.styles.idle.border.pattern     = &B0000111100001111
-BBOX_INIT.styles.over.border.pattern     = &B0000111100001111
-BBOX_INIT.styles.selected.border.pattern = &B1100110011001100
-BBOX_INIT.styles.resizing.border.pattern = &B1111000011110000
-BBOX_INIT.styles.moving.border.pattern   = &B0101010101010101
+BBOX_INIT.styles.idle.border.pattern       = &B0000111100001111
+BBOX_INIT.styles.over.border.pattern       = &B0000111100001111
+BBOX_INIT.styles.selected.border.pattern   = &B1100110011001100
+BBOX_INIT.styles.deselected.border.pattern = &B0000111100001111
+BBOX_INIT.styles.resizing.border.pattern   = &B1111000011110000
+BBOX_INIT.styles.moving.border.pattern     = &B0101010101010101
 'style
 BBOX_INIT.style$ = "idle"
 'position

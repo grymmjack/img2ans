@@ -57,23 +57,20 @@ END SUB
 '
 SUB BBOX_render(bb AS __BOUNDING_BOX)
     bb.status.ready = FALSE
-    IF bb.status.visible THEN
+    IF NOT bb.status.visible THEN
+        _PUTIMAGE (0, 0), BBOX.clean_canvas, BBOX.canvas
+    ELSE
         SELECT CASE bb.style$
-            CASE "idle"
-                BBOX_decorate bb, _
-                    bb.styles.idle.border.fg, _
-                    bb.styles.idle.border.w, _
-                    bb.styles.idle.border.pattern 
-            CASE "over"
-                BBOX_decorate bb, _
-                    bb.styles.over.border.fg, _
-                    bb.styles.over.border.w, _
-                    bb.styles.over.border.pattern
             CASE "selected"
                 BBOX_decorate bb, _
                     bb.styles.selected.border.fg, _
                     bb.styles.selected.border.w, _
-                    bb.styles.selected.border.pattern 
+                    bb.styles.selected.border.pattern
+            CASE "deselected"
+                BBOX_decorate bb, _
+                    bb.styles.deselected.border.fg, _
+                    bb.styles.deselected.border.w, _
+                    bb.styles.deselected.border.pattern
             CASE "resizing"
                 BBOX_decorate bb, _
                     bb.styles.resizing.border.fg, _
@@ -84,9 +81,17 @@ SUB BBOX_render(bb AS __BOUNDING_BOX)
                     bb.styles.moving.border.fg, _
                     bb.styles.moving.border.w, _
                     bb.styles.moving.border.pattern 
+            CASE "over"
+                BBOX_decorate bb, _
+                    bb.styles.over.border.fg, _
+                    bb.styles.over.border.w, _
+                    bb.styles.over.border.pattern
+            CASE "idle"
+                BBOX_decorate bb, _
+                    bb.styles.idle.border.fg, _
+                    bb.styles.idle.border.w, _
+                    bb.styles.idle.border.pattern 
         END SELECT
-    ELSE
-        _PUTIMAGE (0, 0), BBOX.clean_canvas, BBOX.canvas
     END IF
     bb.status.ready = TRUE
 END SUB
@@ -116,25 +121,56 @@ END SUB
 
 
 ''
+' Attempt to set the style of bounding box to new style
+' @param __BOUNDING_BOX bb bounding box to target
+' @param STRING new_style ("idle", "over", "selected", "resizing", "moving")
+' @return INTEGER TRUE if new_state changed, FALSE If not
+' 
+FUNCTION BBOX_set_style%(bb AS __BOUNDING_BOX, new_style$)
+    IF BBOX_state_can_become(bb, new_style$) THEN
+        BBOX_set_style_state bb, new_style$
+        BBOX_set_style% = TRUE
+    ELSE
+        BBOX_set_style% = FALSE
+    END IF
+END FUNCTION
+
+
+''
 ' Set the bounding boxes style state
 ' @param __BOUNDING_BOX bb bounding box to target
 ' @param STRING style_state ("idle", "over", "selected", "resizing", "moving")
 '
 SUB BBOX_set_style_state(bb AS __BOUNDING_BOX, style_state$)
-    SELECT CASE style_state$
-        CASE "idle"
-            bb.style$ = style_state$
-        CASE "over"
-            bb.style$ = style_state$
-        CASE "selected"
-            bb.style$ = style_state$
-        CASE "resizing"
-            bb.style$ = style_state$
-        CASE "moving"
-            bb.style$ = style_state$
-    END SELECT
-    CALL BBOX_render(bb)
+    IF INSTR("idle, over, selected, deselected, resizing, moving", style_state$) <> 0 THEN
+        bb.style$ = style_state$
+        CALL BBOX_render(bb)
+    END IF
 END SUB
+
+
+''
+' Checks if the state can transition to another state
+' @param __BOUNDING_BOX bb bounding box to check
+' @param STRING new_state the state to transition to
+' @return INTEGER TRUE if can transition, FALSE otherwise
+'
+FUNCTION BBOX_state_can_become%(bb AS __BOUNDING_BOX, new_state$)
+    SELECT CASE bb.style$
+        CASE "selected"
+            BBOX_state_can_become% = INSTR("deselected, resizing, moving", new_state$)
+        CASE "deselected"
+            BBOX_state_can_become% = INSTR("idle, selected, resizing, moving", new_state$)
+        CASE "resizing"
+            BBOX_state_can_become% = INSTR("selected, moving", new_state$)
+        CASE "moving"
+            BBOX_state_can_become% = INSTR("selected, resizing", new_state$)
+        CASE "over"
+            BBOX_state_can_become% = INSTR("deselected, idle, selected", new_state$)
+        CASE "idle"
+            BBOX_state_can_become% = INSTR("deselected, selected, over", new_state$)
+    END SELECT
+END FUNCTION
 
 
 ''
@@ -145,9 +181,6 @@ END SUB
 '
 SUB BBOX_set_resizing(bb AS __BOUNDING_BOX, state%, edge$)
     bb.status.resizing = state%
-    IF state% = TRUE THEN
-        CALL BBOX_set_style_state(bb, "resizing")
-    END IF
     SELECT CASE edge$
         CASE "top": 
             bb.status.resizing_top = state%
@@ -170,13 +203,10 @@ END SUB
 '
 SUB BBOX_set_moving(bb AS __BOUNDING_BOX, state%, edge$)
     bb.status.moving = state%
-    IF state% = TRUE THEN
-        CALL BBOX_set_style_state(bb, "moving")
-    END IF
     SELECT CASE edge$
-        CASE "top": 
+        CASE "up": 
             bb.status.moving_up = state%
-        CASE "bot":
+        CASE "down":
             bb.status.moving_down = state%
         CASE "left":
             bb.status.moving_left = state%
@@ -191,9 +221,8 @@ END SUB
 ' Select the bounding box
 ' @param __BOUNDING_BOX bb bounding box to target
 '
-SUB BBOX_select(bb AS __BOUNDING_BOX)
-    bb.status.selected = TRUE
-    CALL BBOX_set_style_state(bb, "selected")
+SUB BBOX_select(bb AS __BOUNDING_BOX)    
+    IF BBOX_set_style(bb, "selected") THEN bb.status.selected = TRUE
     CALL BBOX_render(bb)
 END SUB
 
@@ -203,8 +232,7 @@ END SUB
 ' @param __BOUNDING_BOX bb bounding box to target
 '
 SUB BBOX_deselect(bb AS __BOUNDING_BOX)
-    bb.status.selected = FALSE
-    CALL BBOX_set_style_state(bb, "idle")
+    IF BBOX_set_style(bb, "deselected") THEN bb.status.selected = FALSE
     CALL BBOX_render(bb)
 END SUB
 
@@ -279,15 +307,72 @@ END SUB
 
 
 ''
+' Move the bounding box from the left edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to Move by (positive number for grow, neg for shrink)
+'
+SUB BBOX_move_left(bb AS __BOUNDING_BOX, amount%)
+    IF BBOX_set_style(bb, "moving") THEN
+        CALL BBOX_set_moving(bb, TRUE, "left")
+        ' do Move
+        CALL BBOX_render(bb)
+    END IF
+END SUB
+
+
+''
+' Move the bounding box from the right edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to Move by (positive number for grow, neg for shrink)
+'
+SUB BBOX_move_right(bb AS __BOUNDING_BOX, amount%)
+    IF BBOX_set_style(bb, "moving") THEN
+        CALL BBOX_set_moving(bb, TRUE, "right")
+        ' do Move
+        CALL BBOX_render(bb)
+    END IF
+END SUB
+
+
+''
+' Move the bounding box from the top edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to Move by (positive number for grow, neg for shrink)
+'
+SUB BBOX_move_up(bb AS __BOUNDING_BOX, amount%)
+    IF BBOX_set_style(bb, "moving") THEN
+        CALL BBOX_set_moving(bb, TRUE, "up")
+        ' do Move
+        CALL BBOX_render(bb)
+    END IF
+END SUB
+
+
+''
+' Move the bounding box from the bottom edge
+' @param __BOUNDING_BOX bb bounding box to target
+' @param INTEGER amount to Move by (positive number for grow, neg for shrink)
+'
+SUB BBOX_move_down(bb AS __BOUNDING_BOX, amount%)
+    IF BBOX_set_style(bb, "moving") THEN
+        CALL BBOX_set_moving(bb, TRUE, "down")
+        ' do Move
+        CALL BBOX_render(bb)
+    END IF
+END SUB
+
+
+''
 ' Resize the bounding box from the left edge
 ' @param __BOUNDING_BOX bb bounding box to target
 ' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
 '
 SUB BBOX_resize_left(bb AS __BOUNDING_BOX, amount%)
-    CALL BBOX_set_style_state(bb, "resizing")
-    CALL BBOX_set_resizing(bb, TRUE, "left")
-    ' do resize
-    CALL BBOX_render(bb)
+    IF BBOX_set_style(bb, "resizing") THEN
+        CALL BBOX_set_resizing(bb, TRUE, "left")
+        ' do resize
+        CALL BBOX_render(bb)
+    END IF
 END SUB
 
 
@@ -297,10 +382,11 @@ END SUB
 ' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
 '
 SUB BBOX_resize_right(bb AS __BOUNDING_BOX, amount%)
-    CALL BBOX_set_style_state(bb, "resizing")
-    CALL BBOX_set_resizing(bb, TRUE, "right")
-    ' do resize
-    CALL BBOX_render(bb)
+    IF BBOX_set_style(bb, "resizing") THEN
+        CALL BBOX_set_resizing(bb, TRUE, "right")
+        ' do resize
+        CALL BBOX_render(bb)
+    END IF
 END SUB
 
 
@@ -310,10 +396,11 @@ END SUB
 ' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
 '
 SUB BBOX_resize_top(bb AS __BOUNDING_BOX, amount%)
-    CALL BBOX_set_style_state(bb, "resizing")
-    CALL BBOX_set_resizing(bb, TRUE, "top")
-    ' do resize
-    CALL BBOX_render(bb)
+    IF BBOX_set_style(bb, "resizing") THEN
+        CALL BBOX_set_resizing(bb, TRUE, "top")
+        ' do resize
+        CALL BBOX_render(bb)
+    END IF
 END SUB
 
 
@@ -323,10 +410,11 @@ END SUB
 ' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
 '
 SUB BBOX_resize_bot(bb AS __BOUNDING_BOX, amount%)
-    CALL BBOX_set_style_state(bb, "resizing")
-    CALL BBOX_set_resizing(bb, TRUE, "bot")
-    ' do resize
-    CALL BBOX_render(bb)
+    IF BBOX_set_style(bb, "resizing") THEN
+        CALL BBOX_set_resizing(bb, TRUE, "bot")
+        ' do resize
+        CALL BBOX_render(bb)
+    END IF
 END SUB
 
 
