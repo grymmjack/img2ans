@@ -44,7 +44,8 @@ SUB BBOX_update_canvas(bb AS __BOUNDING_BOX, dest_image&)
     old_dest = _DEST
     bb.canvas = dest_image&
     _DEST bb.canvas
-    IF bb.clean_canvas > 0 THEN _FREEIMAGE bb.clean_canvas
+    IF bb.clean_canvas < -1 THEN _FREEIMAGE bb.clean_canvas
+    bb.clean_canvas = 0
     bb.clean_canvas = _NEWIMAGE(_WIDTH(dest_image&), _HEIGHT(dest_image&), 32)  
     _DEST bb.clean_canvas
     CLS
