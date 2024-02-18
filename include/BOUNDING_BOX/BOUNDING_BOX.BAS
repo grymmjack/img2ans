@@ -93,14 +93,6 @@ SUB draw_output
                 edge$ = BBOX_point_on_edge(BBOX, MOUSE.new_state.pos.x, MOUSE.new_state.pos.y)
                 IF edge$ <> "" THEN ' update mouse cursor
                     SELECT CASE edge$
-                        CASE "left"
-                            _MOUSESHOW "HORIZONTAL"
-                        CASE "right"
-                            _MOUSESHOW "HORIZONTAL"
-                        CASE "top"
-                            _MOUSESHOW "VERTICAL"
-                        CASE "bot"
-                            _MOUSESHOW "VERTICAL"
                         CASE "top left"
                             _MOUSESHOW "TOPLEFT_BOTTOMRIGHT"
                         CASE "bot right"
@@ -109,6 +101,14 @@ SUB draw_output
                             _MOUSESHOW "TOPRIGHT_BOTTOMLEFT"
                         CASE "bot left"
                             _MOUSESHOW "TOPRIGHT_BOTTOMLEFT"
+                        CASE "left"
+                            _MOUSESHOW "HORIZONTAL"
+                        CASE "right"
+                            _MOUSESHOW "HORIZONTAL"
+                        CASE "top"
+                            _MOUSESHOW "VERTICAL"
+                        CASE "bot"
+                            _MOUSESHOW "VERTICAL"
                     END SELECT
                 ELSE
                     _MOUSESHOW "DEFAULT"

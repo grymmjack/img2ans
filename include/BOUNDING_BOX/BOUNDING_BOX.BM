@@ -492,10 +492,10 @@ FUNCTION BBOX_point_on_edge$(bb AS __BOUNDING_BOX, x%, y%)
         IF t$ = "top" AND r$ = "right" THEN
             res$ = "top right"
         END IF
-        IF t$ = "bot" AND l$ = "left" THEN
+        IF b$ = "bot" AND l$ = "left" THEN
             res$ = "bot left"
         END IF
-        IF t$ = "bot" AND r$ = "right" THEN
+        IF b$ = "bot" AND r$ = "right" THEN
             res$ = "bot right"
         END IF
     END IF
