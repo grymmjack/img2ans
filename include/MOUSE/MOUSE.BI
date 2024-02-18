@@ -1,3 +1,15 @@
+''
+' QB64_GJ_LIB
+' GRYMMJACK'S MOUSE OBJECT
+'
+' A mouse object to simplify and reuse mouse stuff.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+'
+' @depends QB64_GJ_LIB/_GJ_LIB_COMMON.BI
+' @depends QB64_GJ_LIB/_GJ_LIB_COMMON.BM
+' @depends ./MOUSE.BM
+'
 $INCLUDEONCE
 
 $IF __POINT_INC = UNDEFINED THEN
@@ -14,6 +26,7 @@ TYPE __MOUSE_STATE
     b2    AS INTEGER
     b3    AS INTEGER
     wheel AS INTEGER
+    mov   AS __POINT
 END TYPE
 
 TYPE __MOUSE_STATUS

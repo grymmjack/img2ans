@@ -107,17 +107,21 @@ END SUB
 ' @param LONG pattern to use for border line
 '
 SUB BBOX_decorate(bb AS __BOUNDING_BOX, fg~&, w%, pattern&)
-    DIM AS INTEGER i
+    DIM AS INTEGER i, x1, x2, y1, y2
     DIM AS LONG old_dest : old_dest = _DEST
     _DEST bb.canvas
+    x1 = bb.pos.x
+    x2 = bb.pos.x + bb.w
+    y1 = bb.pos.y
+    y2 = bb.pos.y + bb.h
     'clear
-    FOR i% = 0 TO w%
-        LINE (bb.pos.x+i%, bb.pos.y+i%)-(bb.pos.x+bb.w-i%-1, bb.pos.y+bb.h-i%-1), _RGB32(0, 0, 0), B
-    NEXT i%
+    FOR i = 0 TO w%
+        LINE (x1+i, y1+i)-(x2-i-1, y2-i-1), _RGB32(0, 0, 0), B
+    NEXT i
     'decorate
-    FOR i% = 0 TO w%
-        LINE (bb.pos.x+i%, bb.pos.y+i%)-(bb.pos.x+bb.w-i%-1, bb.pos.y+bb.h-i%-1), fg~&, B, pattern&
-    NEXT i%
+    FOR i = 0 TO w%
+        LINE (x1+i, y1+i)-(x2-i-1, y2-i-1), fg~&, B, pattern&
+    NEXT i
     _DEST old_dest
 END SUB
 
@@ -144,7 +148,8 @@ END FUNCTION
 ' @param STRING style_state ("idle", "over", "selected", "resizing", "moving")
 '
 SUB BBOX_set_style_state(bb AS __BOUNDING_BOX, style_state$)
-    IF INSTR("idle, over, selected, deselected, resizing, moving", style_state$) <> 0 THEN
+    IF INSTR("idle, over, selected, deselected, resizing, moving", _
+             style_state$) <> 0 THEN
         bb.style$ = style_state$
         CALL BBOX_render(bb)
     END IF
@@ -160,17 +165,23 @@ END SUB
 FUNCTION BBOX_state_can_become%(bb AS __BOUNDING_BOX, new_state$)
     SELECT CASE bb.style$
         CASE "selected"
-            BBOX_state_can_become% = INSTR("deselected, resizing, moving", new_state$)
+            BBOX_state_can_become% = INSTR("deselected, resizing, moving", _
+                                           new_state$)
         CASE "deselected"
-            BBOX_state_can_become% = INSTR("idle, selected, resizing, moving", new_state$)
+            BBOX_state_can_become% = INSTR("idle, selected, resizing, moving", _
+                                           new_state$)
         CASE "resizing"
-            BBOX_state_can_become% = INSTR("selected, moving", new_state$)
+            BBOX_state_can_become% = INSTR("selected, moving", _
+                                           new_state$)
         CASE "moving"
-            BBOX_state_can_become% = INSTR("selected, resizing", new_state$)
+            BBOX_state_can_become% = INSTR("selected, resizing", _
+                                            new_state$)
         CASE "over"
-            BBOX_state_can_become% = INSTR("deselected, idle, selected", new_state$)
+            BBOX_state_can_become% = INSTR("deselected, idle, selected", _
+                                            new_state$)
         CASE "idle"
-            BBOX_state_can_become% = INSTR("deselected, selected, over", new_state$)
+            BBOX_state_can_become% = INSTR("deselected, selected, over", _
+                                            new_state$)
     END SELECT
 END FUNCTION
 
@@ -224,8 +235,10 @@ END SUB
 ' @param __BOUNDING_BOX bb bounding box to target
 '
 SUB BBOX_select(bb AS __BOUNDING_BOX)
-    IF BBOX_set_style(bb, "selected") THEN bb.status.selected = TRUE
-    CALL BBOX_render(bb)
+    IF BBOX_set_style(bb, "selected") THEN 
+        bb.status.selected = TRUE
+        CALL BBOX_render(bb)
+    END IF
 END SUB
 
 
@@ -234,8 +247,10 @@ END SUB
 ' @param __BOUNDING_BOX bb bounding box to target
 '
 SUB BBOX_deselect(bb AS __BOUNDING_BOX)
-    IF BBOX_set_style(bb, "deselected") THEN bb.status.selected = FALSE
-    CALL BBOX_render(bb)
+    IF BBOX_set_style(bb, "deselected") THEN 
+        bb.status.selected = FALSE
+        CALL BBOX_render(bb)
+    END IF
 END SUB
 
 
@@ -373,7 +388,7 @@ END SUB
 SUB BBOX_resize_left(bb AS __BOUNDING_BOX, amount%)
     IF BBOX_set_style(bb, "resizing") THEN
         CALL BBOX_set_resizing(bb, TRUE, "left")
-        ' do resize
+        BBOX_set_size bb, bb.w + amount%, bb.h
         CALL BBOX_render(bb)
     END IF
 END SUB
@@ -385,9 +400,11 @@ END SUB
 ' @param INTEGER amount to resize by (positive number for grow, neg for shrink)
 '
 SUB BBOX_resize_right(bb AS __BOUNDING_BOX, amount%)
+    CONSOLE.log "resize_right " + BBOX_n$(amount%, FALSE)
     IF BBOX_set_style(bb, "resizing") THEN
         CALL BBOX_set_resizing(bb, TRUE, "right")
-        ' do resize
+        BBOX_set_size bb, bb.w + amount%, bb.h
+        _PUTIMAGE (0, 0), bb.clean_canvas, bb.canvas
         CALL BBOX_render(bb)
     END IF
 END SUB
@@ -401,7 +418,7 @@ END SUB
 SUB BBOX_resize_top(bb AS __BOUNDING_BOX, amount%)
     IF BBOX_set_style(bb, "resizing") THEN
         CALL BBOX_set_resizing(bb, TRUE, "top")
-        ' do resize
+        BBOX_set_size bb, bb.w, bb.h + amount%
         CALL BBOX_render(bb)
     END IF
 END SUB
@@ -415,7 +432,7 @@ END SUB
 SUB BBOX_resize_bot(bb AS __BOUNDING_BOX, amount%)
     IF BBOX_set_style(bb, "resizing") THEN
         CALL BBOX_set_resizing(bb, TRUE, "bot")
-        ' do resize
+        BBOX_set_size bb, bb.w, bb.h + amount%
         CALL BBOX_render(bb)
     END IF
 END SUB
@@ -514,27 +531,27 @@ FUNCTION BBOX_dump$(bb AS __BOUNDING_BOX, label$)
     DIM AS STRING r, t1, t2
     t1$ = STRING$(4, " ") : t2$ = t1$ + t1$
     r$ = GJ_LIB_NL$ + "BBOX " + label$ + ": {" + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".w: " + BBOX_n$(bb.w, TRUE)
-    r$ = r$ + t1$ + ".h: " + BBOX_n$(bb.h, TRUE)
-    r$ = r$ + t1$ + ".pos.x: " + BBOX_n$(bb.pos.x, TRUE)
-    r$ = r$ + t1$ + ".pos.y: " + BBOX_n$(bb.pos.y, TRUE)
-    r$ = r$ + t1$ + ".style: " + bb.style$ + GJ_LIB_NL$
-    r$ = r$ + t1$ + "status: {" + GJ_LIB_NL$
-    r$ = r$ + t2$ + ".ready: " + BBOX_n$(bb.status.ready, TRUE)
-    r$ = r$ + t2$ + ".visible: " + BBOX_n$(bb.status.visible, TRUE)
-    r$ = r$ + t2$ + ".selected: " + BBOX_n$(bb.status.selected, TRUE)
-    r$ = r$ + t2$ + ".resizing: " + BBOX_n$(bb.status.resizing, TRUE)
-    r$ = r$ + t2$ + ".resizing_left: " + BBOX_n$(bb.status.resizing_left, TRUE)
-    r$ = r$ + t2$ + ".resizing_right: " + BBOX_n$(bb.status.resizing_right, TRUE)
-    r$ = r$ + t2$ + ".resizing_top: " + BBOX_n$(bb.status.resizing_top, TRUE)
-    r$ = r$ + t2$ + ".resizing_bot: " + BBOX_n$(bb.status.resizing_bot, TRUE)
-    r$ = r$ + t2$ + ".moving: " + BBOX_n$(bb.status.moving, TRUE)
-    r$ = r$ + t2$ + ".moving_left: " + BBOX_n$(bb.status.moving_left, TRUE)
-    r$ = r$ + t2$ + ".moving_right: " + BBOX_n$(bb.status.moving_right, TRUE)
-    r$ = r$ + t2$ + ".moving_top: " + BBOX_n$(bb.status.moving_up, TRUE)
-    r$ = r$ + t2$ + ".moving_bot: " + BBOX_n$(bb.status.moving_down, TRUE)
-    r$ = r$ + t1$ + "}" + GJ_LIB_NL$
-    r$ = r$ + "}"
+    r$ = r$+t1$+ ".w: " + BBOX_n$(bb.w, TRUE)
+    r$ = r$+t1$+ ".h: " + BBOX_n$(bb.h, TRUE)
+    r$ = r$+t1$+ ".pos.x: " + BBOX_n$(bb.pos.x, TRUE)
+    r$ = r$+t1$+ ".pos.y: " + BBOX_n$(bb.pos.y, TRUE)
+    r$ = r$+t1$+ ".style: " + bb.style$ + GJ_LIB_NL$
+    r$ = r$+t1$+ "status: {" + GJ_LIB_NL$
+    r$ = r$+t2$+ ".ready: " + BBOX_n$(bb.status.ready, TRUE)
+    r$ = r$+t2$+ ".visible: " + BBOX_n$(bb.status.visible, TRUE)
+    r$ = r$+t2$+ ".selected: " + BBOX_n$(bb.status.selected, TRUE)
+    r$ = r$+t2$+ ".resizing: " + BBOX_n$(bb.status.resizing, TRUE)
+    r$ = r$+t2$+ ".resizing_left: " + BBOX_n$(bb.status.resizing_left, TRUE)
+    r$ = r$+t2$+ ".resizing_right: " + BBOX_n$(bb.status.resizing_right, TRUE)
+    r$ = r$+t2$+ ".resizing_top: " + BBOX_n$(bb.status.resizing_top, TRUE)
+    r$ = r$+t2$+ ".resizing_bot: " + BBOX_n$(bb.status.resizing_bot, TRUE)
+    r$ = r$+t2$+ ".moving: " + BBOX_n$(bb.status.moving, TRUE)
+    r$ = r$+t2$+ ".moving_left: " + BBOX_n$(bb.status.moving_left, TRUE)
+    r$ = r$+t2$+ ".moving_right: " + BBOX_n$(bb.status.moving_right, TRUE)
+    r$ = r$+t2$+ ".moving_top: " + BBOX_n$(bb.status.moving_up, TRUE)
+    r$ = r$+t2$+ ".moving_bot: " + BBOX_n$(bb.status.moving_down, TRUE)
+    r$ = r$+t1$+ "}" + GJ_LIB_NL$
+    r$ = r$+ "}"
     BBOX_dump$ = r$
 END FUNCTION
 
@@ -548,6 +565,8 @@ END FUNCTION
 FUNCTION BBOX_n$(value, new_line)
     DIM r AS STRING
     r$ = _TRIM$(STR$(value))
+    IF r$ = "0" THEN r$ = "FALSE (0)"
+    IF r$ = "-1" THEN r$ = "TRUE (-1)"
     IF new_line THEN r$ = r$ + GJ_LIB_NL$
     BBOX_n$ = r$
 END FUNCTION
@@ -578,13 +597,13 @@ FUNCTION BBOX_dump_style$(bb AS __BOUNDING_BOX, label$, style$)
     END SELECT
     t1$ = STRING$(4, " "): t2$ = t1$ + t1$
     r$ = GJ_LIB_NL$ + "BBOX.style." + style$ + " " + label$ + ": {" + GJ_LIB_NL$
-    r$ = r$ + t1$ + ".fg: " + BBOX_n$(s.fg, TRUE)
-    r$ = r$ + t1$ + ".bg: " + BBOX_n$(s.bg, TRUE)
-    r$ = r$ + t1$ + ".border: { "+ GJ_LIB_NL$
-    r$ = r$ + t2$ + ".fg: " + BBOX_n$(s.border.fg, TRUE)
-    r$ = r$ + t2$ + ".w: " + BBOX_n$(s.border.w, TRUE)
-    r$ = r$ + t2$ + ".pattern: " + BBOX_n$(s.border.pattern, TRUE)
-    r$ = r$ + t1$ + "}"+ GJ_LIB_NL$
+    r$ = r$+t1$ + ".fg: " + BBOX_n$(s.fg, TRUE)
+    r$ = r$+t1$ + ".bg: " + BBOX_n$(s.bg, TRUE)
+    r$ = r$+t1$ + ".border: { "+ GJ_LIB_NL$
+    r$ = r$+t2$ + ".fg: " + BBOX_n$(s.border.fg, TRUE)
+    r$ = r$+t2$ + ".w: " + BBOX_n$(s.border.w, TRUE)
+    r$ = r$+t2$ + ".pattern: " + BBOX_n$(s.border.pattern, TRUE)
+    r$ = r$+t1$ + "}"+ GJ_LIB_NL$
     r$ = r$ + "}"
     BBOX_dump_style$ = r$
 END FUNCTION

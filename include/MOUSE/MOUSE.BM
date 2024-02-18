@@ -1,4 +1,18 @@
+''
+' QB64_GJ_LIB
+' GRYMMJACK'S MOUSE OBJECT
+'
+' A mouse object to simplify and reuse mouse stuff.
+'
+' @author Rick Christy <grymmjack@gmail.com>
+'
+' @depends QB64_GJ_LIB/_GJ_LIB_COMMON.BI
+' @depends QB64_GJ_LIB/_GJ_LIB_COMMON.BM
+' @depends ./MOUSE.BI
+'
 $INCLUDEONCE
+'$INCLUDE:'../QB64_GJ_LIB/_GJ_LIB_COMMON.BI'
+'$INCLUDE:'./MOUSE.BI'
 
 ''
 ' Initialize the mouse
@@ -14,7 +28,10 @@ END SUB
 ' @return INTEGER -1 if dragged 0 if not
 '
 FUNCTION MOUSE_dragged%
-    MOUSE_dragged = MOUSE.status.b1_down AND (MOUSE.status.drag_distance.x <> 0 OR MOUSE.status.drag_distance.y <> 0)
+    DIM s AS __MOUSE_STATUS
+    s = MOUSE.status
+    MOUSE_dragged = s.b1_down _
+        AND (s.drag_distance.x <> 0 OR s.drag_distance.y <> 0)
 END FUNCTION
 
 
@@ -33,6 +50,8 @@ SUB MOUSE_update
         MOUSE.new_state.b2    = _MOUSEBUTTON(2)
         MOUSE.new_state.b3    = _MOUSEBUTTON(3)
         MOUSE.new_state.wheel = _MOUSEWHEEL
+        MOUSE.new_state.mov.x = _MOUSEMOVEMENTX
+        MOUSE.new_state.mov.y = _MOUSEMOVEMENTY
     LOOP
 END SUB
 
@@ -69,60 +88,160 @@ END SUB
 ' Refresh mouse status
 '
 SUB MOUSE_refresh
+    DIM s AS __MOUSE_STATUS
+    s = MOUSE.status
+
     ' changes
-    MOUSE.status.x_changed      = MOUSE.old_state.pos.x <> MOUSE.new_state.pos.x
-    MOUSE.status.y_changed      = MOUSE.old_state.pos.y <> MOUSE.new_state.pos.y
-    MOUSE.status.b1_changed     = MOUSE.old_state.b1 <> MOUSE.new_state.b1
-    MOUSE.status.b2_changed     = MOUSE.old_state.b2 <> MOUSE.new_state.b2
-    MOUSE.status.b3_changed     = MOUSE.old_state.b3 <> MOUSE.new_state.b3
-    MOUSE.status.wheel_changed  = MOUSE.old_state.wheel <> MOUSE.new_state.wheel
+    s.x_changed      = MOUSE.old_state.pos.x <> MOUSE.new_state.pos.x
+    s.y_changed      = MOUSE.old_state.pos.y <> MOUSE.new_state.pos.y
+    s.b1_changed     = MOUSE.old_state.b1 <> MOUSE.new_state.b1
+    s.b2_changed     = MOUSE.old_state.b2 <> MOUSE.new_state.b2
+    s.b3_changed     = MOUSE.old_state.b3 <> MOUSE.new_state.b3
+    s.wheel_changed  = MOUSE.old_state.wheel <> MOUSE.new_state.wheel
 
     ' moving
-    MOUSE.status.moving         = MOUSE.status.x_changed OR MOUSE.status.y_changed
-    MOUSE.status.moving_left    = MOUSE.new_state.pos.x < MOUSE.old_state.pos.x
-    MOUSE.status.moving_right   = MOUSE.new_state.pos.x > MOUSE.old_state.pos.x
-    MOUSE.status.moving_up      = MOUSE.new_state.pos.y < MOUSE.old_state.pos.y
-    MOUSE.status.moving_down    = MOUSE.new_state.pos.y > MOUSE.old_state.pos.y
+    s.moving         = s.x_changed OR s.y_changed
+    s.moving_left    = MOUSE.new_state.pos.x < MOUSE.old_state.pos.x
+    s.moving_right   = MOUSE.new_state.pos.x > MOUSE.old_state.pos.x
+    s.moving_up      = MOUSE.new_state.pos.y < MOUSE.old_state.pos.y
+    s.moving_down    = MOUSE.new_state.pos.y > MOUSE.old_state.pos.y
 
     ' buttons
-    MOUSE.status.b1_down        = MOUSE.new_state.b1
-    MOUSE.status.b2_down        = MOUSE.new_state.b2
-    MOUSE.status.b3_down        = MOUSE.new_state.b3
-    MOUSE.status.b1_up          = NOT MOUSE.new_state.b1
-    MOUSE.status.b2_up          = NOT MOUSE.new_state.b2
-    MOUSE.status.b3_up          = NOT MOUSE.new_state.b3
-    MOUSE.status.b1_clicked     = MOUSE.old_state.b1 AND NOT MOUSE.new_state.b1
-    MOUSE.status.b2_clicked     = MOUSE.old_state.b2 AND NOT MOUSE.new_state.b2
-    MOUSE.status.b3_clicked     = MOUSE.old_state.b3 AND NOT MOUSE.new_state.b3
+    s.b1_down        = MOUSE.new_state.b1
+    s.b2_down        = MOUSE.new_state.b2
+    s.b3_down        = MOUSE.new_state.b3
+    s.b1_up          = NOT MOUSE.new_state.b1
+    s.b2_up          = NOT MOUSE.new_state.b2
+    s.b3_up          = NOT MOUSE.new_state.b3
+    s.b1_clicked     = MOUSE.old_state.b1 AND NOT MOUSE.new_state.b1
+    s.b2_clicked     = MOUSE.old_state.b2 AND NOT MOUSE.new_state.b2
+    s.b3_clicked     = MOUSE.old_state.b3 AND NOT MOUSE.new_state.b3
 
     ' wheel
-    MOUSE.status.wheeling_up    = MOUSE.new_state.wheel < 0
-    MOUSE.status.wheeling_down  = MOUSE.new_state.wheel > 0
-    MOUSE.status.wheeling_stop  = MOUSE.new_state.wheel = 0
+    s.wheeling_up    = MOUSE.new_state.wheel < 0
+    s.wheeling_down  = MOUSE.new_state.wheel > 0
+    s.wheeling_stop  = MOUSE.new_state.wheel = 0
 
     ' dragging and dropping
-    MOUSE.status.dragging_left  = MOUSE.status.b1_down AND MOUSE.status.moving_left
-    MOUSE.status.dragging_right = MOUSE.status.b1_down AND MOUSE.status.moving_right
-    MOUSE.status.dragging_up    = MOUSE.status.b1_down AND MOUSE.status.moving_up
-    MOUSE.status.dragging_down  = MOUSE.status.b1_down AND MOUSE.status.moving_down
+    s.dragging_left  = s.b1_down AND s.moving_left
+    s.dragging_right = s.b1_down AND s.moving_right
+    s.dragging_up    = s.b1_down AND s.moving_up
+    s.dragging_down  = s.b1_down AND s.moving_down
 
-    IF MOUSE.status.b1_down AND NOT MOUSE.status.started_drag THEN
-        MOUSE.status.started_drag    = TRUE
-        MOUSE.status.stopped_drag    = FALSE
-        MOUSE.drag_start             = MOUSE.new_state.pos
-
-    ELSEIF MOUSE.status.b1_clicked AND MOUSE.status.started_drag THEN
-        MOUSE.status.stopped_drag    = TRUE
-        MOUSE.status.started_drag    = FALSE
-        MOUSE.drag_stop              = MOUSE.new_state.pos
-        MOUSE.status.drag_distance.x = MOUSE.drag_stop.x - MOUSE.drag_start.x
-        MOUSE.status.drag_distance.y = MOUSE.drag_stop.y - MOUSE.drag_start.y
+    IF s.b1_down AND NOT s.started_drag THEN
+        s.started_drag    = TRUE
+        s.stopped_drag    = FALSE
+        MOUSE.drag_start  = MOUSE.new_state.pos
+    ELSEIF s.b1_clicked AND s.started_drag THEN
+        s.stopped_drag    = TRUE
+        s.started_drag    = FALSE
+        MOUSE.drag_stop   = MOUSE.new_state.pos
+        s.drag_distance.x = MOUSE.drag_stop.x - MOUSE.drag_start.x
+        s.drag_distance.y = MOUSE.drag_stop.y - MOUSE.drag_start.y
     END IF
 
-    MOUSE.has_events = MOUSE.status.x_changed _
-                    OR MOUSE.status.y_changed _
-                    OR MOUSE.status.b1_changed _
-                    OR MOUSE.status.b2_changed _
-                    OR MOUSE.status.b3_changed _
-                    OR MOUSE.status.wheel_changed
+    MOUSE.has_events = s.x_changed _
+                    OR s.y_changed _
+                    OR s.b1_changed _
+                    OR s.b2_changed _
+                    OR s.b3_changed _
+                    OR s.wheel_changed
+    MOUSE.status = s
 END SUB
+
+
+''
+' Dumps mouse object
+' @param STRING label$ to give the dump block
+' @return STRING dump block
+'
+FUNCTION MOUSE_dump$(label$)
+    DIM AS STRING r, t1, t2
+    DIM AS __MOUSE_STATE o, n
+    DIM AS __MOUSE_STATUS s
+    o = MOUSE.old_state
+    n = MOUSE.new_state
+    s = MOUSE.status
+    t1$ = STRING$(4, " ") : t2$ = t1$ + t1$
+    r$ = GJ_LIB_NL$ + "MOUSE " + label$ + ": {" + GJ_LIB_NL$
+    r$ = r$+t1$+ "has_events: " + MOUSE_n$(MOUSE.has_events, TRUE)
+    r$ = r$+t1$+ "old_state: {" + GJ_LIB_NL$
+    r$ = r$+t2$+ ".pos.x: " + MOUSE_n$(o.pos.x, TRUE)
+    r$ = r$+t2$+ ".pos.y: " + MOUSE_n$(o.pos.y, TRUE)
+    r$ = r$+t2$+ ".b1: " + MOUSE_n$(o.b1, TRUE)
+    r$ = r$+t2$+ ".b2: " + MOUSE_n$(o.b2, TRUE)
+    r$ = r$+t2$+ ".b3: " + MOUSE_n$(o.b3, TRUE)
+    r$ = r$+t2$+ ".wheel: " + MOUSE_n$(o.wheel, TRUE)
+    r$ = r$+t2$+ ".mov.x: " + MOUSE_n$(o.mov.x, TRUE)
+    r$ = r$+t2$+ ".mov.y: " + MOUSE_n$(o.mov.y, TRUE)
+    r$ = r$+t1$+ "}" + GJ_LIB_NL$
+    r$ = r$+t1$+ "new_state: {" + GJ_LIB_NL$
+    r$ = r$+t2$+ ".pos.x: " + MOUSE_n$(n.pos.x, TRUE)
+    r$ = r$+t2$+ ".pos.y: " + MOUSE_n$(n.pos.y, TRUE)
+    r$ = r$+t2$+ ".b1: " + MOUSE_n$(n.b1, TRUE)
+    r$ = r$+t2$+ ".b2: " + MOUSE_n$(n.b2, TRUE)
+    r$ = r$+t2$+ ".b3: " + MOUSE_n$(n.b3, TRUE)
+    r$ = r$+t2$+ ".wheel: " + MOUSE_n$(n.wheel, TRUE)
+    r$ = r$+t2$+ ".mov.x: " + MOUSE_n$(n.mov.x, TRUE)
+    r$ = r$+t2$+ ".mov.y: " + MOUSE_n$(n.mov.y, TRUE)
+    r$ = r$+t1$+ "}" + GJ_LIB_NL$
+    r$ = r$+t1$+ "status: {" + GJ_LIB_NL$
+    r$ = r$+t2$+ ".x_changed: " + MOUSE_n$(s.x_changed, TRUE)
+    r$ = r$+t2$+ ".y_changed: " + MOUSE_n$(s.y_changed, TRUE)
+    r$ = r$+t2$+ ".b1_changed: " + MOUSE_n$(s.b1_changed, TRUE)
+    r$ = r$+t2$+ ".b2_changed: " + MOUSE_n$(s.b2_changed, TRUE)
+    r$ = r$+t2$+ ".b3_changed: " + MOUSE_n$(s.b3_changed, TRUE)
+    r$ = r$+t2$+ ".wheel_changed: " + MOUSE_n$(s.wheel_changed, TRUE)
+    r$ = r$+t2$+ ".moving: " + MOUSE_n$(s.moving, TRUE)
+    r$ = r$+t2$+ ".moving_left: " + MOUSE_n$(s.moving_left, TRUE)
+    r$ = r$+t2$+ ".moving_right: " + MOUSE_n$(s.moving_right, TRUE)
+    r$ = r$+t2$+ ".moving_up: " + MOUSE_n$(s.moving_up, TRUE)
+    r$ = r$+t2$+ ".moving_down: " + MOUSE_n$(s.moving_down, TRUE)
+    r$ = r$+t2$+ ".b1_down: " + MOUSE_n$(s.b1_down, TRUE)
+    r$ = r$+t2$+ ".b2_down: " + MOUSE_n$(s.b2_down, TRUE)
+    r$ = r$+t2$+ ".b3_down: " + MOUSE_n$(s.b3_down, TRUE)
+    r$ = r$+t2$+ ".b1_up: " + MOUSE_n$(s.b1_up, TRUE)
+    r$ = r$+t2$+ ".b2_up: " + MOUSE_n$(s.b2_up, TRUE)
+    r$ = r$+t2$+ ".b3_up: " + MOUSE_n$(s.b3_up, TRUE)
+    r$ = r$+t2$+ ".b1_clicked: " + MOUSE_n$(s.b1_clicked, TRUE)
+    r$ = r$+t2$+ ".b2_clicked: " + MOUSE_n$(s.b2_clicked, TRUE)
+    r$ = r$+t2$+ ".b3_clicked: " + MOUSE_n$(s.b3_clicked, TRUE)
+    r$ = r$+t2$+ ".wheeling_up: " + MOUSE_n$(s.wheeling_up, TRUE)
+    r$ = r$+t2$+ ".wheeling_down: " + MOUSE_n$(s.wheeling_down, TRUE)
+    r$ = r$+t2$+ ".wheeling_stop: " + MOUSE_n$(s.wheeling_stop, TRUE)
+    r$ = r$+t2$+ ".started_drag: " + MOUSE_n$(s.started_drag, TRUE)
+    r$ = r$+t2$+ ".stopped_drag: " + MOUSE_n$(s.stopped_drag, TRUE)
+    r$ = r$+t2$+ ".dragging_left: " + MOUSE_n$(s.dragging_left, TRUE)
+    r$ = r$+t2$+ ".dragging_right: " + MOUSE_n$(s.dragging_right, TRUE)
+    r$ = r$+t2$+ ".dragging_up: " + MOUSE_n$(s.dragging_up, TRUE)
+    r$ = r$+t2$+ ".dragging_down: " + MOUSE_n$(s.dragging_down, TRUE)
+    r$ = r$+t2$+ ".drag_distance.x: " + MOUSE_n$(s.drag_distance.x, TRUE)
+    r$ = r$+t2$+ ".drag_distance.y: " + MOUSE_n$(s.drag_distance.y, TRUE)
+    r$ = r$+t1$+ "}" + GJ_LIB_NL$
+    r$ = r$+t1$+ "drag_start: {" + GJ_LIB_NL$
+    r$ = r$+t2$+ ".x: " + MOUSE_n$(MOUSE.drag_start.x, TRUE)
+    r$ = r$+t2$+ ".y: " + MOUSE_n$(MOUSE.drag_start.y, TRUE)
+    r$ = r$+t1$+ "}" + GJ_LIB_NL$
+    r$ = r$+t1$+ "drag_stop: {" + GJ_LIB_NL$
+    r$ = r$+t2$+ ".x: " + MOUSE_n$(MOUSE.drag_stop.x, TRUE)
+    r$ = r$+t2$+ ".y: " + MOUSE_n$(MOUSE.drag_stop.y, TRUE)
+    r$ = r$+t1$+ "}" + GJ_LIB_NL$
+    r$ = r$+ "}"
+    MOUSE_dump$ = r$
+END FUNCTION
+
+
+''
+' String helper for trimming numbers
+' @param INTEGER ANY non float
+' @param INTEGER new_line append?
+' @return STRING trimmed number with or without newline
+'
+FUNCTION MOUSE_n$(value, new_line)
+    DIM r AS STRING
+    r$ = _TRIM$(STR$(value))
+    IF r$ = "0" THEN r$ = "FALSE (0)"
+    IF r$ = "-1" THEN r$ = "TRUE (-1)"
+    IF new_line THEN r$ = r$ + GJ_LIB_NL$
+    MOUSE_n$ = r$
+END FUNCTION

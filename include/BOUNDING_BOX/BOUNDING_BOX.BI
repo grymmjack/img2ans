@@ -103,8 +103,8 @@ BBOX_INIT.styles.idle.border.fg          = _RGB32(255, 255, 0)
 BBOX_INIT.styles.over.border.fg          = _RGB32(0, 255, 255)
 BBOX_INIT.styles.selected.border.fg      = _RGB32(255, 0, 0)
 BBOX_INIT.styles.deselected.border.fg    = _RGB32(255, 255, 0)
-BBOX_INIT.styles.resizing.border.fg      = _RGB32(255, 255, 0)
-BBOX_INIT.styles.moving.border.fg        = _RGB32(255, 255, 0)
+BBOX_INIT.styles.resizing.border.fg      = _RGB32(0, 128, 255)
+BBOX_INIT.styles.moving.border.fg        = _RGB32(0, 0, 255)
 'widths
 BBOX_INIT.styles.idle.border.w           = 5
 BBOX_INIT.styles.over.border.w           = 5
