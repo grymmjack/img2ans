@@ -80,18 +80,51 @@ SYSTEM
 '
 SUB draw_output
     DIM res AS INTEGER
+    DIM edge AS STRING
     IF BBOX_point_over(BBOX, MOUSE.new_state.pos.x, MOUSE.new_state.pos.y) THEN
         IF MOUSE.status.b1_clicked THEN
-            IF BBOX.status.selected THEN
+            IF BBOX.status.selected THEN ' deselect if clicking on box
                 BBOX_deselect BBOX
             ELSE
-                BBOX_select BBOX
+                BBOX_select BBOX ' select if clicking on box
             END IF
         ELSE
-            res = BBOX_set_style(BBOX, "over")
+            IF BBOX.status.selected THEN
+                edge$ = BBOX_point_on_edge(BBOX, MOUSE.new_state.pos.x, MOUSE.new_state.pos.y)
+                IF edge$ <> "" THEN ' update mouse cursor
+                    SELECT CASE edge$
+                        CASE "left"
+                            _MOUSESHOW "HORIZONTAL"
+                        CASE "right"
+                            _MOUSESHOW "HORIZONTAL"
+                        CASE "top"
+                            _MOUSESHOW "VERTICAL"
+                        CASE "bot"
+                            _MOUSESHOW "VERTICAL"
+                        CASE "top left"
+                            _MOUSESHOW "TOPLEFT_BOTTOMRIGHT"
+                        CASE "bot right"
+                            _MOUSESHOW "TOPLEFT_BOTTOMRIGHT"
+                        CASE "top right"
+                            _MOUSESHOW "TOPRIGHT_BOTTOMLEFT"
+                        CASE "bot left"
+                            _MOUSESHOW "TOPRIGHT_BOTTOMLEFT"
+                    END SELECT
+                ELSE
+                    _MOUSESHOW "DEFAULT"
+                END IF
+            ELSE
+                res = BBOX_set_style(BBOX, "over")
+            END IF
         END IF
     ELSE
+        IF MOUSE.status.b1_clicked THEN ' deselect if clicking away from box
+            IF BBOX.status.selected THEN
+                BBOX_deselect BBOX
+            END IF
+        END IF
         res = BBOX_set_style(BBOX, "idle")
+        _MOUSESHOW "DEFAULT"
     END IF
     BBOX_render BBOX
     _DISPLAY

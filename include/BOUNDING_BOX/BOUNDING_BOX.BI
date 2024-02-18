@@ -57,6 +57,10 @@ TYPE __BOX_STATUS
     moving_right   AS INTEGER
     moving_up      AS INTEGER
     moving_down    AS INTEGER
+    over_left      AS INTEGER
+    over_right     AS INTEGER
+    over_top       AS INTEGER
+    over_bot       AS INTEGER
 END TYPE
 
 TYPE __BOUNDING_BOX
@@ -85,6 +89,10 @@ BBOX_INIT.status.moving_left             = FALSE
 BBOX_INIT.status.moving_right            = FALSE
 BBOX_INIT.status.moving_up               = FALSE
 BBOX_INIT.status.moving_down             = FALSE
+BBOX_INIT.status.over_left               = FALSE
+BBOX_INIT.status.over_right              = FALSE
+BBOX_INIT.status.over_top                = FALSE
+BBOX_INIT.status.over_bot                = FALSE
 'colors
 BBOX_INIT.styles.idle.fg                 = _RGB32(255, 255, 0)
 BBOX_INIT.styles.over.fg                 = _RGB32(0, 255, 255)
@@ -98,12 +106,12 @@ BBOX_INIT.styles.deselected.border.fg    = _RGB32(255, 255, 0)
 BBOX_INIT.styles.resizing.border.fg      = _RGB32(255, 255, 0)
 BBOX_INIT.styles.moving.border.fg        = _RGB32(255, 255, 0)
 'widths
-BBOX_INIT.styles.idle.border.w           = 3
-BBOX_INIT.styles.over.border.w           = 3
-BBOX_INIT.styles.selected.border.w       = 3
-BBOX_INIT.styles.deselected.border.w     = 3
-BBOX_INIT.styles.resizing.border.w       = 3
-BBOX_INIT.styles.moving.border.w         = 3
+BBOX_INIT.styles.idle.border.w           = 10
+BBOX_INIT.styles.over.border.w           = 10
+BBOX_INIT.styles.selected.border.w       = 10
+BBOX_INIT.styles.deselected.border.w     = 10
+BBOX_INIT.styles.resizing.border.w       = 10
+BBOX_INIT.styles.moving.border.w         = 10
 'patterns
 BBOX_INIT.styles.idle.border.pattern       = &B0000111100001111
 BBOX_INIT.styles.over.border.pattern       = &B0000111100001111
