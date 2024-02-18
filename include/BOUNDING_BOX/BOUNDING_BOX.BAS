@@ -24,11 +24,12 @@ OPTION _EXPLICITARRAY
 '$INCLUDE:'../MOUSE/MOUSE.BI'
 '$INCLUDE:'./BOUNDING_BOX.BI'
 
-DIM SHARED AS LONG CANVAS
+DIM SHARED AS LONG CANVAS, MOUSEINFO, old_dest
 CANVAS = _NEWIMAGE(1920, 1080, 32)
+MOUSEINFO = _NEWIMAGE(500, 1080, 32)
 SCREEN CANVAS
 
-BBOX_create BBOX, CANVAS, 500, 500, 500, 500
+BBOX_create BBOX, CANVAS, 600, 250, 500, 500
 PRINT BBOX_dump(BBOX, "test")
 DIM AS STRING k
 MOUSE_init
@@ -66,9 +67,14 @@ DO
             BBOX_set_pos BBOX, 100, 100
     END SELECT
     IF k$ <> "" OR MOUSE.has_events THEN 
-        CONSOLE.log MOUSE_dump("")
         CLS
         PRINT BBOX_dump(BBOX, "test")
+        old_dest = _DEST
+        _DEST MOUSEINFO
+        PRINT MOUSE_dump("")
+        _DEST old_dest
+        _PUTIMAGE (1420, 0)-(1420+500, 1080), _
+            MOUSEINFO, CANVAS
         BBOX_update_canvas BBOX, CANVAS 'call this when canvas changes
         draw_output
     END IF
