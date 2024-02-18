@@ -132,12 +132,14 @@ SUB MOUSE_refresh
         s.started_drag    = TRUE
         s.stopped_drag    = FALSE
         MOUSE.drag_start  = MOUSE.new_state.pos
+        s.did_drag        = FALSE
     ELSEIF s.b1_clicked AND s.started_drag THEN
         s.stopped_drag    = TRUE
         s.started_drag    = FALSE
         MOUSE.drag_stop   = MOUSE.new_state.pos
         s.drag_distance.x = MOUSE.drag_stop.x - MOUSE.drag_start.x
         s.drag_distance.y = MOUSE.drag_stop.y - MOUSE.drag_start.y
+        s.did_drag        = s.drag_distance.x > 0 OR s.drag_distance.y > 0
     END IF
 
     MOUSE.has_events = s.x_changed _
