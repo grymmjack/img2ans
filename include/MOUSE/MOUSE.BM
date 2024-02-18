@@ -127,6 +127,10 @@ SUB MOUSE_refresh
     s.dragging_right = s.b1_down AND s.moving_right
     s.dragging_up    = s.b1_down AND s.moving_up
     s.dragging_down  = s.b1_down AND s.moving_down
+    s.is_dragging    = s.dragging_left _
+                    OR s.dragging_right _
+                    OR s.dragging_up _ 
+                    OR s.dragging_down
 
     IF s.b1_down AND NOT s.started_drag THEN
         s.started_drag    = TRUE
@@ -219,6 +223,8 @@ FUNCTION MOUSE_dump$(label$)
     r$ = r$+t2$+ ".dragging_down: " + MOUSE_n$(s.dragging_down, TRUE)
     r$ = r$+t2$+ ".drag_distance.x: " + MOUSE_n$(s.drag_distance.x, TRUE)
     r$ = r$+t2$+ ".drag_distance.y: " + MOUSE_n$(s.drag_distance.y, TRUE)
+    r$ = r$+t2$+ ".is_dragging: " + MOUSE_n$(s.is_dragging, TRUE)
+    r$ = r$+t2$+ ".did_drag: " + MOUSE_n$(s.did_drag, TRUE)
     r$ = r$+t1$+ "}" + GJ_LIB_NL$
     r$ = r$+t1$+ "drag_start: {" + GJ_LIB_NL$
     r$ = r$+t2$+ ".x: " + MOUSE_n$(MOUSE.drag_start.x, TRUE)

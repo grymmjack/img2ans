@@ -25,11 +25,11 @@ OPTION _EXPLICITARRAY
 '$INCLUDE:'./BOUNDING_BOX.BI'
 
 DIM SHARED AS LONG CANVAS
-CANVAS = _NEWIMAGE(2560, 1440, 32)
+CANVAS = _NEWIMAGE(1920, 1080, 32)
 SCREEN CANVAS
 
-PRINT BBOX_dump(BBOX, "test")
 BBOX_create BBOX, CANVAS, 500, 500, 500, 500
+PRINT BBOX_dump(BBOX, "test")
 DIM AS STRING k
 MOUSE_init
 DO
@@ -54,7 +54,6 @@ DO
             CONSOLE.log "macro move and update"
             CLS
             PRINT "STUFF IS HAPPENING"
-            PRINT MOUSE_dump("mouse macro")
             PRINT BBOX_dump(BBOX, "test 2 - macro")
             BBOX_update_canvas BBOX, CANVAS 'call this when canvas changes
         CASE "c"
@@ -67,6 +66,10 @@ DO
             BBOX_set_pos BBOX, 100, 100
     END SELECT
     IF k$ <> "" OR MOUSE.has_events THEN 
+        CONSOLE.log MOUSE_dump("")
+        CLS
+        PRINT BBOX_dump(BBOX, "test")
+        BBOX_update_canvas BBOX, CANVAS 'call this when canvas changes
         draw_output
     END IF
 LOOP
@@ -94,14 +97,14 @@ SUB draw_output
         END IF
         'mouse stopped dragging, re-select as state
         IF MOUSE.status.did_drag AND MOUSE.status.stopped_drag THEN 
-            CONSOLE.error "Stopped drag"
+            CONSOLE.error "Stopped dragging"
             BBOX_select BBOX
         END IF
 
         'box selected and resizing
         IF BBOX.status.selected THEN 'box selected
-            IF MOUSE.status.started_drag THEN 'mouse started dragging
-                CONSOLE.error "Started drag"
+            IF MOUSE.status.is_dragging THEN 'mouse started dragging
+                CONSOLE.error "Dragging"
                 IF BBOX.status.resizing THEN 'box resizing
                     IF BBOX.status.resizing_right THEN 'resizing right
                         IF MOUSE.status.moving_right THEN

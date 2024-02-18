@@ -70,6 +70,7 @@ TYPE __MOUSE_STATUS
     dragging_down  AS INTEGER
     drag_distance  AS __POINT
     did_drag       AS INTEGER
+    is_dragging    AS INTEGER
 END TYPE
 
 TYPE __MOUSE
