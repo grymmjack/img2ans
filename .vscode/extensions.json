@@ -11,6 +11,9 @@
         "benrogerswpg.websearchengine",
         "drmerfy.overtype",
         "forbeslindesay.forbeslindesay-taskrunner",
-        "gurumukhi.selected-lines-count"
+        "gurumukhi.selected-lines-count",
+        "hediet.vscode-drawio",
+        "dzylikecode.vscode-drawio-plugin-markdown",
+        "nopeslide.vscode-drawio-plugin-mermaid"
     ]
 }
