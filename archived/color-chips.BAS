@@ -3,7 +3,7 @@ $NOPREFIX
 OPTION _EXPLICIT
 OPTION _EXPLICITARRAY
 $IF DEBUGGING = UNDEFINED THEN
-    $LET DEBUGGING = FALSE
+    $LET DEBUGGING = TRUE
 $END IF
 $IF DEBUGGING = TRUE THEN
     $DEBUG
@@ -24,7 +24,8 @@ $END IF
 DIM AS INTEGER cx, cy
 DIM SHARED AS LONG CANVAS, img, colors
 REDIM SHARED AS _UNSIGNED LONG pal(0 TO 255)
-CANVAS = _NEWIMAGE(1920, 1080, 32)
+REDIM SHARED AS _UNSIGNED LONG spal(0 TO 255)
+CANVAS = _NEWIMAGE(1600, 900, 32)
 DIM AS STRING img_file
 img_file$ = _OPENFILEDIALOG$( _
     "Choose an image", _
@@ -37,7 +38,9 @@ img_file$ = _OPENFILEDIALOG$( _
 img    = _LOADIMAGE(img_file$, 32)
 colors = _NEWIMAGE(301, 54, 32)
 CALL get_pal_from_image32(img, pal())
-CALL render_pal(colors, pal())
+ARR_ULONG.copy pal(), spal()
+ARR_ULONG.sort pal(), spal()
+CALL render_pal(colors, spal())
 _DEST CANVAS
 _PUTIMAGE (0, 0)-(_WIDTH(img), _HEIGHT(img)), img, CANVAS
 cx = 0 : cy = 0
@@ -62,17 +65,17 @@ SUB render_pal(img&, pal~&())
     w = _WIDTH(img&) : h = _HEIGHT(img&)
     total = ub - lb
     cols = INT(w / total)
-    cols = cols - 1
+    cols = cols
     old_dest = _DEST : _DEST img&
     CLS
     i=lb
     PSET (0, 0), 0
-    WHILE i <= total
-        console.log "#:" + STR$(i) _
+    WHILE i < total
+        console.log "#:" + STR$(i) + " > " _
                   + "(" + _TRIM$(STR$(pal~&(i))) + ")" _
-                  + ",R:" + STR$(_RED32(pal~&(i))) _
-                  + "G:" + STR$(_GREEN32(pal~&(i))) _
-                  + "B:" + STR$(_BLUE32(pal~&(i)))
+                  + " R:" + STR$(_RED32(pal~&(i))) _
+                  + " G:" + STR$(_GREEN32(pal~&(i))) _
+                  + " B:" + STR$(_BLUE32(pal~&(i)))
         LINE (i*cols+i, 0)-(i*cols+cols+1+i, h+1), _RGB32(0, 0, 0), BF
         LINE (i*cols+i+1, 0)-(i*cols+cols+i+1, h), pal~&(i), BF
         i = i + 1
