@@ -135,9 +135,9 @@ SUB draw_output
     'draw guides on top
     _DEST old_dest    
     LINE (0, off_y)-(_WIDTH(CANVAS), off_y), guide_color,, guide_pat 'top
-    LINE (0, off_y + h - 1)-(_WIDTH(CANVAS), off_y + h - 1), guide_color,, guide_pat 'bot
+    LINE (0, off_y + h)-(_WIDTH(CANVAS), off_y + h), guide_color,, guide_pat 'bot
     LINE (off_x, 0)-(off_x,_HEIGHT(CANVAS)), guide_color,, guide_pat 'left
-    LINE (off_x + w - 1, 0)-(off_x + w - 1, _HEIGHT(CANVAS)), guide_color,, guide_pat 'right    
+    LINE (off_x + w, 0)-(off_x + w, _HEIGHT(CANVAS)), guide_color,, guide_pat 'right    
     _FREEIMAGE tmp_img
     _DISPLAY
 END SUB
