@@ -3,7 +3,7 @@ $NOPREFIX
 OPTION _EXPLICIT
 OPTION _EXPLICITARRAY
 $IF DEBUGGING = UNDEFINED THEN
-    $LET DEBUGGING = TRUE
+    $LET DEBUGGING = FALSE
 $END IF
 $IF DEBUGGING = TRUE THEN
     $DEBUG
@@ -25,13 +25,22 @@ DIM AS INTEGER cx, cy
 DIM SHARED AS LONG CANVAS, img, colors
 REDIM SHARED AS _UNSIGNED LONG pal(0 TO 255)
 CANVAS = _NEWIMAGE(1920, 1080, 32)
-img    = _LOADIMAGE("../resources/images/All-Foodies-ANSI32.png", 32)
+DIM AS STRING img_file
+img_file$ = _OPENFILEDIALOG$( _
+    "Choose an image", _
+    _STARTDIR$ + "/resources/images/tests-external/", _
+    "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi" _
+    + "*.JPG|*.JPEG|*.PNG|*.TGA|*.BMP|*.PSD|*.GIF|*.PCX|*.SVG|*.QOI", _
+    "Image Files", _
+    0 _
+)
+img    = _LOADIMAGE(img_file$, 32)
 colors = _NEWIMAGE(301, 54, 32)
 CALL get_pal_from_image32(img, pal())
 CALL render_pal(colors, pal())
 _DEST CANVAS
 _PUTIMAGE (0, 0)-(_WIDTH(img), _HEIGHT(img)), img, CANVAS
-cx = 250 : cy = 250
+cx = 0 : cy = 0
 _PUTIMAGE (cx, cy)-(cx+_WIDTH(colors), cy+_HEIGHT(colors)), _
     colors, _
     CANVAS, _
@@ -53,22 +62,23 @@ SUB render_pal(img&, pal~&())
     w = _WIDTH(img&) : h = _HEIGHT(img&)
     total = ub - lb
     cols = INT(w / total)
+    cols = cols - 1
     old_dest = _DEST : _DEST img&
     CLS
     i=lb
     PSET (0, 0), 0
-    WHILE i < total
+    WHILE i <= total
         console.log "#:" + STR$(i) _
                   + "(" + _TRIM$(STR$(pal~&(i))) + ")" _
                   + ",R:" + STR$(_RED32(pal~&(i))) _
                   + "G:" + STR$(_GREEN32(pal~&(i))) _
                   + "B:" + STR$(_BLUE32(pal~&(i)))
-        LINE (i*cols, 0)-(i*cols+cols+1, h+1), _RGB32(0, 0, 0), BF
-        LINE (i*cols, 0)-(i*cols+cols, h), pal~&(i), BF
+        LINE (i*cols+i, 0)-(i*cols+cols+1+i, h+1), _RGB32(0, 0, 0), BF
+        LINE (i*cols+i+1, 0)-(i*cols+cols+i+1, h), pal~&(i), BF
         i = i + 1
     WEND
-    LINE (1, 1)-(w-1, h-1), _RGB32(255, 255, 255), B
-    LINE (2, 2)-(w-2, h-2), _RGB32(0, 0, 0), B
+    LINE (0, 0)-(w-1, h-1), _RGB32(255, 255, 255), B
+    LINE (1, 1)-(w-2, h-2), _RGB32(0, 0, 0), B
     _DEST old_dest
 END SUB
 
