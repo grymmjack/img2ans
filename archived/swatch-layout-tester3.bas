@@ -80,7 +80,7 @@ SUB draw_output
     'determine swatch layout
     rows    = whole_number_divisor(c)
     rows    = c / 32
-    IF rows = 0 THEN rows = 1
+    IF rows = 0 THEN rows = 2
     cols    = c / rows
     unused  = ABS(c - (rows * cols))    
     cols = cols + unused
