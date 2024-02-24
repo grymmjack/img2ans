@@ -1,32 +1,25 @@
-$NOPREFIX
 '$DYNAMIC
 OPTION _EXPLICIT
 OPTION _EXPLICITARRAY
-$IF DEBUGGING = UNDEFINED THEN
-    $LET DEBUGGING = TRUE
-$END IF
-$IF DEBUGGING = TRUE THEN
-    $DEBUG
-    $CONSOLE
-    $ASSERTS:CONSOLE
-    _CONSOLE ON
-$END IF
-$IF FALSE = UNDEFINED AND TRUE = UNDEFINED THEN
-    $LET TRUE = TRUE
-    CONST FALSE = 0 : CONST TRUE = NOT FALSE
-$END IF
-$IF WIN THEN
-    CONST SLASH$ = "\"
-$ELSE
-    CONST SLASH$ = "/"
-$END IF
 
 DIM SHARED AS LONG CANVAS
-CANVAS = _NEWIMAGE(1680, 1050, 32)
-SCREEN CANVAS
-DIM SHARED AS INTEGER w, h, c, rows, cols, cell_w, cell_h, i, row, col
+DIM SHARED AS INTEGER w, h, c, rows, cols, cell_w, cell_h, i, row, col, guide_opac
 DIM SHARED AS INTEGER off_x, off_y, x1, y1, x2, y2, max_c, min_c, shortfall
+DIM SHARED AS _UNSIGNED LONG bg_color, text_color, guide_color, cmd_color
+DIM SHARED AS _UNSIGNED LONG bg_swatch_color, fg_swatch_color
+_TITLE "IMG2ANS Swatch Layout Tester"
+CANVAS = _NEWIMAGE(800, 600, 32) : SCREEN CANVAS
 
+'setup colors
+guide_opac = 150
+bg_swatch_color = _RGB32(0, 0, 0)
+fg_swatch_color = _RGB32(255, 255, 255)
+bg_color = _RGB32(25, 50, 200)
+text_color = _RGB32(255, 255, 255)
+guide_color = _RGBA32(0, 255, 100, guide_opac)
+cmd_color = _RGB32(255, 255, 0)
+
+'setup IMG2ANS emulation vars
 c = 2
 h = 54
 w = 342
@@ -34,6 +27,8 @@ off_x = 100
 off_y = 300
 max_c = 255
 min_c = 2
+
+'main loop
 draw_output
 DO
     _LIMIT 60
@@ -51,9 +46,16 @@ DO
     END SELECT
 LOOP
 
+
+''
+' Draw the output
+'
 SUB draw_output
-    CLS, _RGB32(32, 32, 32)
-    COLOR _RGB(255, 255, 255)
+    CLS, bg_color
+    _PRINTMODE _KEEPBACKGROUND
+    COLOR text_color
+
+    'determine swatch layout
     rows = whole_number_divisor(c)
     rows = c / 32 + 1
     cols = c / rows
@@ -61,32 +63,47 @@ SUB draw_output
     cols = cols + shortfall
     cell_w = w / cols - 1
     cell_h = h / rows - 1
-    _PRINTMODE _KEEPBACKGROUND
+
+    'draw stats
     PRINT "# Colors: " + _TRIM$(STR$(c)),,
-    PRINT "Palette Dimensions: " + _TRIM$(STR$(h)) + "x" + _TRIM$(STR$(w))
-    PRINT "Swatch Layout " + _TRIM$(STR$(rows)) + "x" + _TRIM$(STR$(cols)),
-    PRINT "Swatch Dimensions: " + _TRIM$(STR$(cell_w)) + "x" + _TRIM$(STR$(cell_h))
+    PRINT "Palette Dimensions: " + _TRIM$(STR$(h)) + " x " + _TRIM$(STR$(w))
+    PRINT "Swatch Layout " + _TRIM$(STR$(rows)) + " x " + _TRIM$(STR$(cols)),
+    PRINT "Swatch Dimensions: " + _TRIM$(STR$(cell_w)) + " x " + _TRIM$(STR$(cell_h))
     PRINT "Swatch Count: " + _TRIM$(STR$(rows*cols)), "Color Count Snap: " + _TRIM$(STR$(shortfall))
     PRINT "Swatches Unused: " + _TRIM$(STR$(rows*cols-c))
-    PRINT
-    COLOR _RGB(255, 255, 0) : PRINT "a = add color, s = subtract color"
-    ' PRINT rows, cols, cell_w, cell_h
 
+    'draw commands
+    PRINT
+    COLOR cmd_color
+    PRINT "The swatch grid should remain inside the guides."
+    PRINT "The swatch grid does best effort to fill the space."
+    PRINT
+    PRINT "a = add color, s = subtract color, ESC = exit"
+
+    'draw swatches
     FOR row=0 TO rows - 1
         FOR col=0 to cols - 1
             x1 = off_x + (col * cell_w)
             x2 = off_x + (col * cell_w) + cell_w
             y1 = off_y + (row * cell_h)
             y2 = off_y + (row * cell_h) + cell_h
-            LINE (x1, y1)-(x2, y2), _RGB32(255, 255, 255), B
+            LINE (x1, y1)-(x2, y2), bg_swatch_color, BF
+            LINE (x1, y1)-(x2, y2), fg_swatch_color, B
         NEXT col
     NEXT row
-    LINE (0, off_y)-(_WIDTH(CANVAS), off_y), _RGBA32(255, 0, 0, 100)
-    LINE (0, off_y + h - 1)-(_WIDTH(CANVAS), off_y + h - 1), _RGBA32(255, 0, 0, 100)
-    LINE (off_x, 0)-(off_x,_HEIGHT(CANVAS)), _RGBA32(255, 0, 0, 100)
-    LINE (off_x + w - 1, 0)-(off_x + w - 1, _HEIGHT(CANVAS)), _RGBA32(255, 0, 0, 100)
+    'draw guides
+    LINE (0, off_y)-(_WIDTH(CANVAS), off_y), guide_color 'top
+    LINE (0, off_y + h - 1)-(_WIDTH(CANVAS), off_y + h - 1), guide_color 'bot
+    LINE (off_x, 0)-(off_x,_HEIGHT(CANVAS)), guide_color 'left
+    LINE (off_x + w - 1, 0)-(off_x + w - 1, _HEIGHT(CANVAS)), guide_color 'right
 END SUB
 
+
+''
+' Return the first whole number that evenly divideds into a number
+' @param INT TYPE n number to get divisor for
+' @return INT TYPE whole number
+'
 FUNCTION whole_number_divisor&(n)
     DIM AS INTEGER i
     i = 2
@@ -97,58 +114,3 @@ FUNCTION whole_number_divisor&(n)
         whole_number_divisor = i
     END IF
 END FUNCTION
-
-
-
-''
-' Log to console if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.log(msg$)
-    $IF DEBUGGING = TRUE THEN
-        _ECHO msg$
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log to console as info if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.info(msg$)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e
-        e$ = CHR$(27)
-        _ECHO e$ + "[1;36m" + msg$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log to console as warning if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.warn(msg$)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e
-        e$ = CHR$(27)
-        _ECHO e$ + "[1;33m" + msg$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
-
-
-''
-' Log to console as error if DEBUGGING
-' @param STRING msg message to send
-'
-SUB console.error(msg$)
-    $IF DEBUGGING = TRUE THEN
-        DIM AS STRING e
-        e$ = CHR$(27)
-        _ECHO e$ + "[1;31m" + msg$ + e$ + "[0m"
-    $END IF
-    msg$ = ""
-END SUB
