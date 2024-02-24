@@ -15,7 +15,7 @@ _TITLE "IMG2ANS Swatch Layout Tester"
 CANVAS = _NEWIMAGE(800, 600, 32) : SCREEN CANVAS
 
 'setup colors
-guide_opac         = 200
+guide_opac         = 50
 bg_swatch_color    = _RGB32(0, 0, 0)
 fg_swatch_color    = _RGBA32(0, 0, 0, 255)
 empty_swatch_color = _RGB32(0, 0, 0)
@@ -33,7 +33,7 @@ h         = 54
 w         = 342
 off_x     = 100
 off_y     = 300
-max_c     = 255
+max_c     = 256
 min_c     = 2
 
 'main loop
@@ -54,13 +54,10 @@ DO
                 c = c - 1
                 IF c < min_c THEN c = min_c
                 draw_output
-            CASE "1","2","3","4","5","6","7","8","9"
+            CASE "1","2","3","4","5","6","7","8"
                 cc = ASC(k$)-48 
                 c = 2 ^ cc
-                draw_output
-            CASE "0"
-                c = 2 ^ 10
-                grid = 0
+                grid = -1
                 draw_output
             CASE "g"
                 grid = NOT grid
@@ -82,12 +79,18 @@ SUB draw_output
 
     'determine swatch layout
     rows    = whole_number_divisor(c)
-    rows    = c / 32 + 1
+    rows    = c / 32
+    IF rows = 0 THEN rows = 1
     cols    = c / rows
-    unused  = ABS((rows * cols) - c)
-    cols    = cols
-    cell_w  = w / cols - 1
-    cell_h  = h / rows - 1
+    unused  = ABS(c - (rows * cols))    
+    cols = cols + unused
+    unused  = ABS(c - (rows * cols))    
+    IF cols = unused THEN
+        rows = rows - 1
+        unused = 0
+    END IF
+    cell_w  = (w / cols) - 2
+    cell_h  = (h / rows) - 2
     img_w   = cell_w * cols
     img_h   = cell_h * rows
     tmp_img = _NEWIMAGE(img_w, img_h, 32)
@@ -108,27 +111,41 @@ SUB draw_output
     PRINT "Set color count: 1=2, 2=4, 3=8, 4=16, 5=32, 6=64, 7=128, 8=256, 9=512"
     PRINT "a = add color, s = subtract color, g = toggle grid, ESC = exit"
 
+    'grid toggle via opacity
+    IF grid THEN
+        fg_swatch_color = _RGBA32( _
+            _RED32(fg_swatch_color), _
+            _GREEN32(fg_swatch_color), _
+            _BLUE32(fg_swatch_color), _
+            255 _
+        )
+    ELSE
+        fg_swatch_color = _RGBA32( _
+            _RED32(fg_swatch_color), _
+            _GREEN32(fg_swatch_color), _
+            _BLUE32(fg_swatch_color), _
+            0 _
+        )
+    END IF
+
     'draw swatches
     _DEST tmp_img
-    CLS, fg_swatch_color
     FOR row=0 TO rows - 1
         FOR col=0 to cols - 1
-            x1 = 0 + (col * cell_w)
-            x2 = 0 + (col * cell_w) + cell_w
-            y1 = 0 + (row * cell_h)
-            y2 = 0 + (row * cell_h) + cell_h
+            x1 = (cell_w * col)
+            x2 = (cell_w * col) + cell_w
+            y1 = (cell_h * row)
+            y2 = (cell_h * row) + cell_h
             LINE (x1, y1)-(x2, y2), _RGB32(INT(RND*255), INT(RND*255), INT(RND*255)), BF
-            IF grid THEN
-                LINE (x1, y1)-(x2-1, y2-1), fg_swatch_color, B
-            END IF
+            LINE (x1, y1)-(x2-1, y2-1), fg_swatch_color, B
         NEXT col
     NEXT row
     'draw blanks
     IF unused > 0 THEN
         y = row + 1
-        x1 = (cell_w * cols) - (cell_w * unused)
+        x1 = (cell_w * cols) - (cell_w * ABS(c - (rows * cols)))
         x2 = w
-        y1 = (cell_h * rows) - cell_h
+        y1 = (cell_h * row) - cell_h
         y2 = h
         LINE (x1, y1)-(x2, y2), empty_swatch_color, BF
     END IF
@@ -154,10 +171,10 @@ END SUB
 '
 FUNCTION whole_number_divisor&(n)
     DIM AS INTEGER i
-    i = 2
-    IF n > 0 AND i >= 1 THEN
+    i = 1
+    IF n > 0 THEN
         DO
-            i = i - 1
+            i = i + 1
         LOOP UNTIL n MOD i = 0
         whole_number_divisor = i
     END IF
