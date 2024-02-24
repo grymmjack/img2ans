@@ -30,6 +30,7 @@ min_c = 2
 
 'main loop
 draw_output
+_DISPLAY
 DO
     _LIMIT 60
     SELECT CASE INKEY$
@@ -66,8 +67,8 @@ SUB draw_output
 
     'draw stats
     PRINT "# Colors: " + _TRIM$(STR$(c)),,
-    PRINT "Palette Dimensions: " + _TRIM$(STR$(h)) + " x " + _TRIM$(STR$(w))
-    PRINT "Swatch Layout " + _TRIM$(STR$(rows)) + " x " + _TRIM$(STR$(cols)),
+    PRINT "Palette Dimensions: " + _TRIM$(STR$(w)) + " x " + _TRIM$(STR$(h))
+    PRINT "Swatch Layout " + _TRIM$(STR$(cols)) + " x " + _TRIM$(STR$(rows)),
     PRINT "Swatch Dimensions: " + _TRIM$(STR$(cell_w)) + " x " + _TRIM$(STR$(cell_h))
     PRINT "Swatch Count: " + _TRIM$(STR$(rows*cols)), "Color Count Snap: " + _TRIM$(STR$(shortfall))
     PRINT "Swatches Unused: " + _TRIM$(STR$(rows*cols-c))
@@ -96,6 +97,7 @@ SUB draw_output
     LINE (0, off_y + h - 1)-(_WIDTH(CANVAS), off_y + h - 1), guide_color 'bot
     LINE (off_x, 0)-(off_x,_HEIGHT(CANVAS)), guide_color 'left
     LINE (off_x + w - 1, 0)-(off_x + w - 1, _HEIGHT(CANVAS)), guide_color 'right
+    _DISPLAY
 END SUB
 
 
