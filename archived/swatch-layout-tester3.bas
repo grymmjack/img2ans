@@ -108,7 +108,7 @@ SUB draw_output
     PRINT "The swatch grid should remain inside the guides."
     PRINT "The swatch grid does best effort to fill the space."
     PRINT
-    PRINT "Set color count: 1=2, 2=4, 3=8, 4=16, 5=32, 6=64, 7=128, 8=256, 9=512"
+    PRINT "Set color count: 1=2, 2=4, 3=8, 4=16, 5=32, 6=64, 7=128, 8=256"
     PRINT "a = add color, s = subtract color, g = toggle grid, ESC = exit"
 
     'grid toggle via opacity
