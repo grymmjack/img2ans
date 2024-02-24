@@ -6,9 +6,10 @@ OPTION _EXPLICITARRAY
 
 DIM SHARED AS LONG CANVAS
 DIM SHARED AS INTEGER w, h, c, rows, cols, cell_w, cell_h, i, row, col, guide_opac
-DIM SHARED AS INTEGER off_x, off_y, x1, y1, x2, y2, max_c, min_c, shortfall
+DIM SHARED AS INTEGER off_x, off_y, x1, y1, x2, y2, max_c, min_c, shortfall, cc
 DIM SHARED AS _UNSIGNED LONG bg_color, text_color, guide_color, cmd_color
 DIM SHARED AS _UNSIGNED LONG bg_swatch_color, fg_swatch_color
+DIM SHARED AS STRING k
 _TITLE "IMG2ANS Swatch Layout Tester"
 CANVAS = _NEWIMAGE(800, 600, 32) : SCREEN CANVAS
 
@@ -23,6 +24,7 @@ cmd_color = _RGB32(255, 255, 0)
 
 'setup IMG2ANS emulation vars
 c = 2
+cc = 2
 h = 54
 w = 342
 off_x = 100
@@ -35,18 +37,25 @@ draw_output
 _DISPLAY
 DO
     _LIMIT 60
-    SELECT CASE INKEY$
-        CASE CHR$(27)
-            EXIT DO
-        CASE "a", "A"
-            c = c + 1
-            IF c > max_c THEN c = max_c
-            draw_output
-        CASE "s", "S"
-            c = c - 1
-            IF c < min_c THEN c = min_c
-            draw_output
-    END SELECT
+    k$ = INKEY$
+    IF k$ <> "" THEN
+        SELECT CASE k$
+            CASE CHR$(27)
+                EXIT DO
+            CASE "a", "A"
+                c = c + 1
+                IF c > max_c THEN c = max_c
+                draw_output
+            CASE "s", "S"
+                c = c - 1
+                IF c < min_c THEN c = min_c
+                draw_output
+            CASE "1","2","3","4","5","6","7","8"
+                cc = ASC(k$)-48 
+                c = 2 ^ cc
+                draw_output
+        END SELECT
+    END IF
 LOOP
 
 
@@ -79,6 +88,10 @@ SUB draw_output
     PRINT "Swatch Dimensions: " + _TRIM$(STR$(cell_w)) + " x " + _TRIM$(STR$(cell_h))
     PRINT "Swatch Count: " + _TRIM$(STR$(rows*cols)), "Color Count Snap: " + _TRIM$(STR$(shortfall))
     PRINT "Swatches Unused: " + _TRIM$(STR$(rows*cols-c))
+    PRINT "cc: " + _TRIM$(STR$(cc))
+    IF k$ <> "" THEN
+        PRINT "ASC(k$): " + _TRIM$(STR$(ASC(k$)))
+    END IF
 
     'draw commands
     PRINT
@@ -86,6 +99,7 @@ SUB draw_output
     PRINT "The swatch grid should remain inside the guides."
     PRINT "The swatch grid does best effort to fill the space."
     PRINT
+    PRINT "Set color count: 1=2, 2=4, 3=8, 4=16, 5=32, 6=64, 7=128, 8=256, 9=512"
     PRINT "a = add color, s = subtract color, ESC = exit"
 
     'draw swatches
