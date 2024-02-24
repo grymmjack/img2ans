@@ -6,7 +6,8 @@ OPTION _EXPLICITARRAY
 
 DIM SHARED AS LONG CANVAS
 DIM SHARED AS INTEGER w, h, c, rows, cols, cell_w, cell_h, i, row, col, guide_opac
-DIM SHARED AS INTEGER off_x, off_y, x1, y1, x2, y2, max_c, min_c, shortfall, cc
+DIM SHARED AS INTEGER off_x, off_y, x1, y1, x2, y2, max_c, min_c, unused, cc
+DIM SHARED AS INTEGER grid, x, y
 DIM SHARED AS _UNSIGNED LONG bg_color, text_color, guide_color, cmd_color
 DIM SHARED AS _UNSIGNED LONG bg_swatch_color, fg_swatch_color
 DIM SHARED AS STRING k
@@ -16,13 +17,14 @@ CANVAS = _NEWIMAGE(800, 600, 32) : SCREEN CANVAS
 'setup colors
 guide_opac = 0
 bg_swatch_color = _RGB32(0, 0, 0)
-fg_swatch_color = _RGB32(255, 255, 255)
+fg_swatch_color = _RGB32(0, 0, 0)
 bg_color = _RGB32(25, 50, 200)
 text_color = _RGB32(255, 255, 255)
 guide_color = _RGBA32(0, 255, 100, guide_opac)
 cmd_color = _RGB32(255, 255, 0)
 
 'setup IMG2ANS emulation vars
+grid=-1
 c = 2
 cc = 2
 h = 54
@@ -50,9 +52,12 @@ DO
                 c = c - 1
                 IF c < min_c THEN c = min_c
                 draw_output
-            CASE "1","2","3","4","5","6","7","8"
+            CASE "1","2","3","4","5","6","7","8","9"
                 cc = ASC(k$)-48 
                 c = 2 ^ cc
+                draw_output
+            CASE "g"
+                grid = NOT grid
                 draw_output
         END SELECT
     END IF
@@ -73,8 +78,8 @@ SUB draw_output
     rows = whole_number_divisor(c)
     rows = c / 32 + 1
     cols = c / rows
-    shortfall = ABS((rows*cols) - c)
-    cols = cols + shortfall
+    unused = ABS((rows*cols) - c)
+    cols = cols + unused
     cell_w = w / cols - 1
     cell_h = h / rows - 1
     img_w = cell_w * cols
@@ -86,12 +91,7 @@ SUB draw_output
     PRINT "Palette Dimensions: " + _TRIM$(STR$(w)) + " x " + _TRIM$(STR$(h))
     PRINT "Swatch Layout " + _TRIM$(STR$(cols)) + " x " + _TRIM$(STR$(rows)),
     PRINT "Swatch Dimensions: " + _TRIM$(STR$(cell_w)) + " x " + _TRIM$(STR$(cell_h))
-    PRINT "Swatch Count: " + _TRIM$(STR$(rows*cols)), "Color Count Snap: " + _TRIM$(STR$(shortfall))
-    PRINT "Swatches Unused: " + _TRIM$(STR$(rows*cols-c))
-    PRINT "cc: " + _TRIM$(STR$(cc))
-    IF k$ <> "" THEN
-        PRINT "ASC(k$): " + _TRIM$(STR$(ASC(k$)))
-    END IF
+    PRINT "Swatch Count: " + _TRIM$(STR$(rows*cols)), "Unused slots: " + _TRIM$(STR$(unused))
 
     'draw commands
     PRINT
@@ -100,21 +100,35 @@ SUB draw_output
     PRINT "The swatch grid does best effort to fill the space."
     PRINT
     PRINT "Set color count: 1=2, 2=4, 3=8, 4=16, 5=32, 6=64, 7=128, 8=256, 9=512"
-    PRINT "a = add color, s = subtract color, ESC = exit"
+    PRINT "a = add color, s = subtract color, g = toggle grid, ESC = exit"
 
     'draw swatches
     _DEST tmp_img
-    CLS
+    CLS, fg_swatch_color
     FOR row=0 TO rows - 1
         FOR col=0 to cols - 1
             x1 = 0 + (col * cell_w)
             x2 = 0 + (col * cell_w) + cell_w
             y1 = 0 + (row * cell_h)
             y2 = 0 + (row * cell_h) + cell_h
+            IF 
             LINE (x1, y1)-(x2, y2), _RGB32(INT(RND*255), INT(RND*255), INT(RND*255)), BF
-            ' LINE (x1, y1)-(x2, y2), fg_swatch_color, B
+            IF grid THEN
+                LINE (x1, y1)-(x2-1, y2-1), fg_swatch_color, B
+            END IF
         NEXT col
     NEXT row
+    'draw blanks
+    IF unused > 0 THEN
+        y = row
+        FOR x = 0 TO unused
+            x1 = ((cols - x) * cell_w) + ((cols - x) * cell_w)
+            x2 = ((cols - x) * cell_w) + ((cols - x) * cell_w) + cell_w
+            y1 = ((rows - y) * cell_h) + ((rows - y) * cell_h)
+            y2 = ((rows - y) * cell_h) + ((rows - y) * cell_h) + cell_h
+            LINE (x1, y1)-(x2, y2), fg_swatch_color, BF
+        NEXT x
+    END IF
 
     'draw guides
     _DEST old_dest    
