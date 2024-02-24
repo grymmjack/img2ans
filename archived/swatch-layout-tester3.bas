@@ -136,7 +136,7 @@ SUB draw_output
             x2 = (cell_w * col) + cell_w
             y1 = (cell_h * row)
             y2 = (cell_h * row) + cell_h
-            LINE (x1, y1)-(x2, y2), _RGB32(INT(RND*255), INT(RND*255), INT(RND*255)), BF
+            LINE (x1, y1)-(x2, y2), _RGB32(INT(RND*255)+100, INT(RND*255)+100, INT(RND*255)+100), BF
             LINE (x1, y1)-(x2-1, y2-1), fg_swatch_color, B
         NEXT col
     NEXT row
