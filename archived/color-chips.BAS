@@ -65,12 +65,12 @@ SUB render_pal(img&, pal~&())
     w = _WIDTH(img&) : h = _HEIGHT(img&)
     total = ub - lb
     cols = INT(w / total)
-    cols = cols
+    cols = cols - 1
     old_dest = _DEST : _DEST img&
     CLS
     i=lb
     PSET (0, 0), 0
-    WHILE i < total
+    WHILE i <= total
         console.log "#:" + STR$(i) + " > " _
                   + "(" + _TRIM$(STR$(pal~&(i))) + ")" _
                   + " R:" + STR$(_RED32(pal~&(i))) _
