@@ -58,6 +58,10 @@ DO
                 cc = ASC(k$)-48 
                 c = 2 ^ cc
                 draw_output
+            CASE "0"
+                c = 2 ^ 10
+                grid = 0
+                draw_output
             CASE "g"
                 grid = NOT grid
                 draw_output
@@ -80,8 +84,8 @@ SUB draw_output
     rows    = whole_number_divisor(c)
     rows    = c / 32 + 1
     cols    = c / rows
-    unused  = ABS((rows*cols) - c)
-    cols    = cols + unused
+    unused  = ABS((rows * cols) - c)
+    cols    = cols
     cell_w  = w / cols - 1
     cell_h  = h / rows - 1
     img_w   = cell_w * cols
@@ -89,11 +93,11 @@ SUB draw_output
     tmp_img = _NEWIMAGE(img_w, img_h, 32)
 
     'draw stats
-    PRINT "# Colors: " + _TRIM$(STR$(c)),,
+    PRINT "# Colors: " + _TRIM$(STR$(c)),,,
     PRINT "Palette Dimensions: " + _TRIM$(STR$(w)) + " x " + _TRIM$(STR$(h))
-    PRINT "Swatch Layout " + _TRIM$(STR$(cols)) + " x " + _TRIM$(STR$(rows)),
+    PRINT "Swatch Layout " + _TRIM$(STR$(cols)) + " x " + _TRIM$(STR$(rows)),,
     PRINT "Swatch Dimensions: " + _TRIM$(STR$(cell_w)) + " x " + _TRIM$(STR$(cell_h))
-    PRINT "Swatch Count: " + _TRIM$(STR$(rows*cols)), "Unused slots: " + _TRIM$(STR$(unused))
+    PRINT "Swatch Count: " + _TRIM$(STR$(rows*cols)),, "Unused slots: " + _TRIM$(STR$(unused))
 
     'draw commands
     PRINT
