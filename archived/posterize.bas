@@ -35,18 +35,27 @@ img_file$ = _OPENFILEDIALOG$( _
     "Image Files", _
     0 _
 )
+
+' SXBR2: Applies the Super-xBR 2x pixel scaler on the image.
+' MMPX2: Applies the MMPX Style-Preserving 2x pixel scaler on the image.
+' HQ2XA: Applies the High Quality Cartoon 2x pixel scaler on the image.
+' HQ2XB: Applies the High Quality Complex 2x pixel scaler on the image.
+' HQ3XA: Applies the High Quality Cartoon 3x pixel scaler on the image.
+' HQ3XB: Applies the High Quality Complex 3x pixel scaler on the image.
+' img2    = _LOADIMAGE(img_file$, 32, "HQ3XB")
+
 img2    = _LOADIMAGE(img_file$, 32)
 colors = _NEWIMAGE(301, 54, 32)
 
 'preset 1 posterize 8 colors
-img = ExtractBitfields(img2, &B10000000, 1, "ARGB", -1, -1, -1, -1, -1)
-img = AddConstant(img, &HFF5A5A5A, -1, -1, -1, -1, -1)
-img = ModifyContrast(img, 0.66, -1, -1, -1, -1, -1)
+' img = ExtractBitfields(img2, &B10000000, 1, "ARGB", -1, -1, -1, -1, -1)
+' img = AddConstant(img, &HFF5A5A5A, -1, -1, -1, -1, -1)
+' img = ModifyContrast(img, 0.66, -1, -1, -1, -1, -1)
 
 'preset 2 posterize - 40 colors
-' img = ExtractBitfields(img2, &B11000000, 1, "ARGB", -1, -1, -1, -1, -1)
-' img = AddConstant(img, &HFF333333, -1, -1, -1, -1, -1)
-' img = ModifyContrast(img, 0.5, -1, -1, -1, -1, -1)
+img = ExtractBitfields(img2, &B11000000, 1, "ARGB", -1, -1, -1, -1, -1)
+img = AddConstant(img, &HFF333333, -1, -1, -1, -1, -1)
+img = ModifyContrast(img, 0.5, -1, -1, -1, -1, -1)
 
 'preset 3 posterize - 135 colors
 ' img = ExtractBitfields(img2, &B11100000, 1, "ARGB", -1, -1, -1, -1, -1)
