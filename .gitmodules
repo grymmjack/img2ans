@@ -4,3 +4,6 @@
 [submodule "include/QB64_GJ_LIB"]
 	path = include/QB64_GJ_LIB
 	url = https://github.com/grymmjack/QB64_GJ_LIB
+[submodule "include/RhoSigma-QB64Library"]
+	path = include/RhoSigma-QB64Library
+	url = https://github.com/grymmjack/RhoSigma-QB64Library
