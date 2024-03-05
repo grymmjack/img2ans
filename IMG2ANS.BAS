@@ -185,21 +185,21 @@ SUB __UI_BeforeUpdateDisplay
 
         ' Log the mouse action
         IF MouseManager.leftButtonDown THEN
-            console.box "DRAGGING", BRIGHT_GREEN
+            console.box "DRAGGING", 10
         END IF
 
         IF MouseManager.leftClicked THEN
-            console.box "DROPPING", BRIGHT_RED
+            console.box "DROPPING", 12
             console.box "Rect = (" + _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.a.x)) + "," + _
                 _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.a.y)) + ") - (" + _
                 _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.b.x)) + "," + _
-                _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.a.y)) + ")", BRIGHT_RED
+                _TRIM$(STR$(MouseManager.LeftButtonClickedRectangle.a.y)) + ")", 12
 
             MouseManager.leftClicked = FALSE ' consume the click event!
         END IF
 
         IF MouseManager.wheel <> 0 THEN
-            console.box "MOUSEWHEEL=" + _TRIM$(STR$(MouseManager.wheel)), CYAN
+            console.box "MOUSEWHEEL=" + _TRIM$(STR$(MouseManager.wheel)), 3
         END IF
     END IF
 END SUB
@@ -734,7 +734,7 @@ SUB __UI_MouseUp (id AS LONG)
 END SUB
 
 SUB __UI_KeyPress (id AS LONG)
-    console.box CHR$(__UI_KeyHit), BRIGHT_YELLOW
+    console.box CHR$(__UI_KeyHit), 14
     'When this event is fired, __UI_KeyHit will contain the code of the key hit.
     'You can change it and even cancel it by making it = 0
     SELECT CASE id
