@@ -34,11 +34,9 @@ PRINT BBOX_dump(BBOX, "test")
 DIM AS STRING k
 MOUSE_init
 DO
+    ' _LIMIT 60
     ' Mouse handling
     MOUSE_update
-    MOUSE_refresh
-
-    _LIMIT 60
 
     ' Keyboard handling
     k$ = LCASE$(INKEY$)
@@ -67,6 +65,7 @@ DO
             BBOX_set_pos BBOX, 100, 100
     END SELECT
     IF k$ <> "" OR MOUSE.has_events THEN 
+        MOUSE_fetched_events
         CLS
         PRINT BBOX_dump(BBOX, "test")
         old_dest = _DEST
@@ -82,6 +81,7 @@ LOOP
 SCREEN 0
 _DEST 0
 _FREEIMAGE CANVAS&
+_FREEIMAGE MOUSEINFO&
 SYSTEM
 
 

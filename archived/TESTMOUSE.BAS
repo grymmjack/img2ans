@@ -11,51 +11,37 @@ $IF DEBUGGING = TRUE THEN
     $ASSERTS:CONSOLE
     _CONSOLE ON
 $END IF
-$IF FALSE = UNDEFINED AND TRUE = UNDEFINED THEN
-    $LET TRUE = TRUE
-    CONST FALSE = 0 : CONST TRUE = NOT FALSE
-$END IF
-$IF WIN THEN
-    CONST SLASH$ = "\"
-$ELSE
-    CONST SLASH$ = "/"
-$END IF
 
-'$INCLUDE:'/Users/gj/git/img2ans/include/`QB64_GJ_LIB/_GJ_LIB_COMMON.BI'
+'$INCLUDE:'/Users/gj/git/img2ans/include/QB64_GJ_LIB/_GJ_LIB_COMMON.BI'
 '$INCLUDE:'/Users/gj/git/img2ans/include/MOUSE/MOUSE.BI'
 
-DIM SHARED AS LONG CANVAS, MOUSEINFO, old_dest
-CANVAS = _NEWIMAGE(1920, 1080, 32)
-MOUSEINFO = _NEWIMAGE(500, 1080, 32)
-SCREEN CANVAS
+SCREEN 0
 
 MOUSE_init
 DO
     ' Mouse handling
     MOUSE_update
-    MOUSE_refresh
 
-    _LIMIT 60
-
+    ' _LIMIT 60
+    IF MOUSE.new_state.mov.x <> 0 THEN
+        LOCATE 1, 1 : PRINT SPACE$(50)
+        LOCATE 1, 1 : PRINT "MMX:", MOUSE.new_state.mov.x
+    END IF
+    IF MOUSE.new_state.mov.y <> 0 THEN
+        LOCATE 2, 1 : PRINT SPACE$(50)
+        LOCATE 2, 1 : PRINT "MMY:", MOUSE.new_state.mov.y
+    END IF
+    IF MOUSE.new_state.wheel <> 0 THEN
+        LOCATE 3, 1 : PRINT SPACE$(50)
+        LOCATE 3, 1 : PRINT "MW:", MOUSE.new_state.wheel
+    END IF
+  
     ' Keyboard handling
     DIM k AS STRING
     k$ = LCASE$(INKEY$)
-    SELECT CASE k$
-        CASE CHR$(27)
-            EXIT DO
-    END SELECT
-    IF k$ <> "" OR MOUSE.has_events THEN 
-        CLS
-        PRINT MOUSE_dump("")
-        _DISPLAY
-    END IF
+    IF k$ = CHR$(27) THEN EXIT DO
 LOOP
-SCREEN 0
-_DEST 0
-_FREEIMAGE CANVAS&
 SYSTEM
-
-'$INCLUDE:'/Users/gj/git/img2ans/include/MOUSE/MOUSE.BM'
 
 ''
 ' Log to console if DEBUGGING
@@ -111,3 +97,4 @@ SUB console.error(msg$)
 END SUB
 
 
+'$INCLUDE:'/Users/gj/git/img2ans/include/MOUSE/MOUSE.BM'

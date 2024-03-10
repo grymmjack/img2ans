@@ -15,7 +15,7 @@ DO
             LOCATE 2, 1 : PRINT SPACE$(50)
             LOCATE 2, 1 : PRINT "MMY:", MMY
         END IF
-        IF _MOUSEWHEEL <> 0 THEN
+        IF MW <> 0 THEN
             LOCATE 3, 1 : PRINT SPACE$(50)
             LOCATE 3, 1 : PRINT "MW:", MW
         END IF
