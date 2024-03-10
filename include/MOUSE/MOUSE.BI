@@ -33,6 +33,8 @@ TYPE __MOUSE_STATUS
     ' changes
     x_changed      AS INTEGER
     y_changed      AS INTEGER
+    mov_x_changed  AS INTEGER
+    mov_y_changed  AS INTEGER
     b1_changed     AS INTEGER
     b2_changed     AS INTEGER
     b3_changed     AS INTEGER
@@ -44,6 +46,8 @@ TYPE __MOUSE_STATUS
     moving_right   AS INTEGER
     moving_up      AS INTEGER
     moving_down    AS INTEGER
+    moving_x       AS INTEGER
+    moving_y       AS INTEGER
 
     ' buttons
     b1_down        AS INTEGER

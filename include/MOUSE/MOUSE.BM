@@ -42,7 +42,7 @@ SUB MOUSE_update
     ' track old state
     MOUSE.old_state = MOUSE.new_state
 
-    DO WHILE _MOUSEINPUT
+    WHILE _MOUSEINPUT
         ' track new state
         MOUSE.new_state.pos.x = _MOUSEX
         MOUSE.new_state.pos.y = _MOUSEY
@@ -52,7 +52,8 @@ SUB MOUSE_update
         MOUSE.new_state.wheel = _MOUSEWHEEL
         MOUSE.new_state.mov.x = _MOUSEMOVEMENTX
         MOUSE.new_state.mov.y = _MOUSEMOVEMENTY
-    LOOP
+    WEND
+    MOUSE_refresh
 END SUB
 
 
@@ -81,6 +82,7 @@ SUB IMOUSE_update
     MOUSE.new_state.b2    = __UI_MouseButton2%%
     MOUSE.new_state.b3    = 0'__UI_MouseButton3%%
     MOUSE.new_state.wheel = __UI_MouseWheel%
+    MOUSE_refresh
 END SUB
 
 
@@ -98,6 +100,8 @@ SUB MOUSE_refresh
     s.b2_changed     = MOUSE.old_state.b2 <> MOUSE.new_state.b2
     s.b3_changed     = MOUSE.old_state.b3 <> MOUSE.new_state.b3
     s.wheel_changed  = MOUSE.old_state.wheel <> MOUSE.new_state.wheel
+    s.mov_x_changed  = MOUSE.old_state.mov.x <> MOUSE.new_state.mov.x
+    s.mov_y_changed  = MOUSE.old_state.mov.y <> MOUSE.new_state.mov.y
 
     ' moving
     s.moving         = s.x_changed OR s.y_changed
@@ -105,6 +109,8 @@ SUB MOUSE_refresh
     s.moving_right   = MOUSE.new_state.pos.x > MOUSE.old_state.pos.x
     s.moving_up      = MOUSE.new_state.pos.y < MOUSE.old_state.pos.y
     s.moving_down    = MOUSE.new_state.pos.y > MOUSE.old_state.pos.y
+    s.moving_x       = s.mov_x_changed
+    s.moving_y       = s.mov_y_changed
 
     ' buttons
     s.b1_down        = MOUSE.new_state.b1
@@ -148,11 +154,40 @@ SUB MOUSE_refresh
 
     MOUSE.has_events = s.x_changed _
                     OR s.y_changed _
+                    OR s.mov_x_changed _
+                    OR s.mov_y_changed _
                     OR s.b1_changed _
                     OR s.b2_changed _
                     OR s.b3_changed _
                     OR s.wheel_changed
     MOUSE.status = s
+END SUB
+
+
+''
+' Checks if mouse has <> 0 events
+'
+FUNCTION MOUSE_has_non_zero_events%()
+    IF MOUSE.new_state.mov.x <> 0 _
+    OR MOUSE.new_state.mov.y <> 0 _
+    OR MOUSE.new_state.pos.x <> 0 _
+    OR MOUSE.new_state.pos.y <> 0 _
+    OR MOUSE.new_state.b1 <> 0 _
+    OR MOUSE.new_state.b2 <> 0 _
+    OR MOUSE.new_state.b3 <> 0 _
+    OR MOUSE.new_state.wheel <> 0 THEN
+        MOUSE_has_non_zero_events = TRUE
+    ELSE
+        MOUSE_has_non_zero_events = FALSE
+    END IF
+END FUNCTION
+
+
+''
+' Call this SUB after using MOUSE_update or IMOUSE_update and reading the values
+'
+SUB MOUSE_fetched_events
+    MOUSE.has_events = FALSE
 END SUB
 
 
@@ -194,6 +229,8 @@ FUNCTION MOUSE_dump$(label$)
     r$ = r$+t1$+ "status: {" + GJ_LIB_NL$
     r$ = r$+t2$+ ".x_changed: " + MOUSE_n$(s.x_changed, TRUE)
     r$ = r$+t2$+ ".y_changed: " + MOUSE_n$(s.y_changed, TRUE)
+    r$ = r$+t2$+ ".mov_x_changed: " + MOUSE_n$(s.mov_x_changed, TRUE)
+    r$ = r$+t2$+ ".mov_y_changed: " + MOUSE_n$(s.mov_y_changed, TRUE)
     r$ = r$+t2$+ ".b1_changed: " + MOUSE_n$(s.b1_changed, TRUE)
     r$ = r$+t2$+ ".b2_changed: " + MOUSE_n$(s.b2_changed, TRUE)
     r$ = r$+t2$+ ".b3_changed: " + MOUSE_n$(s.b3_changed, TRUE)
@@ -203,6 +240,8 @@ FUNCTION MOUSE_dump$(label$)
     r$ = r$+t2$+ ".moving_right: " + MOUSE_n$(s.moving_right, TRUE)
     r$ = r$+t2$+ ".moving_up: " + MOUSE_n$(s.moving_up, TRUE)
     r$ = r$+t2$+ ".moving_down: " + MOUSE_n$(s.moving_down, TRUE)
+    r$ = r$+t2$+ ".moving_x: " + MOUSE_n$(s.moving_x, TRUE)
+    r$ = r$+t2$+ ".moving_y: " + MOUSE_n$(s.moving_y, TRUE)
     r$ = r$+t2$+ ".b1_down: " + MOUSE_n$(s.b1_down, TRUE)
     r$ = r$+t2$+ ".b2_down: " + MOUSE_n$(s.b2_down, TRUE)
     r$ = r$+t2$+ ".b3_down: " + MOUSE_n$(s.b3_down, TRUE)
