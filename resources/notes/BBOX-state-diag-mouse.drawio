@@ -70,21 +70,21 @@
                 <mxCell id="20" value="MOVE&#10;RIGHT" style="rounded=1;absoluteArcSize=1;arcSize=14;whiteSpace=wrap;strokeWidth=2;fillColor=#fff2cc;strokeColor=#000000;dashed=1;" parent="42" vertex="1">
                     <mxGeometry x="1308.6183295711062" y="730.0194174757281" width="80.27167042889391" height="49.980582524271846" as="geometry"/>
                 </mxCell>
-                <mxCell id="21" value="Wheel" style="curved=1;startArrow=none;;exitX=0.03180803571428571;exitY=0.6783905095795782;entryX=0.5076552304354581;entryY=-0.012121200561523438;rounded=0;" parent="42" source="4" target="5" edge="1">
+                <mxCell id="21" value="Wheel" style="curved=1;startArrow=none;;exitX=0.03180803571428571;exitY=0.6783905095795782;entryX=0.5076552304354581;entryY=-0.012121200561523438;rounded=0;fontStyle=4" parent="42" source="4" target="5" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="328.6594808126411" y="72.69902912621359"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="22" value="Wheel Up" style="curved=1;startArrow=none;;exitX=0.29537273964029115;exitY=0.9757575410785098;entryX=0.4946009772164481;entryY=-0.006060629179983428;rounded=0;" parent="42" source="5" target="6" edge="1">
+                <mxCell id="22" value="Wheel Up" style="curved=1;startArrow=none;;exitX=0.29537273964029115;exitY=0.9757575410785098;entryX=0.4946009772164481;entryY=-0.006060629179983428;rounded=0;fontStyle=4" parent="42" source="5" target="6" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="252.9314898419865" y="224.15533980582526"/>
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="23" value="Wheel Down" style="curved=1;startArrow=none;;exitX=0.719937721230625;exitY=0.9757575410785098;entryX=0.49585556402439024;entryY=-0.006060629179983428;rounded=0;" parent="42" source="5" target="7" edge="1">
+                <mxCell id="23" value="Wheel Down" style="curved=1;startArrow=none;;exitX=0.719937721230625;exitY=0.9757575410785098;entryX=0.49585556402439024;entryY=-0.006060629179983428;rounded=0;fontStyle=4" parent="42" source="5" target="7" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="404.3874717832957" y="224.15533980582526"/>
@@ -106,7 +106,7 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="26" value="Left Click" style="curved=1;startArrow=none;;exitX=0.49747657775878906;exitY=0.9818181124600497;entryX=0;entryY=0.5;rounded=0;entryDx=0;entryDy=0;" parent="42" source="9" target="10" edge="1">
+                <mxCell id="26" value="Left Click" style="curved=1;startArrow=none;;exitX=0.49747657775878906;exitY=0.9818181124600497;entryX=0;entryY=0.5;rounded=0;entryDx=0;entryDy=0;fontStyle=4" parent="42" source="9" target="10" edge="1">
                     <mxGeometry x="0.0212" y="13" relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="598.08" y="410"/>
@@ -114,7 +114,7 @@
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="28" value="Left Click" style="startArrow=none;;exitX=0.46041069216728714;exitY=-5.779844341856061e-8;entryX=0.5929722454689262;entryY=0.9757575410785098;rounded=0;" parent="42" source="10" target="8" edge="1">
+                <mxCell id="28" value="Left Click" style="startArrow=none;;exitX=0.46041069216728714;exitY=-5.779844341856061e-8;entryX=0.5929722454689262;entryY=0.9757575410785098;rounded=0;fontStyle=4" parent="42" source="10" target="8" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points"/>
                     </mxGeometry>
