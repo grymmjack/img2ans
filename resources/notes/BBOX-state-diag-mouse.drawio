@@ -114,19 +114,19 @@
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="28" value="Left Click" style="startArrow=none;;exitX=0.46041069216728714;exitY=-5.779844341856061e-8;entryX=0.5929722454689262;entryY=0.9757575410785098;rounded=0;fontStyle=4" parent="42" source="10" target="8" edge="1">
+                <mxCell id="28" value="Left Click&#10;On BBOX" style="startArrow=none;;exitX=0.46041069216728714;exitY=-5.779844341856061e-8;entryX=0.5929722454689262;entryY=0.9757575410785098;rounded=0;fontStyle=4" parent="42" source="10" target="8" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="29" value=" Left Click &#10;Outside" style="curved=1;startArrow=none;;exitX=1;exitY=0.5;entryX=1;entryY=0.5;rounded=0;entryDx=0;entryDy=0;labelBorderColor=none;spacing=2;shadow=0;spacingTop=0;spacingBottom=0;exitDx=0;exitDy=0;fontStyle=4" parent="42" source="10" target="8" edge="1">
-                    <mxGeometry x="0.0343" relative="1" as="geometry">
+                <mxCell id="29" value=" Left Click &#10;Outside BBOX" style="curved=1;startArrow=none;;exitX=1;exitY=0.5;entryX=1;entryY=0.5;rounded=0;entryDx=0;entryDy=0;labelBorderColor=none;spacing=2;shadow=0;spacingTop=0;spacingBottom=0;exitDx=0;exitDy=0;fontStyle=4" parent="42" source="10" target="8" edge="1">
+                    <mxGeometry x="0.0206" y="5" relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="938.08" y="410"/>
                             <mxPoint x="938.08" y="210"/>
                             <mxPoint x="868.08" y="149"/>
                         </Array>
-                        <mxPoint as="offset"/>
+                        <mxPoint y="1" as="offset"/>
                     </mxGeometry>
                 </mxCell>
                 <mxCell id="30" value="Drag &#10;On Edge" style="curved=1;startArrow=none;;exitX=0.005032465055391386;exitY=0.7520374515698801;entryX=0.49673622532894735;entryY=0.006060513583096591;rounded=0;fontStyle=4" parent="42" source="10" target="11" edge="1">
@@ -197,6 +197,13 @@
                 </mxCell>
                 <mxCell id="47" value="STATE" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1" vertex="1" parent="42">
                     <mxGeometry x="-70" y="21.2" width="116" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="59" value="CONDITIONAL&#10;NESTING" style="edgeStyle=none;orthogonalLoop=1;jettySize=auto;shape=flexArrow;rounded=1;startSize=8;endSize=23.893333333333334;shadow=0;labelBorderColor=none;fontColor=#000000;startArrow=none;startFill=0;endWidth=66.66666666666667;width=98.66666666666667;dashed=1;" edge="1" parent="42">
+                    <mxGeometry width="100" relative="1" as="geometry">
+                        <mxPoint x="119.65" y="124.19" as="sourcePoint"/>
+                        <mxPoint x="119.65" y="594.19" as="targetPoint"/>
+                        <Array as="points"/>
+                    </mxGeometry>
                 </mxCell>
                 <mxCell id="48" value="BOUNDS CHECK" style="rounded=1;fillColor=#fff2cc;strokeColor=#000000;dashed=1;strokeWidth=2;" vertex="1" parent="1">
                     <mxGeometry x="50" y="160" width="116" height="28" as="geometry"/>
