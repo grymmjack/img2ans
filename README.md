@@ -1,5 +1,7 @@
 # IMG2ANS
 
+## TL;DR: https://www.youtube.com/watch?v=sJiqoQ2E0M8
+
 ## NOTE THE GUI IS NOT READY! ONLY THE INDIVIDUAL CLI PROGRAMS ARE!
 
 `IMG2ANS` converts pixels into textmode art using [ANSI codes](https://en.wikipedia.org/wiki/ANSI_escape_code).
