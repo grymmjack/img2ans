@@ -1,13 +1,10 @@
 '$DYNAMIC
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BI'
-$CONSOLE:ONLY
-_CONSOLE ON
 
 OPTION _EXPLICIT
 REDIM file_list(0) AS STRING
 REDIM sorted_file_list(0) AS STRING
 DIM fs_root AS STRING
-DIM i AS INTEGER
 fs_root$ = _FULLPATH$(".") + "resources/images/tests-external/"
 
 CALL files_to_array(fs_root$, file_list$())
@@ -28,21 +25,22 @@ PRINT DUMP.string_array$(sorted_file_list$(), "sorted_file_list")
 ' @param STRING ARRAY arr$() Array to populate with filenames
 '
 SUB files_to_array(filepath$, arr$())
-    DIM f AS STRING
-    DIM ub AS LONG
+    DIM AS STRING f, fn
+    DIM AS LONG lb, ub
     f$ = _FILES$(filepath$)
+    lb& = LBOUND(arr$)
     DO WHILE LEN(f$) > 0
-        IF _
-            _TRIM$(f$) <> "" AND _
-            _TRIM$(f$) <> "./" AND _
-            _TRIM$(f$) <> "../" AND _
-            _TRIM$(f$) <> ".DS_Store" THEN
+        fn$ = _TRIM$(f$)
+        IF fn$ <> "./" AND fn$ <> "../" AND fn$ <> ".DS_Store" THEN
             ub& = UBOUND(arr$)
             arr$(ub&) = filepath$ + f$
-            REDIM _PRESERVE arr(ub& + 1) AS STRING
+            f$ = _FILES$
+            IF f$ <> "" THEN
+                REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
+            END IF
         END IF
-        f$ = _FILES$
     LOOP
+    ' REDIM _PRESERVE arr(ub&) AS STRING
 END SUB
 
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BM'
