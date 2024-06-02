@@ -1,10 +1,15 @@
+OPTION _EXPLICIT
 '$DYNAMIC
+
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BI'
 
-OPTION _EXPLICIT
 REDIM file_list(0) AS STRING
 REDIM sorted_file_list(0) AS STRING
 DIM fs_root AS STRING
+
+$CONSOLE:ONLY
+_CONSOLE ON
+
 fs_root$ = _FULLPATH$(".") + "resources/images/tests-external/"
 
 CALL files_to_array(fs_root$, file_list$())
@@ -34,13 +39,11 @@ SUB files_to_array(filepath$, arr$())
         IF fn$ <> "./" AND fn$ <> "../" AND fn$ <> ".DS_Store" THEN
             ub& = UBOUND(arr$)
             arr$(ub&) = filepath$ + f$
-            f$ = _FILES$
-            IF f$ <> "" THEN
-                REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
-            END IF
+            REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
         END IF
+        f$ = _FILES$
     LOOP
-    ' REDIM _PRESERVE arr(ub&) AS STRING
+    REDIM _PRESERVE arr(ub&) AS STRING
 END SUB
 
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BM'
