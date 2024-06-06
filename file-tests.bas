@@ -11,6 +11,7 @@ $CONSOLE:ONLY
 _CONSOLE ON
 
 fs_root$ = _FULLPATH$(".") + "resources/images/tests-external/"
+fs_root$ = _SELECTFOLDERDIALOG$("Choose Dir", _FULLPATH$(".") + "resources/images/tests-external/")
 
 CALL files_to_array(fs_root$, file_list$())
 PRINT DUMP.string_array$(file_list$(), "file_list")
@@ -18,10 +19,6 @@ PRINT DUMP.string_array$(file_list$(), "file_list")
 CALL ARR_STR.sort(file_list$(), sorted_file_list$())
 PRINT DUMP.string_array$(sorted_file_list$(), "sorted_file_list")
 
-' TODO: FIX the unused first index in the sort stuff.
-
-' PRINT "TOTAL FILES:", UBOUND(sorted_file_list$) - LBOUND(sorted_file_list$)
-' PRINT "sorted_file_list$(0) = " + sorted_file_list$(0)
 
 
 ''
@@ -43,7 +40,7 @@ SUB files_to_array(filepath$, arr$())
         END IF
         f$ = _FILES$
     LOOP
-    REDIM _PRESERVE arr(ub&) AS STRING
+    REDIM _PRESERVE arr(lb& TO ub&) AS STRING
 END SUB
 
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BM'
