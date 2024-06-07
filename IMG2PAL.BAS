@@ -12,8 +12,10 @@
 ' @version 0.1
 '
 
-'$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BI'
-'$INCLUDE:'include/QB64_GJ_LIB/MISC/MISC.BI'
+'$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BI'
+
+$CONSOLE
+_CONSOLE ON
 
 OPTION _EXPLICIT
 '$DYNAMIC
@@ -26,26 +28,58 @@ $IF NDEBUG = FALSE THEN
     $CONSOLE
     $ASSERTS:CONSOLE
 $END IF
-CONST KEY_RSHIFT& = 100303
-CONST KEY_LSHIFT& = 100304
+
+CONST KEY_RSHIFT&      = 100303
+CONST KEY_LSHIFT&      = 100304
+CONST FONT_FILE$       = "/usr/share/fonts/truetype/perfectdos/MorePerfectDOSVGANF-4.ttf"
+CONST FONT_STYLE$      = "MONOSPACE"
+CONST FONT_SIZE&       = 24
+CONST IMG_PAL_SPACING& = 2
+CONST PROG_VERSION$    = "1.0"
+
+$VERSIONINFO:CompanyName="grymmjack"
+$VERSIONINFO:FILEVERSION#=1,0,0,0
+$VERSIONINFO:PRODUCTVERSION#=1,0,0,0
+$VERSIONINFO:FileDescription="IMG2PAL Converts images to custom GPL palettes"
+
+_TITLE "IMG2PAL v" + PROG_VERSION$
 
 'Setup screen
 DIM SHARED CANVAS AS LONG
-CANVAS = _NEWIMAGE(3000, 2000, 32)
+DIM SHARED FONTFACE AS LONG
+CANVAS = _NEWIMAGE(1920, 1080, 32)
 SCREEN CANVAS
+_SCREENMOVE 0, 0
+FONTFACE& = _LOADFONT(FONT_FILE$, FONT_SIZE&, FONT_STYLE$)
+_FONT FONTFACE&
 ' _FULLSCREEN _SQUAREPIXELS
 
 DIM SHARED AS LONG img_orig, img_pal
+DIM SHARED AS INTEGER cur_pal, cur_img
 DIM SHARED AS STRING k, img_file, pal_file
 DIM SHARED AS _BYTE no_dithering
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
+DIM SHARED pal_files(0) AS STRING
+DIM SHARED img_files(0) AS STRING
+cur_img% = 0
+cur_pal% = 0
+
+' DIM AS LONG userwidth, userheight, scrnwidth, scrnheight
+' userwidth& = _DESKTOPWIDTH: userheight& = _DESKTOPHEIGHT 'get current screen resolution
+' scrnwidth& = _WIDTH: scrnheight& = _HEIGHT  'get the dimensions of the program screen
+' _SCREENMOVE (userwidth& \ 2 - scrnwidth& \ 2) - 3, (userheight& \ 2 - scrnheight& \ 2) - 29
+' _DELAY 4
+' _SCREENMOVE _MIDDLE  'check centering
+' END
+
+
 zoom = 0.1
 IF _DESKTOPWIDTH >= _WIDTH(CANVAS&) THEN
     zoom = 1.0
 END IF
 zoom_adj = 0.1
 zoom_min = 0.1
-zoom_max = 5.0
+zoom_max = 4.0
 
 draw_output
 DO
@@ -56,11 +90,20 @@ DO
     ELSE
         zoom_adj = 0.1
     END IF
-    SELECT CASE k
+    SELECT CASE k$
         CASE CHR$(27)
             EXIT DO
         CASE "1"
             zoom = 1
+            draw_output
+        CASE "2"
+            zoom = 2
+            draw_output
+        CASE "3"
+            zoom = 3
+            draw_output
+        CASE "4"
+            zoom = 4
             draw_output
         CASE "0"
             zoom = zoom_min
@@ -78,6 +121,31 @@ DO
             zoom = zoom - zoom_adj
             IF (zoom < zoom_min) THEN zoom = zoom_min
             draw_output
+        CASE CHR$(0) + CHR$(75) 'left arrow
+            prev_pal_file
+            load_gpl_palette pal_files$(cur_pal%), img_pal
+        CASE CHR$(0) + CHR$(77) 'right arrow
+            next_pal_file
+            load_gpl_palette pal_files$(cur_pal%), img_pal
+        CASE CHR$(0) + CHR$(73) 'page up - prev image
+            ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
+            prev_img_file
+            IF no_dithering THEN
+                img_orig = _LOADIMAGE(img_files$(cur_img%), 32)
+            ELSE
+                img_orig = _LOADIMAGE(img_files$(cur_img%), 256, "adaptive")
+            END IF
+            img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+            load_gpl_palette pal_files$(cur_pal%), img_pal
+        CASE CHR$(0) + CHR$(81) 'page down - next image
+            next_img_file
+            IF no_dithering THEN
+                img_orig = _LOADIMAGE(img_files$(cur_img%), 32)
+            ELSE
+                img_orig = _LOADIMAGE(img_files$(cur_img%), 256, "adaptive")
+            END IF
+            img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+            load_gpl_palette pal_files$(cur_pal%), img_pal
         CASE LCASE$("l")
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
@@ -107,6 +175,10 @@ DO
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
+                REDIM img_files(0) AS STRING
+                CALL files_to_array(LEFT$(img_file$, _INSTRREV(img_file$, "/")), "*", img_files$())
+                cur_img% = ARR_STR.find%(img_files$(), img_file$)
+                _ECHO _TRIM$(STR$(cur_img%))
                 draw_output
             END IF
 
@@ -123,6 +195,10 @@ DO
                 )
                 IF LEN(pal_file$) <> 0 THEN
                     load_gpl_palette pal_file$, img_pal
+                    REDIM pal_files(0) AS STRING
+                    CALL files_to_array(LEFT$(pal_file$, _INSTRREV(pal_file$, "/")), "*.GPL", pal_files$())
+                    cur_pal% = ARR_STR.find%(pal_files$(), pal_file$)
+                    _ECHO _TRIM$(STR$(cur_pal%))
                 END IF
                 draw_output
             END IF
@@ -143,9 +219,9 @@ DO
 
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
                 IF no_dithering THEN
-                    img_orig = _LOADIMAGE(img_file$, 32)
+                    img_orig = _LOADIMAGE(img_files$(clamp%(0, UBOUND(img_files$), cur_img% - 1)), 32)
                 ELSE
-                    img_orig = _LOADIMAGE(img_file$, 256, "adaptive")
+                    img_orig = _LOADIMAGE(img_files$(clamp%(0, UBOUND(img_files$), cur_img% - 1)), 256, "adaptive")
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
@@ -165,10 +241,11 @@ SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
     IF no_dithering THEN
-        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=DITHERING, UP/DOWN=ZOOM (+SHIFT=MORE,0=MIN,1=100%,9=MAX), ESC=QUIT - ";
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
+        PRINT "IMAGE:" + img_files$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ") - PAL:" + pal_files$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ") 
     ELSE
-        PRINT "L=LOAD IMAGE, P=LOAD PALETTE, D=NO DITHERING, UP/DOWN=ZOOM (+SHIFT=MORE,0=MIN,1=100%,9=MAX), ESC=QUIT - ";
+        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
     END IF
 
@@ -178,7 +255,7 @@ SUB draw_output
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = 16
+        dy1_orig = _FONTHEIGHT(FONTFACE&)
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -192,8 +269,8 @@ SUB draw_output
         IF img_pal < -1 THEN
             palettize img_pal, img_orig
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
-            dx1_pal = dx2_orig + 10
-            dy1_pal = 16
+            dx1_pal = dx2_orig + IMG_PAL_SPACING&
+            dy1_pal = _FONTHEIGHT(FONTFACE&)
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
@@ -327,9 +404,11 @@ END SUB
 ' @param LONG dst The destination image. This must be an 8bpp image where the palette is loaded
 '
 SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
+
     _ASSERT dst < -1, "dst not allocated!"
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
     _ASSERT _FILEEXISTS(gpl_file), gpl_file + " not found!"
+    PRINT DUMP.string$(gpl_file, "gpl_file")
 
     DIM fh AS LONG: fh = FREEFILE
     OPEN gpl_file$ FOR INPUT AS fh
@@ -417,5 +496,75 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
     CLOSE fh
 END SUB
 
-'$INCLUDE:'include/QB64_GJ_LIB/CONSOLE/CONSOLE.BM'
-'$INCLUDE:'include/QB64_GJ_LIB/MISC/MISC.BM'
+''
+' Returns all the files found in filepath as an array of strings
+' @param STRING filepath$ Path to include files from
+' @param STRING mask$ File mask to search against (wildcards OK) to include 
+' @param STRING ARRAY arr$() Array to populate with filenames
+'
+SUB files_to_array(filepath$, mask$, arr$())
+    DIM AS STRING f, fn
+    DIM AS LONG lb, ub
+    f$ = _FILES$(filepath$ + mask$)
+    lb& = LBOUND(arr$)
+    DO WHILE LEN(f$) > 0
+        fn$ = _TRIM$(f$)
+        IF fn$ <> "./" AND fn$ <> "../" AND fn$ <> ".DS_Store" THEN
+            ub& = UBOUND(arr$)
+            arr$(ub&) = filepath$ + f$
+            REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
+        END IF
+        f$ = _FILES$
+    LOOP
+    REDIM _PRESERVE arr(lb& TO ub&) AS STRING
+    DIM old_dest AS LONG
+    old_dest& = _DEST
+    _DEST _CONSOLE
+    PRINT DUMP.string$(filepath$, "filepath")
+    PRINT DUMP.string_array$(arr$(), "files_to_array")
+    _DEST old_dest&
+END SUB
+
+
+
+SUB prev_img_file
+    cur_img% = clamp%(LBOUND(img_files$), UBOUND(img_files$), cur_img% - 1)
+    _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+END SUB
+
+SUB next_img_file
+    cur_img% = clamp%(LBOUND(img_files$), UBOUND(img_files$), cur_img% + 1)
+    _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+END SUB
+
+SUB prev_pal_file
+    cur_pal% = clamp%(LBOUND(pal_files$), UBOUND(pal_files$), cur_pal% - 1)
+    _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+END SUB
+
+SUB next_pal_file
+    cur_pal% = clamp%(LBOUND(pal_files$), UBOUND(pal_files$), cur_pal% + 1)
+    _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+END SUB
+
+
+''
+' Clamps an integer between min and max
+' @param INTEGER min Minimum value allowed
+' @param INTEGER max Maximum value allowed
+' @param INTEGER value Value passed in to check
+' @return INTEGER value clamped
+'
+FUNCTION clamp%(min%, max%, value%)
+    _ECHO "min%=" + _TRIM$(STR$(min%)) + _
+        ", max%=" + _TRIM$(STR$(max%)) + _
+        ", value%=" + _TRIM$(STR$(value%))
+    IF value% > max% THEN value% = max%
+    IF value% < min% THEN value% = min%
+    _ECHO "return value%=" + _TRIM$(STR$(value%))
+    clamp% = value%
+END FUNCTION
+
+
+
+'$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BM'
