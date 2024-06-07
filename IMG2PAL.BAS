@@ -31,11 +31,41 @@ $END IF
 
 CONST KEY_RSHIFT&      = 100303
 CONST KEY_LSHIFT&      = 100304
-CONST FONT_FILE$       = "/usr/share/fonts/truetype/perfectdos/MorePerfectDOSVGANF-4.ttf"
-CONST FONT_STYLE$      = "MONOSPACE"
-CONST FONT_SIZE&       = 24
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
+CONST FONT_STYLE$      = "MONOSPACE"
+
+DIM SHARED AS LONG img_orig, img_pal
+DIM SHARED AS INTEGER cur_pal, cur_img
+DIM SHARED AS STRING k, img_file, pal_file, FONT_DIR, FONT_FILE
+DIM SHARED AS _BYTE no_dithering
+DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
+DIM SHARED pal_files(0) AS STRING
+DIM SHARED img_files(0) AS STRING
+
+$IF MAC THEN
+    FONT_DIR$        = ENVIRON$("HOME") + "/Library/Fonts"
+    CONST FONT_SIZE& = 16
+    CONST CANVAS_W&  = 1280
+    CONST CANVAS_H&  = 960
+	CONST SLASH$     = "/"
+    PRINT "MAC"
+$ELSEIF LINUX THEN
+    FONT_DIR$        = ENVIRON$("HOME") + "/.fonts"
+    CONST FONT_SIZE& = 24
+    CONST CANVAS_W&  = 1920
+    CONST CANVAS_H&  = 1080
+	CONST SLASH$     = "/"
+    PRINT "LINUX"
+$ELSEIF WIN THEN
+    FONT_DIR$        = ENVIRON$("SYSTEMROOT") + "\Fonts"
+    CONST FONT_SIZE& = 24
+    CONST CANVAS_W&  = 1920
+    CONST CANVAS_H&  = 1080
+	CONST SLASH$     = "\"
+    PRINT "WIN"
+$END IF
+FONT_FILE$ = FONT_DIR$ + "/MorePerfectDOSVGANF-4.ttf"
 
 $VERSIONINFO:CompanyName="grymmjack"
 $VERSIONINFO:FILEVERSION#=1,0,0,0
@@ -47,20 +77,13 @@ _TITLE "IMG2PAL v" + PROG_VERSION$
 'Setup screen
 DIM SHARED CANVAS AS LONG
 DIM SHARED FONTFACE AS LONG
-CANVAS = _NEWIMAGE(1920, 1080, 32)
+CANVAS = _NEWIMAGE(CANVAS_W&, CANVAS_H&, 32)
 SCREEN CANVAS
 _SCREENMOVE 0, 0
 FONTFACE& = _LOADFONT(FONT_FILE$, FONT_SIZE&, FONT_STYLE$)
 _FONT FONTFACE&
 ' _FULLSCREEN _SQUAREPIXELS
 
-DIM SHARED AS LONG img_orig, img_pal
-DIM SHARED AS INTEGER cur_pal, cur_img
-DIM SHARED AS STRING k, img_file, pal_file
-DIM SHARED AS _BYTE no_dithering
-DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
-DIM SHARED pal_files(0) AS STRING
-DIM SHARED img_files(0) AS STRING
 cur_img% = 0
 cur_pal% = 0
 
@@ -243,10 +266,13 @@ SUB draw_output
     IF no_dithering THEN
         PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
-        PRINT "IMAGE:" + img_files$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ") - PAL:" + pal_files$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ") 
+        PRINT "IMAGE:" + img_files$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+        PRINT "PAL:" + pal_files$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
     ELSE
         PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
+        PRINT "IMAGE:" + img_files$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+        PRINT "PAL:" + pal_files$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
     END IF
 
     ' Draw the images if they are loaded
@@ -255,7 +281,7 @@ SUB draw_output
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = _FONTHEIGHT(FONTFACE&)
+        dy1_orig = _FONTHEIGHT(FONTFACE&)*3
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -270,7 +296,7 @@ SUB draw_output
             palettize img_pal, img_orig
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
-            dy1_pal = _FONTHEIGHT(FONTFACE&)
+            dy1_pal = _FONTHEIGHT(FONTFACE&)*3
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
