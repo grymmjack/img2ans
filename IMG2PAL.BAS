@@ -42,6 +42,8 @@ DIM SHARED AS _BYTE no_dithering
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
+DIM SHARED pal_files_sorted(0) AS STRING
+DIM SHARED img_files_sorted(0) AS STRING
 
 $IF MAC THEN
     FONT_DIR$        = ENVIRON$("HOME") + "/Library/Fonts"
@@ -146,32 +148,32 @@ DO
             draw_output
         CASE CHR$(0) + CHR$(75) 'left arrow
             prev_pal_file
-            load_gpl_palette pal_files$(cur_pal%), img_pal
+            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             draw_output
         CASE CHR$(0) + CHR$(77) 'right arrow
             next_pal_file
-            load_gpl_palette pal_files$(cur_pal%), img_pal
+            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             draw_output
         CASE CHR$(0) + CHR$(73) 'page up - prev image
             ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
             prev_img_file
             IF no_dithering THEN
-                img_orig = _LOADIMAGE(img_files$(cur_img%), 32)
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
             ELSE
-                img_orig = _LOADIMAGE(img_files$(cur_img%), 256, "adaptive")
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, "adaptive")
             END IF
             img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
-            load_gpl_palette pal_files$(cur_pal%), img_pal
+            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             draw_output
         CASE CHR$(0) + CHR$(81) 'page down - next image
             next_img_file
             IF no_dithering THEN
-                img_orig = _LOADIMAGE(img_files$(cur_img%), 32)
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
             ELSE
-                img_orig = _LOADIMAGE(img_files$(cur_img%), 256, "adaptive")
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, "adaptive")
             END IF
             img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
-            load_gpl_palette pal_files$(cur_pal%), img_pal
+            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             draw_output
         CASE "l", "L":
             ' Choose an image file with dialog
@@ -203,8 +205,10 @@ DO
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
                 REDIM img_files(0) AS STRING
+                REDIM img_files_sorted(0) AS STRING
                 CALL files_to_array(LEFT$(img_file$, _INSTRREV(img_file$, "/")), "*", img_files$())
-                cur_img% = ARR_STR.find%(img_files$(), img_file$)
+                CALL ARR_STR.sort(img_files$(), img_files_sorted$())
+                cur_img% = ARR_STR.find%(img_files_sorted$(), img_file$)
                 _ECHO _TRIM$(STR$(cur_img%))
                 draw_output
             END IF
@@ -223,8 +227,10 @@ DO
                 IF LEN(pal_file$) <> 0 THEN
                     load_gpl_palette pal_file$, img_pal
                     REDIM pal_files(0) AS STRING
+                    REDIM pal_files_sorted(0) AS STRING
                     CALL files_to_array(LEFT$(pal_file$, _INSTRREV(pal_file$, "/")), "*.GPL", pal_files$())
-                    cur_pal% = ARR_STR.find%(pal_files$(), pal_file$)
+                    CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
+                    cur_pal% = ARR_STR.find%(pal_files_sorted$(), pal_file$)
                     _ECHO _TRIM$(STR$(cur_pal%))
                 END IF
                 draw_output
@@ -246,9 +252,9 @@ DO
 
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
                 IF no_dithering THEN
-                    img_orig = _LOADIMAGE(img_files$(clamp%(0, UBOUND(img_files$), cur_img% - 1)), 32)
+                    img_orig = _LOADIMAGE(img_files_sorted$(clamp%(0, UBOUND(img_files_sorted$), cur_img% - 1)), 32)
                 ELSE
-                    img_orig = _LOADIMAGE(img_files$(clamp%(0, UBOUND(img_files$), cur_img% - 1)), 256, "adaptive")
+                    img_orig = _LOADIMAGE(img_files_sorted$(clamp%(0, UBOUND(img_files_sorted$), cur_img% - 1)), 256, "adaptive")
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
@@ -270,13 +276,13 @@ SUB draw_output
     IF no_dithering THEN
         PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
-        PRINT "IMAGE:" + img_files$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
     ELSE
         PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom))
-        PRINT "IMAGE:" + img_files$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
+        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
     END IF
 
     ' Draw the images if they are loaded
@@ -558,22 +564,22 @@ END SUB
 
 
 SUB prev_img_file
-    cur_img% = clamp%(LBOUND(img_files$), UBOUND(img_files$), cur_img% - 1)
+    cur_img% = clamp%(LBOUND(img_files_sorted$), UBOUND(img_files_sorted$), cur_img% - 1)
     _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
 END SUB
 
 SUB next_img_file
-    cur_img% = clamp%(LBOUND(img_files$), UBOUND(img_files$), cur_img% + 1)
+    cur_img% = clamp%(LBOUND(img_files_sorted$), UBOUND(img_files_sorted$), cur_img% + 1)
     _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
 END SUB
 
 SUB prev_pal_file
-    cur_pal% = clamp%(LBOUND(pal_files$), UBOUND(pal_files$), cur_pal% - 1)
+    cur_pal% = clamp%(LBOUND(pal_files_sorted$), UBOUND(pal_files_sorted$), cur_pal% - 1)
     _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
 END SUB
 
 SUB next_pal_file
-    cur_pal% = clamp%(LBOUND(pal_files$), UBOUND(pal_files$), cur_pal% + 1)
+    cur_pal% = clamp%(LBOUND(pal_files_sorted$), UBOUND(pal_files_sorted$), cur_pal% + 1)
     _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
 END SUB
 
