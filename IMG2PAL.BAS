@@ -147,9 +147,11 @@ DO
         CASE CHR$(0) + CHR$(75) 'left arrow
             prev_pal_file
             load_gpl_palette pal_files$(cur_pal%), img_pal
+            draw_output
         CASE CHR$(0) + CHR$(77) 'right arrow
             next_pal_file
             load_gpl_palette pal_files$(cur_pal%), img_pal
+            draw_output
         CASE CHR$(0) + CHR$(73) 'page up - prev image
             ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
             prev_img_file
@@ -160,6 +162,7 @@ DO
             END IF
             img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
             load_gpl_palette pal_files$(cur_pal%), img_pal
+            draw_output
         CASE CHR$(0) + CHR$(81) 'page down - next image
             next_img_file
             IF no_dithering THEN
@@ -169,7 +172,8 @@ DO
             END IF
             img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
             load_gpl_palette pal_files$(cur_pal%), img_pal
-        CASE LCASE$("l")
+            draw_output
+        CASE "l", "L":
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
                 "Choose an image", _
@@ -205,7 +209,7 @@ DO
                 draw_output
             END IF
 
-        CASE LCASE$("p")
+        CASE "p", "P":
             ' Only allow to load a palette if the main image is loaded
             IF img_pal < -1 THEN
                 ' Choose a palette file with dialog
@@ -226,7 +230,7 @@ DO
                 draw_output
             END IF
 
-        CASE LCASE$("d")
+        CASE "d", "D":
             no_dithering = NOT no_dithering
 
             IF LEN(img_file$) <> 0 THEN
