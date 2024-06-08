@@ -46,28 +46,23 @@ DIM SHARED pal_files_sorted(0) AS STRING
 DIM SHARED img_files_sorted(0) AS STRING
 
 $IF MAC THEN
-    FONT_DIR$        = ENVIRON$("HOME") + "/Library/Fonts"
+    FONT_DIR$ = ENVIRON$("HOME") + "/Library/Fonts"
     CONST FONT_SIZE& = 16
     CONST CANVAS_W&  = 1280
     CONST CANVAS_H&  = 960
-	CONST SLASH$     = "/"
-    PRINT "MAC"
 $ELSEIF LINUX THEN
-    FONT_DIR$        = ENVIRON$("HOME") + "/.fonts"
+    FONT_DIR$ = ENVIRON$("HOME") + "/.fonts"
     CONST FONT_SIZE& = 24
     CONST CANVAS_W&  = 1920
     CONST CANVAS_H&  = 1080
-	CONST SLASH$     = "/"
-    PRINT "LINUX"
 $ELSEIF WIN THEN
-    FONT_DIR$        = ENVIRON$("SYSTEMROOT") + "\Fonts"
+    FONT_DIR$ = ENVIRON$("HOMEPATH") + "\AppData\Local\Microsoft\Windows\Fonts"
     CONST FONT_SIZE& = 24
     CONST CANVAS_W&  = 1920
     CONST CANVAS_H&  = 1080
-	CONST SLASH$     = "\"
-    PRINT "WIN"
 $END IF
-FONT_FILE$ = FONT_DIR$ + "/MorePerfectDOSVGANF-4.ttf"
+' FONT_FILE$ = FONT_DIR$ + "/MorePerfectDOSVGANF-4.ttf"
+FONT_FILE$ = FONT_DIR$ + "/BerkeleyMonoNerdFont-Regular.ttf"
 
 $VERSIONINFO:CompanyName="grymmjack"
 $VERSIONINFO:FILEVERSION#=1,0,0,0
@@ -179,7 +174,7 @@ DO
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
                 "Choose an image", _
-                _STARTDIR$ + "/resources/images/tests-external/", _
+                _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$, _
                 "*.jpg|*.jpeg|*.png|*.tga|*.bmp|*.psd|*.gif|*.pcx|*.svg|*.qoi" _
                 + "*.JPG|*.JPEG|*.PNG|*.TGA|*.BMP|*.PSD|*.GIF|*.PCX|*.SVG|*.QOI", _
                 "Image Files", _
@@ -206,7 +201,7 @@ DO
                 load_default_ega_palette img_pal
                 REDIM img_files(0) AS STRING
                 REDIM img_files_sorted(0) AS STRING
-                CALL files_to_array(LEFT$(img_file$, _INSTRREV(img_file$, "/")), "*", img_files$())
+                CALL files_to_array(LEFT$(img_file$, _INSTRREV(img_file$, SLASH$)), "*", img_files$())
                 CALL ARR_STR.sort(img_files$(), img_files_sorted$())
                 cur_img% = ARR_STR.find%(img_files_sorted$(), img_file$)
                 _ECHO _TRIM$(STR$(cur_img%))
@@ -219,7 +214,7 @@ DO
                 ' Choose a palette file with dialog
                 pal_file$ = _OPENFILEDIALOG$( _
                     "Choose a GPL (GIMP) palette", _
-                    _STARTDIR$ + "/resources/palettes/", _
+                    _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$, _
                     "*.gpl|*.GPL", _
                     "GPL (GIMP) Palette", _
                     0 _
@@ -228,7 +223,7 @@ DO
                     load_gpl_palette pal_file$, img_pal
                     REDIM pal_files(0) AS STRING
                     REDIM pal_files_sorted(0) AS STRING
-                    CALL files_to_array(LEFT$(pal_file$, _INSTRREV(pal_file$, "/")), "*.GPL", pal_files$())
+                    CALL files_to_array(LEFT$(pal_file$, _INSTRREV(pal_file$, SLASH$)), "*.GPL", pal_files$())
                     CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
                     cur_pal% = ARR_STR.find%(pal_files_sorted$(), pal_file$)
                     _ECHO _TRIM$(STR$(cur_pal%))
