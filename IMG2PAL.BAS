@@ -36,7 +36,7 @@ CONST PROG_VERSION$    = "1.0"
 CONST FONT_STYLE$      = "MONOSPACE"
 
 DIM SHARED AS LONG img_orig, img_pal
-DIM SHARED AS INTEGER cur_pal, cur_img
+DIM SHARED AS INTEGER cur_pal, cur_img, cur_scaler
 DIM SHARED AS STRING k, img_file, pal_file, FONT_DIR, FONT_FILE
 DIM SHARED AS _BYTE no_dithering
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
@@ -44,6 +44,24 @@ DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
 DIM SHARED img_files_sorted(0) AS STRING
+
+DIM SHARED scalers(6) AS STRING
+scalers$(0) = "ADAPTIVE"
+scalers$(1) = "SXBR2"
+scalers$(2) = "MMPX2"
+scalers$(3) = "HQ2XA"
+scalers$(4) = "HQ2XB"
+scalers$(5) = "HQ3XA"
+scalers$(6) = "HQ3XB"
+cur_scaler% = 0
+
+' default image/pal
+img_files$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$ + "08_creon.gif"
+img_files_sorted$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$ + "08_creon.gif"
+cur_img% = 0
+pal_files$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$ + "EGA (16).GPL"
+pal_files_sorted$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$ + "EGA (16).GPL"
+cur_pal% = 0
 
 $IF MAC THEN
     FONT_DIR$ = ENVIRON$("HOME") + "/Library/Fonts"
@@ -131,6 +149,24 @@ DO
         CASE "9"
             zoom = zoom_max
             draw_output
+        CASE ","
+            prev_scaler
+            ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
+            IF no_dithering THEN
+                img_orig = _LOADIMAGE(img_file$, 32)
+            ELSE
+                img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
+            END IF            
+            draw_output
+        CASE "."
+            next_scaler
+            ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
+            IF no_dithering THEN
+                img_orig = _LOADIMAGE(img_file$, 32)
+            ELSE
+                img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
+            END IF            
+            draw_output
         CASE CHR$(0) + CHR$(72) 'up arrow
             _ASSERT 1, "Up"
             zoom = zoom + zoom_adj
@@ -155,7 +191,7 @@ DO
             IF no_dithering THEN
                 img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
             ELSE
-                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, "adaptive")
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
             END IF
             img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
             load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
@@ -165,7 +201,7 @@ DO
             IF no_dithering THEN
                 img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
             ELSE
-                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, "adaptive")
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
             END IF
             img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
             load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
@@ -195,7 +231,7 @@ DO
                 IF no_dithering THEN
                     img_orig = _LOADIMAGE(img_file$, 32)
                 ELSE
-                    img_orig = _LOADIMAGE(img_file$, 256, "adaptive")
+                    img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
@@ -249,7 +285,7 @@ DO
                 IF no_dithering THEN
                     img_orig = _LOADIMAGE(img_files_sorted$(clamp%(0, UBOUND(img_files_sorted$), cur_img% - 1)), 32)
                 ELSE
-                    img_orig = _LOADIMAGE(img_files_sorted$(clamp%(0, UBOUND(img_files_sorted$), cur_img% - 1)), 256, "adaptive")
+                    img_orig = _LOADIMAGE(img_files_sorted$(clamp%(0, UBOUND(img_files_sorted$), cur_img% - 1)), 256, scalers$(cur_scaler%))
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
@@ -269,13 +305,13 @@ SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
     IF no_dithering THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom))
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
     ELSE
         PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom))
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
     END IF
@@ -557,6 +593,15 @@ SUB files_to_array(filepath$, mask$, arr$())
 END SUB
 
 
+SUB prev_scaler
+    cur_scaler% = clamp%(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% - 1)
+    _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
+END SUB
+
+SUB next_scaler
+    cur_scaler% = clamp%(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% + 1)
+    _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
+END SUB
 
 SUB prev_img_file
     cur_img% = clamp%(LBOUND(img_files_sorted$), UBOUND(img_files_sorted$), cur_img% - 1)
