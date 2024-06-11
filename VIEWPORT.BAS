@@ -20,6 +20,7 @@ $END IF
 
 CONST VIEWPORT_UPDATE_RATE! = 1
 CONST VIEWPORT_INIT_DELAY!  = 0.01
+CONST VIEWPORT_MOVE_RATE!   = 0.01
 
 TYPE VIEWPORT
     canvas       AS LONG
@@ -46,13 +47,13 @@ TYPE VIEWPORT
     init_timer   AS INTEGER
     update_timer AS INTEGER
     update_ticks AS LONG
+    move_timer   AS INTEGER
 END TYPE
-
 DIM SHARED THE_VIEWPORT AS VIEWPORT
+
+CALL VIEWPORT.init(THE_VIEWPORT, FALSE, 1024, 768, 32, FALSE, FALSE, FALSE, 0, 0)
+
 DIM k AS STRING
-
-CALL VIEWPORT.init(THE_VIEWPORT, FALSE, 1024, 768, 32, TRUE, TRUE, TRUE, 0, 0)
-
 DO
     _LIMIT 30
 
@@ -64,6 +65,10 @@ DO
         END IF
     END IF
 LOOP
+
+VIEWPORT.shutdown
+
+SYSTEM
 
 
 SUB draw_output()
@@ -93,6 +98,14 @@ SUB VIEWPORT.init(vp AS VIEWPORT, fs%, w&, h&, mode&, can_r%, can_fs%, can_m%, p
     vp.wants_fs%    = fs%
     vp.canvas_mode& = mode&
 
+    IF vp.can_fs% = FALSE THEN
+        _ALLOWFULLSCREEN _OFF
+    END IF
+
+    IF vp.can_resize% = FALSE THEN
+        _RESIZE OFF
+    END IF
+
     ' Initialization timer
     vp.init_timer% = _FREETIMER
     ON TIMER(vp.init_timer%, VIEWPORT_INIT_DELAY!) VIEWPORT.initialized
@@ -108,17 +121,51 @@ SUB VIEWPORT.init(vp AS VIEWPORT, fs%, w&, h&, mode&, can_r%, can_fs%, can_m%, p
     TIMER(vp.update_timer%) ON
     ECH0 "VIEWPORT.init() - TIMER ON - update_timer"
 
+    ' Move timer
+    vp.move_timer% = _FREETIMER
+    ON TIMER(vp.move_timer%, VIEWPORT_MOVE_RATE!) VIEWPORT.check_can_move
+    ECH0 "VIEWPORT.init() - ON TIMER move_timer - 1, VIEWPORT.check_can_move"
+    TIMER(vp.move_timer%) ON
+    ECH0 "VIEWPORT.init() - TIMER ON - move_timer"
+END SUB
+
+
+SUB VIEWPORT.shutdown
+    SCREEN 0
+    IF THE_VIEWPORT.canvas& <> 0 THEN
+        _FREEIMAGE THE_VIEWPORT.canvas&
+    END IF
+    TIMER(THE_VIEWPORT.update_timer%) OFF
+    TIMER(THE_VIEWPORT.update_timer%) FREE
+    TIMER(THE_VIEWPORT.move_timer%) OFF
+    TIMER(THE_VIEWPORT.move_timer%) FREE
 END SUB
 
 
 SUB VIEWPORT.setup_screen(vp AS VIEWPORT, w&, h&, mode&)
+    ECH0 "VIEWPORT.setup_screen(w:" + ns$(w&) + ", h:" + ns$(h&) + ", mode:" + ns$(mode&) + ")"
+
     SCREEN 0
+
     IF vp.canvas& <> 0 THEN
         _FREEIMAGE vp.canvas&
     END IF
     vp.canvas& = _NEWIMAGE(w&, h&, mode&)
-    IF vp.wants_fs% THEN _FULLSCREEN
+
     SCREEN vp.canvas&
+
+    IF vp.wants_fs% = TRUE THEN
+        ECH0 "REQUESTING FULLSCREEN"
+        IF vp.can_fs% = TRUE THEN
+            ECH0 "REQUESTING FULLSCREEN - OK: CAN FS"
+            IF vp.is_fs% = FALSE THEN 
+                ECH0 "REQUESTING FULLSCREEN - OK!"
+                _FULLSCREEN
+            END IF
+        ELSE
+            ECH0 "REQUEST FOR FULLSCREEN DENIED"
+        END IF
+    END IF
 END SUB
 
 
@@ -128,7 +175,6 @@ SUB VIEWPORT.initialized()
     ECH0 "VIEWPORT.initialized() - TIMER OFF"
     TIMER(THE_VIEWPORT.init_timer%) FREE
     ECH0 "VIEWPORT.initialized() - TIMER FREE"
-    CALL VIEWPORT.setup_screen(THE_VIEWPORT, THE_VIEWPORT.orig_w&, THE_VIEWPORT.orig_h&, THE_VIEWPORT.canvas_mode&)
 
     IF THE_VIEWPORT.pos_top% <> _SCREENY OR THE_VIEWPORT.pos_left% <> _SCREENX THEN
         CALL VIEWPORT.move(THE_VIEWPORT, THE_VIEWPORT.pos_left%, THE_VIEWPORT.pos_top%)
@@ -138,14 +184,15 @@ SUB VIEWPORT.initialized()
         CALL VIEWPORT.resize(THE_VIEWPORT, THE_VIEWPORT.orig_w&, THE_VIEWPORT.orig_h&)        
     END IF
     THE_VIEWPORT.initialized% = TRUE
+    CALL VIEWPORT.setup_screen(THE_VIEWPORT, THE_VIEWPORT.orig_w&, THE_VIEWPORT.orig_h&, THE_VIEWPORT.canvas_mode&)
 END SUB
 
 
 SUB VIEWPORT.update
     ECH0 "VIEWPORT.update()"
     THE_VIEWPORT.update_ticks& = THE_VIEWPORT.update_ticks& + 1
-    THE_VIEWPORT.is_fs%    = (THE_VIEWPORT.fs_mode% > 0)
     THE_VIEWPORT.fs_mode%  = _FULLSCREEN
+    THE_VIEWPORT.is_fs%    = (THE_VIEWPORT.fs_mode% > 0)
     THE_VIEWPORT.pos_left% = _SCREENX
     THE_VIEWPORT.pos_top%  = _SCREENY
     THE_VIEWPORT.cur_w&    = _WIDTH
@@ -157,7 +204,9 @@ END SUB
 
 SUB VIEWPORT.resize(vp AS VIEWPORT, w&, h&)
     ECH0 "VIEWPORT.resize(w: " + ns$(w&) + ", h:" + ns$(h&) + ")"
-    CALL VIEWPORT.setup_screen(vp, w&, h&, vp.canvas_mode&)
+    IF vp.update_timer% > 2 AND vp.is_fs% = FALSE THEN
+        CALL VIEWPORT.setup_screen(vp, w&, h&, vp.canvas_mode&)
+    END IF
 END SUB
 
 
@@ -175,9 +224,25 @@ SUB VIEWPORT.move(vp AS VIEWPORT, pos_l%, pos_t%)
         ECH0 "VIEWPORT.move is not supported in LINUX (no _SCREENMOVE)"
         EXIT SUB
     $ENDIF
-    _SCREENMOVE pos_l%, pos_t%
-    vp.pos_left% = pos_l%
-    vp.pos_top%  = pos_t%
+    IF vp.is_fs% = FALSE THEN
+        _SCREENMOVE pos_l%, pos_t%
+        vp.pos_left% = pos_l%
+        vp.pos_top%  = pos_t%
+    END IF
+END SUB
+
+
+SUB VIEWPORT.check_can_move
+    ' ECH0 "VIEWPORT.check_can_move()"
+    IF THE_VIEWPORT.is_fs% = FALSE THEN
+        IF THE_VIEWPORT.can_move% = FALSE THEN
+            IF THE_VIEWPORT.was_moved% = TRUE THEN
+                ECH0 "VIEWPORT.check_can_move() - CANNOT MOVE, REPOSITIONING"
+                CALL VIEWPORT.move(THE_VIEWPORT, THE_VIEWPORT.orig_top%, THE_VIEWPORT.orig_left%)
+                THE_VIEWPORT.was_moved% = FALSE
+            END IF
+        END IF
+    END IF
 END SUB
 
 
@@ -237,7 +302,6 @@ END FUNCTION
 SUB ECH0(s$)
     $IF DEBUGGING THEN
         $CONSOLE
-        _CONSOLE ON
         _ECHO s$
     $ENDIF
 END SUB
