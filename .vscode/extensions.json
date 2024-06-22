@@ -7,13 +7,13 @@
         "ms-vscode.hexeditor",
         "ionicabizau.ms-dos-editor-theme",
         "ziyasal.vscode-open-in-github",
-        "qb64-official.qb64",
         "benrogerswpg.websearchengine",
         "drmerfy.overtype",
         "forbeslindesay.forbeslindesay-taskrunner",
         "gurumukhi.selected-lines-count",
         "hediet.vscode-drawio",
         "dzylikecode.vscode-drawio-plugin-markdown",
-        "nopeslide.vscode-drawio-plugin-mermaid"
+        "nopeslide.vscode-drawio-plugin-mermaid",
+        "grymmjack.qb64pe"
     ]
 }
