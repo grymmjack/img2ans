@@ -102,15 +102,6 @@ _FONT FONTFACE&
 cur_img% = 0
 cur_pal% = 0
 
-' DIM AS LONG userwidth, userheight, scrnwidth, scrnheight
-' userwidth& = _DESKTOPWIDTH: userheight& = _DESKTOPHEIGHT 'get current screen resolution
-' scrnwidth& = _WIDTH: scrnheight& = _HEIGHT  'get the dimensions of the program screen
-' _SCREENMOVE (userwidth& \ 2 - scrnwidth& \ 2) - 3, (userheight& \ 2 - scrnheight& \ 2) - 29
-' _DELAY 4
-' _SCREENMOVE _MIDDLE  'check centering
-' END
-
-
 zoom = 0.1
 IF _DESKTOPWIDTH >= _WIDTH(CANVAS&) THEN
     zoom = 1.0
@@ -120,6 +111,7 @@ zoom_min = 0.1
 zoom_max = 4.0
 
 draw_output
+
 DO
     _LIMIT 30
     k$ = INKEY$
@@ -301,6 +293,33 @@ _FREEIMAGE CANVAS
 SYSTEM
 
 
+
+''
+' Upates the status with command help
+' 
+SUB update_status
+    DIM AS STRING c, z, s, i, p
+    c$ = "L=LOAD,"
+    c$ = c$ + "P=PAL,"
+    c$ = c$ + "UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX)"
+    c$ = c$ + "D=DITH:" + _TRIM$(STR$(no_dithering))
+    c$ = c$ + "PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT"
+    z$ = "ZOOM=" + _TRIM$(STR$(zoom))
+    s$ = "-SCALER=" +  scalers$(cur_scaler%)
+    IF no_dithering THEN
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
+        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+    ELSE
+        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
+        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
+    END IF
+END SUB
+
+
 SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
@@ -435,7 +454,7 @@ SUB load_default_ega_palette (dst AS LONG)
         _PALETTECOLOR i, _RGB32(VAL("&h" + r), VAL("&h" + g), VAL("&h" + b)), dst
 
         $IF NDEBUG = FALSE THEN
-                _ASSERT 1, "Color" + STR$(i) + "=" + STR$(VAL("&h" + r)) + "," + STR$(VAL("&h" + g)) + "," + STR$(VAL("&h" + b))
+            _ASSERT 1, "Color" + STR$(i) + "=" + STR$(VAL("&h" + r)) + "," + STR$(VAL("&h" + g)) + "," + STR$(VAL("&h" + b))
         $END IF
     NEXT i
 
@@ -563,6 +582,7 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
     CLOSE fh
 END SUB
 
+
 ''
 ' Returns all the files found in filepath as an array of strings
 ' @param STRING filepath$ Path to include files from
@@ -593,31 +613,54 @@ SUB files_to_array(filepath$, mask$, arr$())
 END SUB
 
 
+''
+' Sets the scaler to the previous scaler
+' 
 SUB prev_scaler
     cur_scaler% = clamp%(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% - 1)
     _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
 END SUB
 
+
+''
+' Sets the scaler to the next scaler
+' 
 SUB next_scaler
     cur_scaler% = clamp%(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% + 1)
     _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
 END SUB
 
+
+''
+' Sets the image file to the previous image file
+' 
 SUB prev_img_file
     cur_img% = clamp%(LBOUND(img_files_sorted$), UBOUND(img_files_sorted$), cur_img% - 1)
     _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
 END SUB
 
+
+''
+' Sets the image file to the previous image file
+' 
 SUB next_img_file
     cur_img% = clamp%(LBOUND(img_files_sorted$), UBOUND(img_files_sorted$), cur_img% + 1)
     _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
 END SUB
 
+
+''
+' Sets the palette file to the previous palette file
+' 
 SUB prev_pal_file
     cur_pal% = clamp%(LBOUND(pal_files_sorted$), UBOUND(pal_files_sorted$), cur_pal% - 1)
     _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
 END SUB
 
+
+''
+' Sets the palette file to the previous palette file
+' 
 SUB next_pal_file
     cur_pal% = clamp%(LBOUND(pal_files_sorted$), UBOUND(pal_files_sorted$), cur_pal% + 1)
     _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
