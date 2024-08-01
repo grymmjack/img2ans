@@ -108,7 +108,7 @@ IF _DESKTOPWIDTH >= _WIDTH(CANVAS&) THEN
 END IF
 zoom_adj = 0.1
 zoom_min = 0.1
-zoom_max = 4.0
+zoom_max = 10.0
 
 draw_output
 
@@ -281,6 +281,47 @@ DO
                 END IF
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
+                draw_output
+            END IF
+        CASE "s":
+            ' Save the image with the palette
+            IF img_pal < -1 THEN
+                DIM AS STRING save_file
+                save_file$ = _SAVEFILEDIALOG$( _
+                    "Save the image with the palette", _
+                    _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$, _
+                    "*.png|*.PNG", _
+                    "PNG Image" _
+                )
+                IF LEN(save_file$) <> 0 THEN
+                    _SAVEIMAGE save_file$, img_pal
+                    _MESSAGEBOX "IMG2PAL", "Image saved as " + save_file$, "info"
+                END IF
+            END IF
+        CASE "a":
+            ' About
+            _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
+        CASE "h":
+            ' Help
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT-", "info"
+        CASE "j":
+            ' Jump to a specific image
+            DIM AS STRING jump_to
+            jump_to$ = _INPUTBOX$("IMG2PAL", "Jump to image number", "0")
+            IF LEN(jump_to$) <> 0 THEN
+                cur_img% = VAL(jump_to$)
+                IF cur_img% < 0 THEN cur_img% = 0
+                IF cur_img% > UBOUND(img_files_sorted$) THEN cur_img% = UBOUND(img_files_sorted$)
+                draw_output
+            END IF
+        CASE "l":
+            ' Jump to a specific palette
+            DIM AS STRING jump_to
+            jump_to$ = _INPUTBOX$("IMG2PAL", "Jump to palette number", "0")
+            IF LEN(jump_to$) <> 0 THEN
+                cur_pal% = VAL(jump_to$)
+                IF cur_pal% < 0 THEN cur_pal% = 0
+                IF cur_pal% > UBOUND(pal_files_sorted$) THEN cur_pal% = UBOUND(pal_files_sorted$)
                 draw_output
             END IF
     END SELECT

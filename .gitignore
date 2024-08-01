@@ -18,6 +18,6 @@
 *.bm-bak
 *.cmp-out
 *.bas-backup
-
+**.venv
 include/InForm-PE
 include/QB64_GJ_LIB
