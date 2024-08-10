@@ -1,18 +1,18 @@
 SCREEN _NEWIMAGE(800, 600, 32)
 _TITLE "BBOX Mouse States Demo"
  
-CONST TRUE = -1
+CONST TRUE  = -1
 CONST FALSE = NOT TRUE
  
 CONST STATE_DESELECTED = 0
-CONST STATE_OVER = 1
-CONST STATE_SELECTED = 2
-CONST STATE_MOVING = 3
-CONST STATE_RESIZING = 4
-CONST STATE_ZOOMING = 5
- 
+CONST STATE_OVER       = 1
+CONST STATE_SELECTED   = 2
+CONST STATE_MOVING     = 3
+CONST STATE_RESIZING   = 4
+CONST STATE_ZOOMING    = 5
+
 CONST MENU_CLOSED = 0
-CONST MENU_OPEN = 1
+CONST MENU_OPEN   = 1
  
 REDIM SHARED AS INTEGER _
     mouseX, mouseY, _
@@ -30,19 +30,19 @@ BBOXMouseStates
 SYSTEM
  
 SUB BBOXMouseStates
-    ' Αρχικοποίηση του πρώτου κουτιού
+    ' Initializing the first box
     bboxX = 200
     bboxY = 150
     bboxWidth = 200
     bboxHeight = 150
  
-    ' Αρχικοποίηση του δεύτερου κουτιού (πάνω κουτί)
+    ' Initialization of the second box (top box)
     topBoxX = bboxX
-    topBoxY = bboxY - 30 ' Τοποθέτηση πάνω από το πρώτο κουτί
+    topBoxY = bboxY - 30 ' Placement above the first box
     topBoxWidth = bboxWidth
     topBoxHeight = 30
  
-    ' Αρχική κατάσταση
+    ' Initial state
     state = STATE_DESELECTED
     menuState = MENU_CLOSED
  
@@ -95,25 +95,25 @@ SUB BBOXMouseStates
                     state = STATE_SELECTED
                     dragging = FALSE
                 ELSE
-                    ' Διαχείριση αλλαγής μεγέθους
-                    IF resizeDirection AND 1 THEN ' Αριστερή πλευρά
+                    ' Manage resizing
+                    IF resizeDirection AND 1 THEN ' Left side
                         IF mouseX < bboxX + bboxWidth THEN
                             bboxWidth = bboxWidth + (bboxX - mouseX)
                             bboxX = mouseX
                         END IF
                     END IF
-                    IF resizeDirection AND 2 THEN ' Δεξιά πλευρά
+                    IF resizeDirection AND 2 THEN ' Right side
                         IF mouseX > bboxX THEN
                             bboxWidth = mouseX - bboxX
                         END IF
                     END IF
-                    IF resizeDirection AND 4 THEN ' Άνω πλευρά
+                    IF resizeDirection AND 4 THEN ' Upper side
                         IF mouseY < bboxY + bboxHeight THEN
                             bboxHeight = bboxHeight + (bboxY - mouseY)
                             bboxY = mouseY
                         END IF
                     END IF
-                    IF resizeDirection AND 8 THEN ' Κάτω πλευρά
+                    IF resizeDirection AND 8 THEN ' Bottom side
                         IF mouseY > bboxY THEN
                             bboxHeight = mouseY - bboxY
                         END IF
@@ -121,21 +121,21 @@ SUB BBOXMouseStates
                 END IF
         END SELECT
  
-        ' Ενημέρωση του πάνω κουτιού για να ακολουθεί το πρώτο κουτί
+        ' Update the top box to follow the first box
         topBoxX = bboxX
         topBoxY = bboxY - topBoxHeight
         topBoxWidth = bboxWidth
  
-        ' Σχεδίαση του πρώτου κουτιού με πιο χοντρό περίγραμμα
+        ' Drawing the first box with a thicker border
         DrawThickBox bboxX, bboxY, bboxWidth, bboxHeight, 3
  
-        ' Σχεδίαση του πάνω κουτιού με πιο χοντρό περίγραμμα
+        ' Top box design with a thicker border
         DrawThickBox topBoxX, topBoxY, topBoxWidth, topBoxHeight, 3
  
-        ' Σχεδίαση εικονιδίου μενού
+        ' Menu icon design
         DrawMenuIcon topBoxX, topBoxY
  
-        ' Διαχείριση κατάστασης μενού
+        ' Manage menu status
         IF mouseB AND MouseOverMenuIcon(mouseX, mouseY, topBoxX, topBoxY) THEN
             IF menuState = MENU_CLOSED THEN
                 menuState = MENU_OPEN
@@ -144,35 +144,35 @@ SUB BBOXMouseStates
             END IF
         END IF
  
-        ' Σχεδίαση μενού αν είναι ανοιχτό
+        ' Menu design if open
         IF menuState = MENU_OPEN THEN
             DrawMenu topBoxX, topBoxY
         END IF
  
-        ' Σχεδίαση εικονιδίου κλεισίματος
+        ' Close icon design
         DrawCloseIcon topBoxX + topBoxWidth - 25, topBoxY
  
-        ' Διαχείριση κλικ επάνω στο εικονίδιο κλεισίματος
+        ' Manage click on close icon
         IF mouseB AND MouseOverCloseIcon(mouseX, mouseY, topBoxX + topBoxWidth - 25, topBoxY) THEN
             state = STATE_DESELECTED
             menuState = MENU_CLOSED
             SYSTEM
         END IF
  
-        ' Εμφάνιση της τρέχουσας κατάστασης
+        ' Show current status
         SELECT CASE state
-            CASE STATE_DESELECTED: PRINT "Κατάσταση: DESELECTED"
-            CASE STATE_OVER: PRINT "Κατάσταση: OVER"
-            CASE STATE_SELECTED: PRINT "Κατάσταση: SELECTED"
-            CASE STATE_MOVING: PRINT "Κατάσταση: MOVING"
-            CASE STATE_RESIZING: PRINT "Κατάσταση: RESIZING"
-            CASE STATE_ZOOMING: PRINT "Κατάσταση: ZOOMING"
+            CASE STATE_DESELECTED: PRINT "Situation: DESELECTED"
+            CASE STATE_OVER: PRINT "Situation: OVER"
+            CASE STATE_SELECTED: PRINT "Situation: SELECTED"
+            CASE STATE_MOVING: PRINT "Situation: MOVING"
+            CASE STATE_RESIZING: PRINT "Situation: RESIZING"
+            CASE STATE_ZOOMING: PRINT "Situation: ZOOMING"
         END SELECT
  
         _DISPLAY
  
         mouseOldB = mouseB
-    LOOP UNTIL INKEY$ = CHR$(27) ' Έξοδος με το πλήκτρο ESC
+    LOOP UNTIL INKEY$ = CHR$(27) ' Exit with the ESC key
 END SUB
  
 FUNCTION MouseOverBBox (mx, my, bx, by, bw, bh)
@@ -186,10 +186,10 @@ END FUNCTION
 FUNCTION MouseResizeDirection (mx, my, bx, by, bw, bh)
     DIM direction AS INTEGER
     direction = 0
-    IF mx >= bx AND mx <= bx + 5 THEN direction = direction OR 1 ' Αριστερά
-    IF mx >= bx + bw - 5 AND mx <= bx + bw THEN direction = direction OR 2 ' Δεξιά
-    IF my >= by AND my <= by + 5 THEN direction = direction OR 4 ' Πάνω
-    IF my >= by + bh - 5 AND my <= by + bh THEN direction = direction OR 8 ' Κάτω
+    IF mx >= bx AND mx <= bx + 5 THEN direction = direction OR 1 ' Left
+    IF mx >= bx + bw - 5 AND mx <= bx + bw THEN direction = direction OR 2 ' Right
+    IF my >= by AND my <= by + 5 THEN direction = direction OR 4 ' Above
+    IF my >= by + bh - 5 AND my <= by + bh THEN direction = direction OR 8 ' Below
     MouseResizeDirection = direction
 END FUNCTION
  

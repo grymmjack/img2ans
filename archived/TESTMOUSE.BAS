@@ -12,8 +12,10 @@ $IF DEBUGGING = TRUE THEN
     _CONSOLE ON
 $END IF
 
-'$INCLUDE:'/Users/gj/git/img2ans/include/QB64_GJ_LIB/_GJ_LIB_COMMON.BI'
-'$INCLUDE:'/Users/gj/git/img2ans/include/MOUSE/MOUSE.BI'
+
+
+'$INCLUDE:'../include/QB64_GJ_LIB/_GJ_LIB_COMMON.BI'
+'$INCLUDE:'../include/MOUSE/MOUSE.BI'
 
 SCREEN 0
 
@@ -97,4 +99,4 @@ SUB console.error(msg$)
 END SUB
 
 
-'$INCLUDE:'/Users/gj/git/img2ans/include/MOUSE/MOUSE.BM'
+'$INCLUDE:'../include/MOUSE/MOUSE.BM'
