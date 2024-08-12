@@ -316,7 +316,6 @@ DO
             END IF
         CASE "l":
             ' Jump to a specific palette
-            DIM AS STRING jump_to
             jump_to$ = _INPUTBOX$("IMG2PAL", "Jump to palette number", "0")
             IF LEN(jump_to$) <> 0 THEN
                 cur_pal% = VAL(jump_to$)
