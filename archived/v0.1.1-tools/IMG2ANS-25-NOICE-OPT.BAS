@@ -21,13 +21,13 @@ DIM AS STRING SRC_FILE, ans
 CONST E  = 27  ' ESCAPE - The ANSI escape code
 CONST B  = 219 '█ BLOCK CHARACTER - Full block foreground
 CONST FT = 223 '▀ HALF BLOCK Top FG Bottom BG
-CONST FB = 220 '▄ HALF BLOCK Top BG Bottom FG 
+CONST FB = 220 '▄ HALF BLOCK Top BG Bottom FG
 
 ' Maps RGB32 _UNSIGNED LONG colors (from POINT(x,y)) to ANSI Escape Color Codes
 TYPE ANSI_MAP
     RGBC    AS _UNSIGNED LONG
     FG_CODE AS STRING
-    BG_CODE AS STRING 
+    BG_CODE AS STRING
 END TYPE
 DIM A(15) AS ANSI_MAP
 ' BLACK
@@ -85,7 +85,7 @@ FOR i%=0 TO l%
         ch% = ASC(SRC_FILE$, i%+1)
         IF CHR$(ch%) = "|" THEN ' File found
             ' Load the image into the canvas at the same size
-            SRC_IMAGE& = _LOADIMAGE(filename$, 32) 
+            SRC_IMAGE& = _LOADIMAGE(filename$, 32)
             SRC_W% = _WIDTH(SRC_IMAGE&) : SRC_H% = _HEIGHT(SRC_IMAGE&)
             CANVAS& = _NEWIMAGE(SRC_W%, SRC_H%, 32)
             SCREEN CANVAS&
@@ -116,14 +116,14 @@ FOR i%=0 TO l%
                                 FG_CODE$ = A(z%).FG_CODE$
                                 fz% = z%
                                 EXIT FOR
-                            END IF            
+                            END IF
                         NEXT z%
                         FOR z% = 0 TO UBOUND(A) ' Get BG Color Code
                             IF BottomColor~& = A(z%).RGBC~& THEN
                                 BG_CODE$ = A(z%).BG_CODE$
                                 bz% = z%
                                 EXIT FOR
-                            END IF            
+                            END IF
                         NEXT z%
 
                         ' Check if iCE colors needed if not, make non-iCE
@@ -163,7 +163,7 @@ FOR i%=0 TO l%
                         ELSEIF fg% <> fz% THEN
                             ans$ = ans$ + CHR$(E) + "[" + FG_CODE$ + "m" + char$
                             fg% = fz%
-                        ELSEIF bg% <> bz% THEN 
+                        ELSEIF bg% <> bz% THEN
                             ans$ = ans$ + CHR$(E) + "[" + BG_CODE$ + "m" + char$
                             bg% = bz%
                         ELSE
@@ -184,7 +184,7 @@ FOR i%=0 TO l%
 
             OPEN filename$ + "-25-NOICE-OPT.ans" FOR APPEND AS #1
             PRINT #1, CHR$(&H1A) ' EOF
-            CLOSE #1 
+            CLOSE #1
 
             OPEN filename$ + "-25-NOICE-OPT.ans" FOR BINARY AS #1
             SEEK #1, LOF(1)
@@ -192,7 +192,7 @@ FOR i%=0 TO l%
             SauceRecord.ID$         = "SAUCE"
             SauceRecord.Version$    = "00"
             DIM slash AS STRING
-            slash$ = "/" : IF _OS$ = "WINDOWS" THEN slash$ = "\"            
+            slash$ = "/" : IF _OS$ = "WINDOWS" THEN slash$ = "\"
             s$ = MID$(filename$, _INSTRREV(filename$, slash$) + 1)
             MID$(SauceRecord.Title$, 1, LEN(s$)) = s$
             s$ = "grymmjack"
@@ -225,6 +225,6 @@ NEXT i%
 
 ' Clean up
 _FREEIMAGE SRC_IMAGE&
-_FREEIMAGE CANVAS&                   
+_FREEIMAGE CANVAS&
 
 '$INCLUDE:'../../include/SAUCE/SAUCE.BM'
