@@ -1,3 +1,5 @@
+using ai finish the project :D
+
 mouse events are not drawing when mouse stops
     a timer could be used?
 
