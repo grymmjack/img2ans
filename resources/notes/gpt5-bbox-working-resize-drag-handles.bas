@@ -1,39 +1,85 @@
-' === QB64PE BBOX - Arrow Keys: Move & Resize ===
+' === QB64PE BBOX - Arrow Keys: Move & Resize (with GJ_BBX_CFG config TYPE) ===
 
-' --- [1] Constants & Types ---
-CONST HANDLE_HALF_SIZE = 8
-CONST HANDLE_FULL_SIZE = HANDLE_HALF_SIZE * 2
-CONST EDGE_HALF_SIZE = 5
-CONST EDGE_FULL_SIZE = EDGE_HALF_SIZE * 2
+' --- [0] Config TYPE ---
+TYPE GJ_BBX_CFG
+    HandleHalfSize       AS INTEGER
+    HandleFullSize       AS INTEGER
+    EdgeHalfSize         AS INTEGER
+    EdgeFullSize         AS INTEGER
+    HandleCornerSize     AS INTEGER
+    HandleEdgeSize       AS INTEGER
+    DragEdgePadding      AS INTEGER
+    MinBoxWidth          AS INTEGER
+    MinBoxHeight         AS INTEGER
+    colorIdle            AS _UNSIGNED LONG
+    colorHoverOnly       AS _UNSIGNED LONG
+    colorSelectedOnly    AS _UNSIGNED LONG
+    colorSelectedHover   AS _UNSIGNED LONG
+    colorDragging        AS _UNSIGNED LONG
+    colorResizing        AS _UNSIGNED LONG
+    HandleFillColor      AS _UNSIGNED LONG
+    HandleHoverFillColor AS _UNSIGNED LONG
+    HandleBorderColor    AS _UNSIGNED LONG
+    initX                AS INTEGER
+    initY                AS INTEGER
+    initW                AS INTEGER
+    initH                AS INTEGER
+END TYPE
 
-CONST HANDLE_CORNER_SIZE = HANDLE_FULL_SIZE
-CONST HANDLE_EDGE_SIZE = EDGE_FULL_SIZE
-CONST DRAG_EDGE_PADDING = 8
-CONST MIN_BOX_WIDTH = 32
-CONST MIN_BOX_HEIGHT = 32
+DIM SHARED GJ_BBX_CFG AS GJ_BBX_CFG     ' <-- shared so subs can see it
 
-CONST STATE_IDLE = 0
-CONST STATE_HOVER = 1
-CONST STATE_DRAG = 2
-CONST STATE_SELECTED = 10
-CONST STATE_SELECTED_HOVER = 11
-CONST STATE_RESIZE_BASE = 100
+' Fill config (defaults)
+GJ_BBX_CFG.HandleHalfSize = 7
+GJ_BBX_CFG.HandleFullSize = GJ_BBX_CFG.HandleHalfSize * 2
+GJ_BBX_CFG.EdgeHalfSize = 5
+GJ_BBX_CFG.EdgeFullSize = GJ_BBX_CFG.EdgeHalfSize * 2
+GJ_BBX_CFG.HandleCornerSize = GJ_BBX_CFG.HandleFullSize
+GJ_BBX_CFG.HandleEdgeSize = GJ_BBX_CFG.EdgeFullSize
+GJ_BBX_CFG.DragEdgePadding = 8
+GJ_BBX_CFG.MinBoxWidth = 32
+GJ_BBX_CFG.MinBoxHeight = 32
 
-CONST HANDLE_NONE = 0
-CONST HANDLE_TL = 1, HANDLE_T = 2, HANDLE_TR = 3
-CONST HANDLE_L  = 4,                HANDLE_R = 5
-CONST HANDLE_BL = 6, HANDLE_B = 7, HANDLE_BR = 8
+GJ_BBX_CFG.colorIdle = _RGB32(128, 128, 128)
+GJ_BBX_CFG.colorHoverOnly = _RGB32(255, 255, 0)
+GJ_BBX_CFG.colorSelectedOnly = _RGB32(0, 128, 255)
+GJ_BBX_CFG.colorSelectedHover = _RGB32(255, 128, 0)
+GJ_BBX_CFG.colorDragging = _RGB32(0, 255, 0)
+GJ_BBX_CFG.colorResizing = _RGB32(255, 0, 255)
 
-CONST KEY_LEFT = 19200
-CONST KEY_RIGHT = 19712
-CONST KEY_UP = 18432
-CONST KEY_DOWN = 20480
-CONST KEY_CTRL_LEFT&  = 115 * 256
-CONST KEY_CTRL_RIGHT& = 116 * 256
-CONST KEY_CTRL_UP&    = 141 * 256
-CONST KEY_CTRL_DOWN&  = 145 * 256
+' handle colors
+GJ_BBX_CFG.HandleFillColor = _RGB32(100, 100, 100)
+GJ_BBX_CFG.HandleHoverFillColor = _RGB32(200, 200, 200)
+GJ_BBX_CFG.HandleBorderColor = _RGB32(255, 255, 255)
 
-TYPE MouseState
+' initial box
+GJ_BBX_CFG.initX = 300
+GJ_BBX_CFG.initY = 200
+GJ_BBX_CFG.initW = 150
+GJ_BBX_CFG.initH = 100
+
+' --- [1] Constants & Types that are not “config” (remain namespaced) ---
+CONST GJ_BBX_STATE_IDLE = 0
+CONST GJ_BBX_STATE_HOVER = 1
+CONST GJ_BBX_STATE_DRAG = 2
+CONST GJ_BBX_STATE_SELECTED = 10
+CONST GJ_BBX_STATE_SELECTED_HOVER = 11
+CONST GJ_BBX_STATE_RESIZE_BASE = 100
+
+CONST GJ_BBX_HANDLE_NONE = 0
+CONST GJ_BBX_HANDLE_TL = 1, GJ_BBX_HANDLE_T = 2, GJ_BBX_HANDLE_TR = 3
+CONST GJ_BBX_HANDLE_L = 4, GJ_BBX_HANDLE_R = 5
+CONST GJ_BBX_HANDLE_BL = 6, GJ_BBX_HANDLE_B = 7, GJ_BBX_HANDLE_BR = 8
+
+CONST GJ_BBX_KEY_LEFT = 19200
+CONST GJ_BBX_KEY_RIGHT = 19712
+CONST GJ_BBX_KEY_UP = 18432
+CONST GJ_BBX_KEY_DOWN = 20480
+CONST GJ_BBX_KEY_CTRL_LEFT& = 115 * 256
+CONST GJ_BBX_KEY_CTRL_RIGHT& = 116 * 256
+CONST GJ_BBX_KEY_CTRL_UP& = 141 * 256
+CONST GJ_BBX_KEY_CTRL_DOWN& = 145 * 256
+
+TYPE GJ_BBX_MouseState
     x AS INTEGER
     y AS INTEGER
     dx AS INTEGER
@@ -43,7 +89,7 @@ TYPE MouseState
     released AS INTEGER
 END TYPE
 
-TYPE BBOX
+TYPE GJ_BBX_BBOX
     x AS INTEGER
     y AS INTEGER
     w AS INTEGER
@@ -58,24 +104,19 @@ TYPE BBOX
 END TYPE
 
 ' --- [2] Main ---
-DIM mouse AS MouseState
-DIM box AS BBOX
-DIM boxColor AS _UNSIGNED LONG
-DIM keyCode AS INTEGER ' (renamed from "key" to avoid reserved name)
+DIM GJ_BBX_mouse AS GJ_BBX_MouseState
+DIM GJ_BBX_box AS GJ_BBX_BBOX
+DIM GJ_BBX_boxColor AS _UNSIGNED LONG
+DIM GJ_BBX_keyCode AS INTEGER
+DIM GJ_BBX_k AS STRING
+DIM GJ_BBX_movement AS INTEGER
 
-DIM colorIdle AS _UNSIGNED LONG: colorIdle = _RGB32(128, 128, 128)
-DIM colorHoverOnly AS _UNSIGNED LONG: colorHoverOnly = _RGB32(255, 255, 0)
-DIM colorSelectedOnly AS _UNSIGNED LONG: colorSelectedOnly = _RGB32(0, 128, 255)
-DIM colorSelectedHover AS _UNSIGNED LONG: colorSelectedHover = _RGB32(255, 128, 0)
-DIM colorDragging AS _UNSIGNED LONG: colorDragging = _RGB32(0, 255, 0)
-DIM colorResizing AS _UNSIGNED LONG: colorResizing = _RGB32(255, 0, 255)
-
-box.x = 300
-box.y = 200
-box.w = 150
-box.h = 100
-box.state = STATE_IDLE
-box.selected = 0
+GJ_BBX_box.x = GJ_BBX_CFG.initX
+GJ_BBX_box.y = GJ_BBX_CFG.initY
+GJ_BBX_box.w = GJ_BBX_CFG.initW
+GJ_BBX_box.h = GJ_BBX_CFG.initH
+GJ_BBX_box.state = GJ_BBX_STATE_IDLE
+GJ_BBX_box.selected = 0
 
 SCREEN _NEWIMAGE(800, 600, 32)
 _TITLE "QB64PE BBOX - Arrows Move + Resize"
@@ -83,168 +124,163 @@ $RESIZE:ON
 _MOUSESHOW
 _DISPLAYORDER _SOFTWARE
 
-PollMouse mouse, 1
+GJ_BBX_PollMouse GJ_BBX_mouse, 1
 
 DO
-    PollMouse mouse, 0
-    box.hoverHandle = GetHoverHandle%(mouse.x, mouse.y, box)
+    GJ_BBX_PollMouse GJ_BBX_mouse, 0
+    GJ_BBX_box.hoverHandle = GJ_BBX_GetHoverHandle%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box)
 
-    IF box.state < STATE_RESIZE_BASE AND box.hoverHandle AND mouse.clicked THEN
-        box.activeHandle = box.hoverHandle
-        box.state = STATE_RESIZE_BASE + box.activeHandle
-        box.selected = -1
-        box.wasClickedInside = 0
-    ELSEIF box.state < STATE_RESIZE_BASE AND PointInBox%(mouse.x, mouse.y, box) AND mouse.clicked THEN
-        box.offsetX = mouse.x - box.x
-        box.offsetY = mouse.y - box.y
-        box.state = STATE_DRAG
-        box.selected = -1
-        box.wasClickedInside = -1
+    IF GJ_BBX_box.state < GJ_BBX_STATE_RESIZE_BASE AND GJ_BBX_box.hoverHandle AND GJ_BBX_mouse.clicked THEN
+        GJ_BBX_box.activeHandle = GJ_BBX_box.hoverHandle
+        GJ_BBX_box.state = GJ_BBX_STATE_RESIZE_BASE + GJ_BBX_box.activeHandle
+        GJ_BBX_box.selected = -1
+        GJ_BBX_box.wasClickedInside = 0
+    ELSEIF GJ_BBX_box.state < GJ_BBX_STATE_RESIZE_BASE AND GJ_BBX_PointInBox%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box) AND GJ_BBX_mouse.clicked THEN
+        GJ_BBX_box.offsetX = GJ_BBX_mouse.x - GJ_BBX_box.x
+        GJ_BBX_box.offsetY = GJ_BBX_mouse.y - GJ_BBX_box.y
+        GJ_BBX_box.state = GJ_BBX_STATE_DRAG
+        GJ_BBX_box.selected = -1
+        GJ_BBX_box.wasClickedInside = -1
     END IF
 
-    IF box.state >= STATE_RESIZE_BASE THEN
-        IF mouse.held THEN
-            ResizeFromHandle box, mouse
-            IF box.w < MIN_BOX_WIDTH THEN box.w = MIN_BOX_WIDTH
-            IF box.h < MIN_BOX_HEIGHT THEN box.h = MIN_BOX_HEIGHT
+    IF GJ_BBX_box.state >= GJ_BBX_STATE_RESIZE_BASE THEN
+        IF GJ_BBX_mouse.held THEN
+            GJ_BBX_ResizeFromHandle GJ_BBX_box, GJ_BBX_mouse
+            IF GJ_BBX_box.w < GJ_BBX_CFG.MinBoxWidth THEN GJ_BBX_box.w = GJ_BBX_CFG.MinBoxWidth
+            IF GJ_BBX_box.h < GJ_BBX_CFG.MinBoxHeight THEN GJ_BBX_box.h = GJ_BBX_CFG.MinBoxHeight
         ELSE
-            box.state = STATE_SELECTED
+            GJ_BBX_box.state = GJ_BBX_STATE_SELECTED
         END IF
-    ELSEIF box.state = STATE_DRAG THEN
-        IF mouse.held THEN
-            box.x = mouse.x - box.offsetX
-            box.y = mouse.y - box.offsetY
+    ELSEIF GJ_BBX_box.state = GJ_BBX_STATE_DRAG THEN
+        IF GJ_BBX_mouse.held THEN
+            GJ_BBX_box.x = GJ_BBX_mouse.x - GJ_BBX_box.offsetX
+            GJ_BBX_box.y = GJ_BBX_mouse.y - GJ_BBX_box.offsetY
         ELSE
-            box.state = STATE_SELECTED
-            box.selected = -1
+            GJ_BBX_box.state = GJ_BBX_STATE_SELECTED
+            GJ_BBX_box.selected = -1
         END IF
     ELSE
-        IF mouse.released THEN
-            IF box.wasClickedInside THEN
-                box.selected = -1
-                box.wasClickedInside = 0
-            ELSEIF NOT PointInBox%(mouse.x, mouse.y, box) THEN
-                box.selected = 0
-                box.state = STATE_IDLE
-                box.wasClickedInside = 0
+        IF GJ_BBX_mouse.released THEN
+            IF GJ_BBX_box.wasClickedInside THEN
+                GJ_BBX_box.selected = -1
+                GJ_BBX_box.wasClickedInside = 0
+            ELSEIF NOT GJ_BBX_PointInBox%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box) THEN
+                GJ_BBX_box.selected = 0
+                GJ_BBX_box.state = GJ_BBX_STATE_IDLE
+                GJ_BBX_box.wasClickedInside = 0
             END IF
         END IF
 
-        IF box.selected THEN
-            IF PointInBox%(mouse.x, mouse.y, box) THEN
-                box.state = STATE_SELECTED_HOVER
+        IF GJ_BBX_box.selected THEN
+            IF GJ_BBX_PointInBox%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box) THEN
+                GJ_BBX_box.state = GJ_BBX_STATE_SELECTED_HOVER
             ELSE
-                box.state = STATE_SELECTED
+                GJ_BBX_box.state = GJ_BBX_STATE_SELECTED
             END IF
         ELSE
-            IF PointInBox%(mouse.x, mouse.y, box) THEN
-                box.state = STATE_HOVER
+            IF GJ_BBX_PointInBox%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box) THEN
+                GJ_BBX_box.state = GJ_BBX_STATE_HOVER
             ELSE
-                box.state = STATE_IDLE
+                GJ_BBX_box.state = GJ_BBX_STATE_IDLE
             END IF
         END IF
     END IF
 
-    IF box.selected THEN
-        k$ = INKEY$
-        IF LEN(k$) THEN
-            keyCode = ASC(k$)
-            IF keyCode = 0 OR keyCode = 224 THEN
-                ' >>> REPLACED NORMALIZATION <<<
-                keyCode = ASC(RIGHT$(k$, 1)) * 256
+    IF GJ_BBX_box.selected THEN
+        GJ_BBX_k = INKEY$
+        IF LEN(GJ_BBX_k) THEN
+            GJ_BBX_keyCode = ASC(GJ_BBX_k)
+            IF GJ_BBX_keyCode = 0 OR GJ_BBX_keyCode = 224 THEN
+                ' Normalize extended key into 256-multiplied code
+                GJ_BBX_keyCode = ASC(RIGHT$(GJ_BBX_k, 1)) * 256
 
-                movement = 1
-                IF _KEYDOWN(100304) OR _KEYDOWN(100303) THEN movement = 10
+                GJ_BBX_movement = 1
+                IF _KEYDOWN(100304) OR _KEYDOWN(100303) THEN GJ_BBX_movement = 10  ' Shift speeds it up
 
                 IF _KEYDOWN(100306) OR _KEYDOWN(100305) THEN
                     ' Ctrl held -> resize
-                    movement = 1
-                    IF _KEYDOWN(100304) OR _KEYDOWN(100303) THEN movement = 10  ' Shift step
+                    GJ_BBX_movement = 1
+                    IF _KEYDOWN(100304) OR _KEYDOWN(100303) THEN GJ_BBX_movement = 10  ' Shift step
 
-                    did% = 0
-                    ' 1) Prefer the INKEY$ event path (works when a key event arrived this frame)
-                    SELECT CASE keyCode
-                        CASE KEY_LEFT,  KEY_CTRL_LEFT:   box.w = box.w - movement: did% = -1
-                        CASE KEY_RIGHT, KEY_CTRL_RIGHT:  box.w = box.w + movement: did% = -1
-                        CASE KEY_UP,    KEY_CTRL_UP:     box.h = box.h - movement: did% = -1
-                        CASE KEY_DOWN,  KEY_CTRL_DOWN:   box.h = box.h + movement: did% = -1
+                    GJ_BBX_did% = 0
+                    SELECT CASE GJ_BBX_keyCode
+                        CASE GJ_BBX_KEY_LEFT, GJ_BBX_KEY_CTRL_LEFT:   GJ_BBX_box.w = GJ_BBX_box.w - GJ_BBX_movement: GJ_BBX_did% = -1
+                        CASE GJ_BBX_KEY_RIGHT, GJ_BBX_KEY_CTRL_RIGHT: GJ_BBX_box.w = GJ_BBX_box.w + GJ_BBX_movement: GJ_BBX_did% = -1
+                        CASE GJ_BBX_KEY_UP, GJ_BBX_KEY_CTRL_UP:       GJ_BBX_box.h = GJ_BBX_box.h - GJ_BBX_movement: GJ_BBX_did% = -1
+                        CASE GJ_BBX_KEY_DOWN, GJ_BBX_KEY_CTRL_DOWN:   GJ_BBX_box.h = GJ_BBX_box.h + GJ_BBX_movement: GJ_BBX_did% = -1
                     END SELECT
 
-                    ' 2) If no INKEY$ event matched, also poll arrow states directly
-                    IF did% = 0 THEN
-                        IF _KEYDOWN(CVI(CHR$(0)+"K")) THEN box.w = box.w - movement: did% = -1
-                        IF _KEYDOWN(CVI(CHR$(0)+"M")) THEN box.w = box.w + movement: did% = -1
-                        IF _KEYDOWN(CVI(CHR$(0)+"H")) THEN box.h = box.h - movement: did% = -1
-                        IF _KEYDOWN(CVI(CHR$(0)+"P")) THEN box.h = box.h + movement: did% = -1
+                    IF GJ_BBX_did% = 0 THEN
+                        IF _KEYDOWN(CVI(CHR$(0) + "K")) THEN GJ_BBX_box.w = GJ_BBX_box.w - GJ_BBX_movement: GJ_BBX_did% = -1
+                        IF _KEYDOWN(CVI(CHR$(0) + "M")) THEN GJ_BBX_box.w = GJ_BBX_box.w + GJ_BBX_movement: GJ_BBX_did% = -1
+                        IF _KEYDOWN(CVI(CHR$(0) + "H")) THEN GJ_BBX_box.h = GJ_BBX_box.h - GJ_BBX_movement: GJ_BBX_did% = -1
+                        IF _KEYDOWN(CVI(CHR$(0) + "P")) THEN GJ_BBX_box.h = GJ_BBX_box.h + GJ_BBX_movement: GJ_BBX_did% = -1
                     END IF
 
-                    IF did% THEN
-                        IF box.w < MIN_BOX_WIDTH THEN box.w = MIN_BOX_WIDTH
-                        IF box.h < MIN_BOX_HEIGHT THEN box.h = MIN_BOX_HEIGHT
+                    IF GJ_BBX_did% THEN
+                        IF GJ_BBX_box.w < GJ_BBX_CFG.MinBoxWidth THEN GJ_BBX_box.w = GJ_BBX_CFG.MinBoxWidth
+                        IF GJ_BBX_box.h < GJ_BBX_CFG.MinBoxHeight THEN GJ_BBX_box.h = GJ_BBX_CFG.MinBoxHeight
                     END IF
-
                 ELSE
                     ' Move (no Ctrl)
-                    SELECT CASE keyCode
-                        CASE KEY_LEFT:  box.x = box.x - movement
-                        CASE KEY_RIGHT: box.x = box.x + movement
-                        CASE KEY_UP:    box.y = box.y - movement
-                        CASE KEY_DOWN:  box.y = box.y + movement
+                    SELECT CASE GJ_BBX_keyCode
+                        CASE GJ_BBX_KEY_LEFT:  GJ_BBX_box.x = GJ_BBX_box.x - GJ_BBX_movement
+                        CASE GJ_BBX_KEY_RIGHT: GJ_BBX_box.x = GJ_BBX_box.x + GJ_BBX_movement
+                        CASE GJ_BBX_KEY_UP:    GJ_BBX_box.y = GJ_BBX_box.y - GJ_BBX_movement
+                        CASE GJ_BBX_KEY_DOWN:  GJ_BBX_box.y = GJ_BBX_box.y + GJ_BBX_movement
                     END SELECT
                 END IF
             END IF
         END IF
     END IF
-    
-    SELECT CASE box.state
-        CASE IS >= STATE_RESIZE_BASE
-            ' --- in the active-handle cursor block ---
-            SELECT CASE box.activeHandle
-                CASE HANDLE_TL: _MOUSESHOW "CROSSHAIR"
-                CASE HANDLE_TR: _MOUSESHOW "CROSSHAIR"
-                CASE HANDLE_BL: _MOUSESHOW "CROSSHAIR"
-                CASE HANDLE_BR: _MOUSESHOW "CROSSHAIR"
-                CASE HANDLE_L, HANDLE_R:   _MOUSESHOW "HORIZONTAL"
-                CASE HANDLE_T, HANDLE_B:   _MOUSESHOW "VERTICAL"
+
+    SELECT CASE GJ_BBX_box.state
+        CASE IS >= GJ_BBX_STATE_RESIZE_BASE
+            SELECT CASE GJ_BBX_box.activeHandle
+                CASE GJ_BBX_HANDLE_TL: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_TR: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_BL: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_BR: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_L, GJ_BBX_HANDLE_R: _MOUSESHOW "HORIZONTAL"
+                CASE GJ_BBX_HANDLE_T, GJ_BBX_HANDLE_B: _MOUSESHOW "VERTICAL"
             END SELECT
-        CASE STATE_DRAG
+        CASE GJ_BBX_STATE_DRAG
             _MOUSESHOW "CROSSHAIR"
         CASE ELSE
-          ' --- in the hover-handle cursor block ---
-          SELECT CASE box.hoverHandle
-              CASE HANDLE_TL: _MOUSESHOW "CROSSHAIR"
-              CASE HANDLE_TR: _MOUSESHOW "CROSSHAIR"
-              CASE HANDLE_BL: _MOUSESHOW "CROSSHAIR"
-              CASE HANDLE_BR: _MOUSESHOW "CROSSHAIR"
-              CASE HANDLE_L, HANDLE_R:   _MOUSESHOW "HORIZONTAL"
-              CASE HANDLE_T, HANDLE_B:   _MOUSESHOW "VERTICAL"
-              CASE ELSE:                 _MOUSESHOW "DEFAULT"
-          END SELECT
+            SELECT CASE GJ_BBX_box.hoverHandle
+                CASE GJ_BBX_HANDLE_TL: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_TR: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_BL: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_BR: _MOUSESHOW "CROSSHAIR"
+                CASE GJ_BBX_HANDLE_L, GJ_BBX_HANDLE_R: _MOUSESHOW "HORIZONTAL"
+                CASE GJ_BBX_HANDLE_T, GJ_BBX_HANDLE_B: _MOUSESHOW "VERTICAL"
+                CASE ELSE: _MOUSESHOW "DEFAULT"
+            END SELECT
     END SELECT
 
-    SELECT CASE box.state
-        CASE STATE_DRAG: boxColor = colorDragging
-        CASE IS >= STATE_RESIZE_BASE: boxColor = colorResizing
-        CASE STATE_SELECTED_HOVER: boxColor = colorSelectedHover
-        CASE STATE_SELECTED: boxColor = colorSelectedOnly
-        CASE STATE_HOVER: boxColor = colorHoverOnly
-        CASE ELSE: boxColor = colorIdle
+    SELECT CASE GJ_BBX_box.state
+        CASE GJ_BBX_STATE_DRAG: GJ_BBX_boxColor = GJ_BBX_CFG.colorDragging
+        CASE IS >= GJ_BBX_STATE_RESIZE_BASE: GJ_BBX_boxColor = GJ_BBX_CFG.colorResizing
+        CASE GJ_BBX_STATE_SELECTED_HOVER: GJ_BBX_boxColor = GJ_BBX_CFG.colorSelectedHover
+        CASE GJ_BBX_STATE_SELECTED: GJ_BBX_boxColor = GJ_BBX_CFG.colorSelectedOnly
+        CASE GJ_BBX_STATE_HOVER: GJ_BBX_boxColor = GJ_BBX_CFG.colorHoverOnly
+        CASE ELSE: GJ_BBX_boxColor = GJ_BBX_CFG.colorIdle
     END SELECT
 
     CLS
-    LINE (box.x, box.y)-(box.x + box.w, box.y + box.h), boxColor, B
-    DrawHandles box, box.hoverHandle
+    LINE (GJ_BBX_box.x, GJ_BBX_box.y)-(GJ_BBX_box.x + GJ_BBX_box.w, GJ_BBX_box.y + GJ_BBX_box.h), GJ_BBX_boxColor, B
+    GJ_BBX_DrawHandles GJ_BBX_box, GJ_BBX_box.hoverHandle
 
     COLOR _RGB32(255, 255, 255)
     LOCATE 2, 2
-    PRINT "State:"; box.state; " HoverHandle:"; box.hoverHandle; " Selected:"; box.selected
+    PRINT "State:"; GJ_BBX_box.state; "  HoverHandle:"; GJ_BBX_box.hoverHandle; "  Selected:"; GJ_BBX_box.selected
     _DISPLAY
 LOOP UNTIL _KEYHIT = 27
 
 END
 
 ' --- [3] Helper Functions ---
-SUB PollMouse (m AS MouseState, init AS INTEGER)
+SUB GJ_BBX_PollMouse (m AS GJ_BBX_MouseState, init AS INTEGER)
     STATIC lastX AS INTEGER, lastY AS INTEGER, lastHeld AS INTEGER
 
     IF init THEN
@@ -272,64 +308,98 @@ SUB PollMouse (m AS MouseState, init AS INTEGER)
     WEND
 END SUB
 
-FUNCTION PointInBox% (mx AS INTEGER, my AS INTEGER, b AS BBOX)
-    PointInBox% = (mx >= b.x AND mx <= b.x + b.w AND my >= b.y AND my <= b.y + b.h)
+FUNCTION GJ_BBX_PointInBox% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
+    GJ_BBX_PointInBox% = (mx >= b.x AND mx <= b.x + b.w AND my >= b.y AND my <= b.y + b.h)
 END FUNCTION
 
-FUNCTION GetHoverHandle% (mx AS INTEGER, my AS INTEGER, b AS BBOX)
+FUNCTION GJ_BBX_GetHoverHandle% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
     DIM cx AS INTEGER: cx = b.x + b.w \ 2
     DIM cy AS INTEGER: cy = b.y + b.h \ 2
 
-    IF PointInRect(mx, my, b.x - HANDLE_HALF_SIZE, b.y - HANDLE_HALF_SIZE, HANDLE_FULL_SIZE, HANDLE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_TL: EXIT FUNCTION
-    IF PointInRect(mx, my, cx - EDGE_HALF_SIZE, b.y - EDGE_HALF_SIZE, EDGE_FULL_SIZE, EDGE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_T: EXIT FUNCTION
-    IF PointInRect(mx, my, b.x + b.w - HANDLE_HALF_SIZE, b.y - HANDLE_HALF_SIZE, HANDLE_FULL_SIZE, HANDLE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_TR: EXIT FUNCTION
-    IF PointInRect(mx, my, b.x - EDGE_HALF_SIZE, cy - EDGE_HALF_SIZE, EDGE_FULL_SIZE, EDGE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_L: EXIT FUNCTION
-    IF PointInRect(mx, my, b.x + b.w - EDGE_HALF_SIZE, cy - EDGE_HALF_SIZE, EDGE_FULL_SIZE, EDGE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_R: EXIT FUNCTION
-    IF PointInRect(mx, my, b.x - HANDLE_HALF_SIZE, b.y + b.h - HANDLE_HALF_SIZE, HANDLE_FULL_SIZE, HANDLE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_BL: EXIT FUNCTION
-    IF PointInRect(mx, my, cx - EDGE_HALF_SIZE, b.y + b.h - EDGE_HALF_SIZE, EDGE_FULL_SIZE, EDGE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_B: EXIT FUNCTION
-    IF PointInRect(mx, my, b.x + b.w - HANDLE_HALF_SIZE, b.y + b.h - HANDLE_HALF_SIZE, HANDLE_FULL_SIZE, HANDLE_FULL_SIZE) THEN GetHoverHandle% = HANDLE_BR: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, b.x - GJ_BBX_CFG.HandleHalfSize, b.y - GJ_BBX_CFG.HandleHalfSize, GJ_BBX_CFG.HandleFullSize, GJ_BBX_CFG.HandleFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_TL: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, cx - GJ_BBX_CFG.EdgeHalfSize, b.y - GJ_BBX_CFG.EdgeHalfSize, GJ_BBX_CFG.EdgeFullSize, GJ_BBX_CFG.EdgeFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_T: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, b.x + b.w - GJ_BBX_CFG.HandleHalfSize, b.y - GJ_BBX_CFG.HandleHalfSize, GJ_BBX_CFG.HandleFullSize, GJ_BBX_CFG.HandleFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_TR: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, b.x - GJ_BBX_CFG.EdgeHalfSize, cy - GJ_BBX_CFG.EdgeHalfSize, GJ_BBX_CFG.EdgeFullSize, GJ_BBX_CFG.EdgeFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_L: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, b.x + b.w - GJ_BBX_CFG.EdgeHalfSize, cy - GJ_BBX_CFG.EdgeHalfSize, GJ_BBX_CFG.EdgeFullSize, GJ_BBX_CFG.EdgeFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_R: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, b.x - GJ_BBX_CFG.HandleHalfSize, b.y + b.h - GJ_BBX_CFG.HandleHalfSize, GJ_BBX_CFG.HandleFullSize, GJ_BBX_CFG.HandleFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_BL: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, cx - GJ_BBX_CFG.EdgeHalfSize, b.y + b.h - GJ_BBX_CFG.EdgeHalfSize, GJ_BBX_CFG.EdgeFullSize, GJ_BBX_CFG.EdgeFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_B: EXIT FUNCTION
+    IF GJ_BBX_PointInRect(mx, my, b.x + b.w - GJ_BBX_CFG.HandleHalfSize, b.y + b.h - GJ_BBX_CFG.HandleHalfSize, GJ_BBX_CFG.HandleFullSize, GJ_BBX_CFG.HandleFullSize) THEN GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_BR: EXIT FUNCTION
 
-    GetHoverHandle% = HANDLE_NONE
+    GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_NONE
 END FUNCTION
 
-FUNCTION PointInRect% (px AS INTEGER, py AS INTEGER, rx AS INTEGER, ry AS INTEGER, rw AS INTEGER, rh AS INTEGER)
-    PointInRect% = (px >= rx AND px <= rx + rw AND py >= ry AND py <= ry + rh)
+FUNCTION GJ_BBX_PointInRect% (px AS INTEGER, py AS INTEGER, rx AS INTEGER, ry AS INTEGER, rw AS INTEGER, rh AS INTEGER)
+    GJ_BBX_PointInRect% = (px >= rx AND px <= rx + rw AND py >= ry AND py <= ry + rh)
 END FUNCTION
 
-SUB ResizeFromHandle (b AS BBOX, m AS MouseState)
+SUB GJ_BBX_ResizeFromHandle (b AS GJ_BBX_BBOX, m AS GJ_BBX_MouseState)
     SELECT CASE b.activeHandle
-        CASE HANDLE_TL
+        CASE GJ_BBX_HANDLE_TL
             b.w = b.w + (b.x - m.x): b.h = b.h + (b.y - m.y)
             b.x = m.x: b.y = m.y
-        CASE HANDLE_T
+        CASE GJ_BBX_HANDLE_T
             b.h = b.h + (b.y - m.y): b.y = m.y
-        CASE HANDLE_TR
+        CASE GJ_BBX_HANDLE_TR
             b.w = m.x - b.x: b.h = b.h + (b.y - m.y): b.y = m.y
-        CASE HANDLE_L
+        CASE GJ_BBX_HANDLE_L
             b.w = b.w + (b.x - m.x): b.x = m.x
-        CASE HANDLE_R
+        CASE GJ_BBX_HANDLE_R
             b.w = m.x - b.x
-        CASE HANDLE_BL
+        CASE GJ_BBX_HANDLE_BL
             b.w = b.w + (b.x - m.x): b.h = m.y - b.y: b.x = m.x
-        CASE HANDLE_B
+        CASE GJ_BBX_HANDLE_B
             b.h = m.y - b.y
-        CASE HANDLE_BR
+        CASE GJ_BBX_HANDLE_BR
             b.w = m.x - b.x: b.h = m.y - b.y
     END SELECT
 END SUB
 
-SUB DrawHandles (b AS BBOX, hover AS INTEGER)
+SUB GJ_BBX_DrawHandles (b AS GJ_BBX_BBOX, hover AS INTEGER)
     DIM cx AS INTEGER: cx = b.x + b.w \ 2
     DIM cy AS INTEGER: cy = b.y + b.h \ 2
-    DIM c AS _UNSIGNED LONG: c = _RGB32(255, 255, 255)
 
-    LINE (b.x - HANDLE_HALF_SIZE, b.y - HANDLE_HALF_SIZE)-(b.x + HANDLE_HALF_SIZE, b.y + HANDLE_HALF_SIZE), c, B
-    LINE (b.x + b.w - HANDLE_HALF_SIZE, b.y - HANDLE_HALF_SIZE)-(b.x + b.w + HANDLE_HALF_SIZE, b.y + HANDLE_HALF_SIZE), c, B
-    LINE (b.x - HANDLE_HALF_SIZE, b.y + b.h - HANDLE_HALF_SIZE)-(b.x + HANDLE_HALF_SIZE, b.y + b.h + HANDLE_HALF_SIZE), c, B
-    LINE (b.x + b.w - HANDLE_HALF_SIZE, b.y + b.h - HANDLE_HALF_SIZE)-(b.x + b.w + HANDLE_HALF_SIZE, b.y + b.h + HANDLE_HALF_SIZE), c, B
+    DIM hh AS INTEGER: hh = GJ_BBX_CFG.HandleHalfSize
+    DIM eh AS INTEGER: eh = GJ_BBX_CFG.EdgeHalfSize
 
-    LINE (cx - EDGE_HALF_SIZE, b.y - EDGE_HALF_SIZE)-(cx + EDGE_HALF_SIZE, b.y + EDGE_HALF_SIZE), c, B
-    LINE (b.x - EDGE_HALF_SIZE, cy - EDGE_HALF_SIZE)-(b.x + EDGE_HALF_SIZE, cy + EDGE_HALF_SIZE), c, B
-    LINE (cx - EDGE_HALF_SIZE, b.y + b.h - EDGE_HALF_SIZE)-(cx + EDGE_HALF_SIZE, b.y + b.h + EDGE_HALF_SIZE), c, B
-    LINE (b.x + b.w - EDGE_HALF_SIZE, cy - EDGE_HALF_SIZE)-(b.x + b.w + EDGE_HALF_SIZE, cy + EDGE_HALF_SIZE), c, B
+    DIM cFill AS _UNSIGNED LONG, cBorder AS _UNSIGNED LONG
+    cBorder = GJ_BBX_CFG.HandleBorderColor
+
+    DIM x1 AS INTEGER, y1 AS INTEGER, x2 AS INTEGER, y2 AS INTEGER, isH AS INTEGER
+
+    ' ---- TL ----
+    x1 = b.x - hh: y1 = b.y - hh: x2 = b.x + hh - 1: y2 = b.y + hh - 1
+    isH = (hover = GJ_BBX_HANDLE_TL): GOSUB DrawOne
+    ' ---- T ----
+    x1 = cx - eh: y1 = b.y - eh: x2 = cx + eh - 1: y2 = b.y + eh - 1
+    isH = (hover = GJ_BBX_HANDLE_T): GOSUB DrawOne
+    ' ---- TR ----
+    x1 = b.x + b.w - hh: y1 = b.y - hh: x2 = b.x + b.w + hh - 1: y2 = b.y + hh - 1
+    isH = (hover = GJ_BBX_HANDLE_TR): GOSUB DrawOne
+    ' ---- L ----
+    x1 = b.x - eh: y1 = cy - eh: x2 = b.x + eh - 1: y2 = cy + eh - 1
+    isH = (hover = GJ_BBX_HANDLE_L): GOSUB DrawOne
+    ' ---- R ----
+    x1 = b.x + b.w - eh: y1 = cy - eh: x2 = b.x + b.w + eh - 1: y2 = cy + eh - 1
+    isH = (hover = GJ_BBX_HANDLE_R): GOSUB DrawOne
+    ' ---- BL ----
+    x1 = b.x - hh: y1 = b.y + b.h - hh: x2 = b.x + hh - 1: y2 = b.y + b.h + hh - 1
+    isH = (hover = GJ_BBX_HANDLE_BL): GOSUB DrawOne
+    ' ---- B ----
+    x1 = cx - eh: y1 = b.y + b.h - eh: x2 = cx + eh - 1: y2 = b.y + b.h + eh - 1
+    isH = (hover = GJ_BBX_HANDLE_B): GOSUB DrawOne
+    ' ---- BR ----
+    x1 = b.x + b.w - hh: y1 = b.y + b.h - hh: x2 = b.x + b.w + hh - 1: y2 = b.y + b.h + hh - 1
+    isH = (hover = GJ_BBX_HANDLE_BR): GOSUB DrawOne
+
+    EXIT SUB
+
+DrawOne:
+    IF isH THEN
+        cFill = GJ_BBX_CFG.HandleHoverFillColor
+    ELSE
+        cFill = GJ_BBX_CFG.HandleFillColor
+    END IF
+    LINE (x1, y1)-(x2, y2), cFill, BF
+    LINE (x1, y1)-(x2, y2), cBorder, B
+RETURN
 END SUB
