@@ -198,22 +198,28 @@ DO
     
     SELECT CASE box.state
         CASE IS >= STATE_RESIZE_BASE
+            ' --- in the active-handle cursor block ---
             SELECT CASE box.activeHandle
-                CASE HANDLE_TL, HANDLE_BR: _MOUSESHOW "TOPLEFT_BOTTOMRIGHT"
-                CASE HANDLE_TR, HANDLE_BL: _MOUSESHOW "TOPRIGHT_BOTTOMLEFT"
+                CASE HANDLE_TL: _MOUSESHOW "CROSSHAIR"
+                CASE HANDLE_TR: _MOUSESHOW "CROSSHAIR"
+                CASE HANDLE_BL: _MOUSESHOW "CROSSHAIR"
+                CASE HANDLE_BR: _MOUSESHOW "CROSSHAIR"
                 CASE HANDLE_L, HANDLE_R:   _MOUSESHOW "HORIZONTAL"
                 CASE HANDLE_T, HANDLE_B:   _MOUSESHOW "VERTICAL"
             END SELECT
         CASE STATE_DRAG
             _MOUSESHOW "CROSSHAIR"
         CASE ELSE
-            SELECT CASE box.hoverHandle
-                CASE HANDLE_TL, HANDLE_BR: _MOUSESHOW "TOPLEFT_BOTTOMRIGHT"
-                CASE HANDLE_TR, HANDLE_BL: _MOUSESHOW "TOPRIGHT_BOTTOMLEFT"
-                CASE HANDLE_L, HANDLE_R:   _MOUSESHOW "HORIZONTAL"
-                CASE HANDLE_T, HANDLE_B:   _MOUSESHOW "VERTICAL"
-                CASE ELSE:                 _MOUSESHOW "DEFAULT"
-            END SELECT
+          ' --- in the hover-handle cursor block ---
+          SELECT CASE box.hoverHandle
+              CASE HANDLE_TL: _MOUSESHOW "CROSSHAIR"
+              CASE HANDLE_TR: _MOUSESHOW "CROSSHAIR"
+              CASE HANDLE_BL: _MOUSESHOW "CROSSHAIR"
+              CASE HANDLE_BR: _MOUSESHOW "CROSSHAIR"
+              CASE HANDLE_L, HANDLE_R:   _MOUSESHOW "HORIZONTAL"
+              CASE HANDLE_T, HANDLE_B:   _MOUSESHOW "VERTICAL"
+              CASE ELSE:                 _MOUSESHOW "DEFAULT"
+          END SELECT
     END SELECT
 
     SELECT CASE box.state
