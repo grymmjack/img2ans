@@ -32,7 +32,8 @@
 ' SUB GJ_BBX_DrawHandles (b AS GJ_BBX_BBOX, hover AS INTEGER)
 
 ' @author Rick Christy <grymmjack@gmail.com>
-' @author Chat GPT 5 Thinking
+' @ai Chat GPT 5 Thinking (planning and building outside vscode)
+' @ai Claude Sonnet 4 (last mile refinement in copilot)
 '
 
 ''
@@ -185,7 +186,6 @@ SUB GJ_BBX_InitDefaults
     GJ_BBX_CFG.initY = 200
     GJ_BBX_CFG.initW = 150
     GJ_BBX_CFG.initH = 100
-
 
     ' Initialize the bounding box
     GJ_BBX_InitBox _
