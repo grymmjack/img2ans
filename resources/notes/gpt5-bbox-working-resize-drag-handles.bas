@@ -1,9 +1,45 @@
-' === QB64PE BBOX - Move & Resize (Library-style; Update/Draw from your loop) ===
-' Namespaced GJ_BBX_*; filled, colorized handles; init + update + draw API.
+''
+' GRYMMJACK'S Bounding BoX (BBX) LIB FOR QB64
+'
+' This library provides a set of functions for creating and manipulating
+' bounding boxes in QB64. This includes features like resizing, dragging,
+' and handle management. 
+'
+' This library is designed to be easy to use and integrate into your QB64PE
+' projects by configuring, updating, and drawing from your own internal loops.
+'
+' - Resizing is done by dragging the edges or corners of the bounding box. 
+' - Selecting a handle will change the mouse cursor and resize.
+' - Using arrow keys will move the box by 1px.
+' - Holding SHIFT while using arrow keys will move the box by 10px.
+' - Holding CTRL while using arrow keys will resize the box by 1px.
+' - Holding CTRL + SHIFT while using arrow keys will resize the box by 10px.
+'
+' --- Public API prototypes ---
+' SUB GJ_BBX_InitDefaults ()
+' SUB GJ_BBX_InitWithConfig (cfg AS GJ_BBX_CFG)
+' SUB GJ_BBX_InitBox (x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER)
+' SUB GJ_BBX_Update ()
+' SUB GJ_BBX_Draw (showHUD AS INTEGER)
+' SUB GJ_BBX_Tick (showHUD AS INTEGER)
 
-' --------------------------- Declarations ---------------------------
+' --- Internals prototypes ---
+' SUB GJ_BBX_PollMouse (m AS GJ_BBX_MouseState, init AS INTEGER)
+' FUNCTION GJ_BBX_PointInBox% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
+' FUNCTION GJ_BBX_GetHoverHandle% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
+' FUNCTION GJ_BBX_PointInRect% (px AS INTEGER, py AS INTEGER, rx AS INTEGER, ry AS INTEGER, rw AS INTEGER, rh AS INTEGER)
+' SUB GJ_BBX_ResizeFromHandle (b AS GJ_BBX_BBOX, m AS GJ_BBX_MouseState)
+' SUB GJ_BBX_DrawHandles (b AS GJ_BBX_BBOX, hover AS INTEGER)
 
-' Config record
+' @author Rick Christy <grymmjack@gmail.com>
+' @author Chat GPT 5 Thinking
+'
+
+''
+' BOUNDING BOX CONFIGURATION
+' This type holds all configuration options for the bounding box.
+' For colors you can use RGB, RGB32, RGBA, or RGBA32, or any _UNSIGNED LONG
+' 
 TYPE GJ_BBX_CFG
     HandleHalfSize       AS INTEGER
     HandleFullSize       AS INTEGER
@@ -27,78 +63,74 @@ TYPE GJ_BBX_CFG
     initY                AS INTEGER
     initW                AS INTEGER
     initH                AS INTEGER
+    KeyRepeatDelay       AS DOUBLE
+    KeyRepeatRate        AS DOUBLE
 END TYPE
 
-' Engine constants
-CONST GJ_BBX_STATE_IDLE = 0
-CONST GJ_BBX_STATE_HOVER = 1
-CONST GJ_BBX_STATE_DRAG = 2
-CONST GJ_BBX_STATE_SELECTED = 10
+
+''
+' ENGINE CONSTANTS
+'
+CONST GJ_BBX_STATE_IDLE           = 0
+CONST GJ_BBX_STATE_HOVER          = 1
+CONST GJ_BBX_STATE_DRAG           = 2
+CONST GJ_BBX_STATE_SELECTED       = 10
 CONST GJ_BBX_STATE_SELECTED_HOVER = 11
-CONST GJ_BBX_STATE_RESIZE_BASE = 100
+CONST GJ_BBX_STATE_RESIZE_BASE    = 100
+CONST GJ_BBX_HANDLE_NONE          = 0
+CONST GJ_BBX_HANDLE_TL            = 1, GJ_BBX_HANDLE_T = 2, GJ_BBX_HANDLE_TR = 3
+CONST GJ_BBX_HANDLE_L             = 4, GJ_BBX_HANDLE_R = 5
+CONST GJ_BBX_HANDLE_BL            = 6, GJ_BBX_HANDLE_B = 7, GJ_BBX_HANDLE_BR = 8
+CONST GJ_BBX_KEY_LEFT_CTRL        = 100306
+CONST GJ_BBX_KEY_RIGHT_CTRL       = 100305
+CONST GJ_BBX_KEY_RSHIFT           = 100303
+CONST GJ_BBX_KEY_LSHIFT           = 100304
 
-CONST GJ_BBX_HANDLE_NONE = 0
-CONST GJ_BBX_HANDLE_TL = 1, GJ_BBX_HANDLE_T = 2, GJ_BBX_HANDLE_TR = 3
-CONST GJ_BBX_HANDLE_L = 4,  GJ_BBX_HANDLE_R = 5
-CONST GJ_BBX_HANDLE_BL = 6, GJ_BBX_HANDLE_B = 7, GJ_BBX_HANDLE_BR = 8
 
-' Extended key codes (arrow + ctrl-arrow)
-CONST GJ_BBX_KEY_LEFT = 19200
-CONST GJ_BBX_KEY_RIGHT = 19712
-CONST GJ_BBX_KEY_UP = 18432
-CONST GJ_BBX_KEY_DOWN = 20480
-CONST GJ_BBX_KEY_CTRL_LEFT = 115 * 256
-CONST GJ_BBX_KEY_CTRL_RIGHT = 116 * 256
-CONST GJ_BBX_KEY_CTRL_UP = 141 * 256
-CONST GJ_BBX_KEY_CTRL_DOWN = 145 * 256
-
-' Engine types
+''
+' ENGINE TYPES
+'
 TYPE GJ_BBX_MouseState
-    x AS INTEGER
-    y AS INTEGER
-    dx AS INTEGER
-    dy AS INTEGER
-    held AS INTEGER
-    clicked AS INTEGER
+    x        AS INTEGER
+    y        AS INTEGER
+    dx       AS INTEGER
+    dy       AS INTEGER
+    held     AS INTEGER
+    clicked  AS INTEGER
     released AS INTEGER
 END TYPE
 
+''
+' BOUNDING BOX
+'
 TYPE GJ_BBX_BBOX
-    x AS INTEGER
-    y AS INTEGER
-    w AS INTEGER
-    h AS INTEGER
-    state AS INTEGER
-    offsetX AS INTEGER
-    offsetY AS INTEGER
-    hoverHandle AS INTEGER
-    activeHandle AS INTEGER
-    selected AS INTEGER
+    x                AS INTEGER
+    y                AS INTEGER
+    w                AS INTEGER
+    h                AS INTEGER
+    state            AS INTEGER
+    offsetX          AS INTEGER
+    offsetY          AS INTEGER
+    hoverHandle      AS INTEGER
+    activeHandle     AS INTEGER
+    selected         AS INTEGER
     wasClickedInside AS INTEGER
 END TYPE
 
-' Shared state
+' SHARED STATE
 DIM SHARED GJ_BBX_CFG AS GJ_BBX_CFG
 DIM SHARED GJ_BBX_mouse AS GJ_BBX_MouseState
 DIM SHARED GJ_BBX_box AS GJ_BBX_BBOX
 
-' --- Public API prototypes ---
-DECLARE SUB GJ_BBX_InitDefaults ()
-DECLARE SUB GJ_BBX_InitWithConfig (cfg AS GJ_BBX_CFG)
-DECLARE SUB GJ_BBX_InitBox (x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER)
-DECLARE SUB GJ_BBX_Update ()
-DECLARE SUB GJ_BBX_Draw (showHUD AS INTEGER)
-DECLARE SUB GJ_BBX_Tick (showHUD AS INTEGER)
+' Arrow key constants (same as keywatch.bas)
+DIM SHARED GJ_BBX_KEY_LEFT&, GJ_BBX_KEY_RIGHT&, GJ_BBX_KEY_UP&, GJ_BBX_KEY_DOWN&
+GJ_BBX_KEY_LEFT&  = CVI(CHR$(0) + "K") ' Left arrow
+GJ_BBX_KEY_RIGHT& = CVI(CHR$(0) + "M") ' Right arrow
+GJ_BBX_KEY_UP&    = CVI(CHR$(0) + "H") ' Up arrow
+GJ_BBX_KEY_DOWN&  = CVI(CHR$(0) + "P") ' Down arrow
 
-' --- Internals prototypes ---
-DECLARE SUB GJ_BBX_PollMouse (m AS GJ_BBX_MouseState, init AS INTEGER)
-DECLARE FUNCTION GJ_BBX_PointInBox% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
-DECLARE FUNCTION GJ_BBX_GetHoverHandle% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
-DECLARE FUNCTION GJ_BBX_PointInRect% (px AS INTEGER, py AS INTEGER, rx AS INTEGER, ry AS INTEGER, rw AS INTEGER, rh AS INTEGER)
-DECLARE SUB GJ_BBX_ResizeFromHandle (b AS GJ_BBX_BBOX, m AS GJ_BBX_MouseState)
-DECLARE SUB GJ_BBX_DrawHandles (b AS GJ_BBX_BBOX, hover AS INTEGER)
 
-' --------------------------- Demo main ---------------------------
+' --------------------------- DEMO MAIN ---------------------------
 ' (Remove this block when you include the library in your own project.)
 
 SCREEN _NEWIMAGE(800, 600, 32)
@@ -116,66 +148,93 @@ DO
 LOOP UNTIL _KEYHIT = 27
 END
 
-' --------------------------- Implementations ---------------------------
 
+' --------------------------- IMPLEMENTATIONS ---------------------------
+
+''
+' Initialize the bounding box with defaults
+' Use this block to customize your own bounding box with GJ_BBX_CFG
+'
 SUB GJ_BBX_InitDefaults
-    ' default config
-    GJ_BBX_CFG.HandleHalfSize = 16
-    GJ_BBX_CFG.HandleFullSize = GJ_BBX_CFG.HandleHalfSize * 2
-    GJ_BBX_CFG.EdgeHalfSize = 10
-    GJ_BBX_CFG.EdgeFullSize = GJ_BBX_CFG.EdgeHalfSize * 2
-    GJ_BBX_CFG.HandleCornerSize = GJ_BBX_CFG.HandleFullSize
-    GJ_BBX_CFG.HandleEdgeSize = GJ_BBX_CFG.EdgeFullSize
-    GJ_BBX_CFG.DragEdgePadding = 8
-    GJ_BBX_CFG.MinBoxWidth = 32
-    GJ_BBX_CFG.MinBoxHeight = 32
+    ' Default config
+    GJ_BBX_CFG.HandleHalfSize       = 6
+    GJ_BBX_CFG.HandleFullSize       = GJ_BBX_CFG.HandleHalfSize * 2
+    GJ_BBX_CFG.EdgeHalfSize         = 4
+    GJ_BBX_CFG.EdgeFullSize         = GJ_BBX_CFG.EdgeHalfSize * 2
+    GJ_BBX_CFG.HandleCornerSize     = GJ_BBX_CFG.HandleFullSize
+    GJ_BBX_CFG.HandleEdgeSize       = GJ_BBX_CFG.EdgeFullSize
+    GJ_BBX_CFG.DragEdgePadding      = 8
+    GJ_BBX_CFG.MinBoxWidth          = 32
+    GJ_BBX_CFG.MinBoxHeight         = 32
 
-    GJ_BBX_CFG.colorIdle = _RGB32(128, 128, 128)
-    GJ_BBX_CFG.colorHoverOnly = _RGB32(255, 255, 0)
-    GJ_BBX_CFG.colorSelectedOnly = _RGB32(0, 128, 255)
-    GJ_BBX_CFG.colorSelectedHover = _RGB32(255, 128, 0)
-    GJ_BBX_CFG.colorDragging = _RGB32(0, 255, 0)
-    GJ_BBX_CFG.colorResizing = _RGB32(255, 0, 255)
+    GJ_BBX_CFG.colorIdle            = _RGB32(128, 128, 128)
+    GJ_BBX_CFG.colorHoverOnly       = _RGB32(255, 255, 0)
+    GJ_BBX_CFG.colorSelectedOnly    = _RGB32(255, 128, 0)
+    GJ_BBX_CFG.colorSelectedHover   = _RGB32(255, 128, 0)
+    GJ_BBX_CFG.colorDragging        = _RGB32(0, 255, 0)
+    GJ_BBX_CFG.colorResizing        = _RGB32(255, 0, 255)
 
-    GJ_BBX_CFG.HandleFillColor = _RGB32(255, 255, 255)
-    GJ_BBX_CFG.HandleHoverFillColor = _RGB32(255, 255, 0)
-    GJ_BBX_CFG.HandleBorderColor = _RGB32(0, 0, 0)
+    GJ_BBX_CFG.HandleFillColor      = _RGBA32(255, 255, 255, 0)
+    GJ_BBX_CFG.HandleHoverFillColor = _RGB32(255, 255, 255)
+    GJ_BBX_CFG.HandleBorderColor    = _RGB32(255, 255, 255)
+
+    GJ_BBX_CFG.KeyRepeatDelay       = 0.1
+    GJ_BBX_CFG.KeyRepeatRate        = 0.05
 
     GJ_BBX_CFG.initX = 300
     GJ_BBX_CFG.initY = 200
     GJ_BBX_CFG.initW = 150
     GJ_BBX_CFG.initH = 100
 
-    GJ_BBX_InitBox GJ_BBX_CFG.initX, GJ_BBX_CFG.initY, GJ_BBX_CFG.initW, GJ_BBX_CFG.initH
+
+    ' Initialize the bounding box
+    GJ_BBX_InitBox _
+        GJ_BBX_CFG.initX, _
+        GJ_BBX_CFG.initY, _
+        GJ_BBX_CFG.initW, _
+        GJ_BBX_CFG.initH
+
+    ' Poll the mouse state
     GJ_BBX_PollMouse GJ_BBX_mouse, 1
 END SUB
 
+''
+' Initialize with config passed in
+' @param cfg GJ_BBX_CFG
+'
 SUB GJ_BBX_InitWithConfig (cfg AS GJ_BBX_CFG)
     GJ_BBX_CFG = cfg
     GJ_BBX_InitBox GJ_BBX_CFG.initX, GJ_BBX_CFG.initY, GJ_BBX_CFG.initW, GJ_BBX_CFG.initH
     GJ_BBX_PollMouse GJ_BBX_mouse, 1
 END SUB
 
+''
+' Initialize the bounding box
+' @param x INTEGER x Position
+' @param y INTEGER y Position
+' @param w INTEGER Width
+' @param h INTEGER Height
+'
 SUB GJ_BBX_InitBox (x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER)
-    GJ_BBX_box.x = x
-    GJ_BBX_box.y = y
-    GJ_BBX_box.w = w
-    GJ_BBX_box.h = h
-    GJ_BBX_box.state = GJ_BBX_STATE_IDLE
-    GJ_BBX_box.selected = 0
-    GJ_BBX_box.hoverHandle = 0
-    GJ_BBX_box.activeHandle = 0
-    GJ_BBX_box.offsetX = 0
-    GJ_BBX_box.offsetY = 0
+    GJ_BBX_box.x                = x
+    GJ_BBX_box.y                = y
+    GJ_BBX_box.w                = w
+    GJ_BBX_box.h                = h
+    GJ_BBX_box.state            = GJ_BBX_STATE_IDLE
+    GJ_BBX_box.selected         = 0
+    GJ_BBX_box.hoverHandle      = 0
+    GJ_BBX_box.activeHandle     = 0
+    GJ_BBX_box.offsetX          = 0
+    GJ_BBX_box.offsetY          = 0
     GJ_BBX_box.wasClickedInside = 0
 END SUB
 
+''
+' Update the bounding box state
+' This is the main worker SUB and handles input and state changes
+' This should be called from your own main loop
+' 
 SUB GJ_BBX_Update
-    DIM k AS STRING
-    DIM keyCode AS INTEGER
-    DIM movement AS INTEGER
-    DIM did AS INTEGER
-
     GJ_BBX_PollMouse GJ_BBX_mouse, 0
     GJ_BBX_box.hoverHandle = GJ_BBX_GetHoverHandle%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box)
 
@@ -237,41 +296,130 @@ SUB GJ_BBX_Update
 
     ' Keyboard: arrows move; Ctrl+arrows resize; Shift speeds up
     IF GJ_BBX_box.selected THEN
-        k = INKEY$
-        IF LEN(k) THEN
-            keyCode = ASC(k)
-            IF keyCode = 0 OR keyCode = 224 THEN
-                keyCode = ASC(RIGHT$(k, 1)) * 256
-
-                movement = 1
-                IF _KEYDOWN(100304) OR _KEYDOWN(100303) THEN movement = 10 ' Shift
-
-                IF _KEYDOWN(100306) OR _KEYDOWN(100305) THEN
-                    movement = 1
-                    IF _KEYDOWN(100304) OR _KEYDOWN(100303) THEN movement = 10
-
-                    did = 0
-                    SELECT CASE keyCode
-                        CASE GJ_BBX_KEY_LEFT,  GJ_BBX_KEY_CTRL_LEFT:   GJ_BBX_box.w = GJ_BBX_box.w - movement: did = -1
-                        CASE GJ_BBX_KEY_RIGHT, GJ_BBX_KEY_CTRL_RIGHT:  GJ_BBX_box.w = GJ_BBX_box.w + movement: did = -1
-                        CASE GJ_BBX_KEY_UP,    GJ_BBX_KEY_CTRL_UP:     GJ_BBX_box.h = GJ_BBX_box.h - movement: did = -1
-                        CASE GJ_BBX_KEY_DOWN,  GJ_BBX_KEY_CTRL_DOWN:   GJ_BBX_box.h = GJ_BBX_box.h + movement: did = -1
-                    END SELECT
-
-                    IF did THEN
-                        IF GJ_BBX_box.w < GJ_BBX_CFG.MinBoxWidth THEN GJ_BBX_box.w = GJ_BBX_CFG.MinBoxWidth
-                        IF GJ_BBX_box.h < GJ_BBX_CFG.MinBoxHeight THEN GJ_BBX_box.h = GJ_BBX_CFG.MinBoxHeight
-                    END IF
+        DIM movement AS INTEGER
+        DIM isCtrl AS INTEGER, isShift AS INTEGER
+        
+        ' Check modifier states
+        isCtrl = (_KEYDOWN(GJ_BBX_KEY_LEFT_CTRL) OR _KEYDOWN(GJ_BBX_KEY_RIGHT_CTRL)) <> 0
+        isShift = (_KEYDOWN(GJ_BBX_KEY_LSHIFT) OR _KEYDOWN(GJ_BBX_KEY_RSHIFT)) <> 0
+        
+        ' Set movement amount
+        IF isShift THEN movement = 10 ELSE movement = 1
+        
+        ' Handle keyboard input using _KEYDOWN() with key repeat
+        STATIC lastLeft%, lastRight%, lastUp%, lastDown%
+        STATIC leftTimer#, rightTimer#, upTimer#, downTimer#
+        
+        DIM leftNow%, rightNow%, upNow%, downNow%
+        DIM currentTime#
+        
+        leftNow% = _KEYDOWN(GJ_BBX_KEY_LEFT&) <> 0
+        rightNow% = _KEYDOWN(GJ_BBX_KEY_RIGHT&) <> 0
+        upNow% = _KEYDOWN(GJ_BBX_KEY_UP&) <> 0
+        downNow% = _KEYDOWN(GJ_BBX_KEY_DOWN&) <> 0
+        currentTime# = TIMER
+        
+        ' LEFT KEY
+        IF leftNow% THEN
+            IF NOT lastLeft% THEN
+                ' Key just pressed - immediate action
+                leftTimer# = currentTime#
+                IF isCtrl THEN
+                    GJ_BBX_box.w = GJ_BBX_box.w - movement
+                    IF GJ_BBX_box.w < GJ_BBX_CFG.MinBoxWidth THEN GJ_BBX_box.w = GJ_BBX_CFG.MinBoxWidth
                 ELSE
-                    SELECT CASE keyCode
-                        CASE GJ_BBX_KEY_LEFT:  GJ_BBX_box.x = GJ_BBX_box.x - movement
-                        CASE GJ_BBX_KEY_RIGHT: GJ_BBX_box.x = GJ_BBX_box.x + movement
-                        CASE GJ_BBX_KEY_UP:    GJ_BBX_box.y = GJ_BBX_box.y - movement
-                        CASE GJ_BBX_KEY_DOWN:  GJ_BBX_box.y = GJ_BBX_box.y + movement
-                    END SELECT
+                    GJ_BBX_box.x = GJ_BBX_box.x - movement
+                END IF
+            ELSEIF currentTime# - leftTimer# > GJ_BBX_CFG.KeyRepeatDelay THEN
+                ' Key held down - check for repeat
+                IF currentTime# - leftTimer# > GJ_BBX_CFG.KeyRepeatDelay + GJ_BBX_CFG.KeyRepeatRate THEN
+                    leftTimer# = currentTime# - GJ_BBX_CFG.KeyRepeatDelay
+                    IF isCtrl THEN
+                        GJ_BBX_box.w = GJ_BBX_box.w - movement
+                        IF GJ_BBX_box.w < GJ_BBX_CFG.MinBoxWidth THEN GJ_BBX_box.w = GJ_BBX_CFG.MinBoxWidth
+                    ELSE
+                        GJ_BBX_box.x = GJ_BBX_box.x - movement
+                    END IF
                 END IF
             END IF
         END IF
+        
+        ' RIGHT KEY
+        IF rightNow% THEN
+            IF NOT lastRight% THEN
+                ' Key just pressed - immediate action
+                rightTimer# = currentTime#
+                IF isCtrl THEN
+                    GJ_BBX_box.w = GJ_BBX_box.w + movement
+                ELSE
+                    GJ_BBX_box.x = GJ_BBX_box.x + movement
+                END IF
+            ELSEIF currentTime# - rightTimer# > GJ_BBX_CFG.KeyRepeatDelay THEN
+                ' Key held down - check for repeat
+                IF currentTime# - rightTimer# > GJ_BBX_CFG.KeyRepeatDelay + GJ_BBX_CFG.KeyRepeatRate THEN
+                    rightTimer# = currentTime# - GJ_BBX_CFG.KeyRepeatDelay
+                    IF isCtrl THEN
+                        GJ_BBX_box.w = GJ_BBX_box.w + movement
+                    ELSE
+                        GJ_BBX_box.x = GJ_BBX_box.x + movement
+                    END IF
+                END IF
+            END IF
+        END IF
+        
+        ' UP KEY
+        IF upNow% THEN
+            IF NOT lastUp% THEN
+                ' Key just pressed - immediate action
+                upTimer# = currentTime#
+                IF isCtrl THEN
+                    GJ_BBX_box.h = GJ_BBX_box.h - movement
+                    IF GJ_BBX_box.h < GJ_BBX_CFG.MinBoxHeight THEN GJ_BBX_box.h = GJ_BBX_CFG.MinBoxHeight
+                ELSE
+                    GJ_BBX_box.y = GJ_BBX_box.y - movement
+                END IF
+            ELSEIF currentTime# - upTimer# > GJ_BBX_CFG.KeyRepeatDelay THEN
+                ' Key held down - check for repeat
+                IF currentTime# - upTimer# > GJ_BBX_CFG.KeyRepeatDelay + GJ_BBX_CFG.KeyRepeatRate THEN
+                    upTimer# = currentTime# - GJ_BBX_CFG.KeyRepeatDelay
+                    IF isCtrl THEN
+                        GJ_BBX_box.h = GJ_BBX_box.h - movement
+                        IF GJ_BBX_box.h < GJ_BBX_CFG.MinBoxHeight THEN GJ_BBX_box.h = GJ_BBX_CFG.MinBoxHeight
+                    ELSE
+                        GJ_BBX_box.y = GJ_BBX_box.y - movement
+                    END IF
+                END IF
+            END IF
+        END IF
+        
+        ' DOWN KEY
+        IF downNow% THEN
+            IF NOT lastDown% THEN
+                ' Key just pressed - immediate action
+                downTimer# = currentTime#
+                IF isCtrl THEN
+                    GJ_BBX_box.h = GJ_BBX_box.h + movement
+                ELSE
+                    GJ_BBX_box.y = GJ_BBX_box.y + movement
+                END IF
+            ELSEIF currentTime# - downTimer# > GJ_BBX_CFG.KeyRepeatDelay THEN
+                ' Key held down - check for repeat
+                IF currentTime# - downTimer# > GJ_BBX_CFG.KeyRepeatDelay + GJ_BBX_CFG.KeyRepeatRate THEN
+                    downTimer# = currentTime# - GJ_BBX_CFG.KeyRepeatDelay
+                    IF isCtrl THEN
+                        GJ_BBX_box.h = GJ_BBX_box.h + movement
+                    ELSE
+                        GJ_BBX_box.y = GJ_BBX_box.y + movement
+                    END IF
+                END IF
+            END IF
+        END IF
+        
+        ' Store current states for next frame
+        lastLeft% = leftNow%
+        lastRight% = rightNow%
+        lastUp% = upNow%
+        lastDown% = downNow%
     END IF
 
     ' Cursor feedback
@@ -287,6 +435,8 @@ SUB GJ_BBX_Update
             END SELECT
         CASE GJ_BBX_STATE_DRAG
             _MOUSESHOW "CROSSHAIR"
+        CASE GJ_BBX_STATE_HOVER
+            _MOUSESHOW "CROSSHAIR"
         CASE ELSE
             SELECT CASE GJ_BBX_box.hoverHandle
                 CASE GJ_BBX_HANDLE_TL, GJ_BBX_HANDLE_TR, GJ_BBX_HANDLE_BL, GJ_BBX_HANDLE_BR
@@ -301,6 +451,11 @@ SUB GJ_BBX_Update
     END SELECT
 END SUB
 
+
+''
+' Draw the bounding box
+' @param showHUD INTEGER Show the HUD debug information? (TRUE | FALSE)
+'
 SUB GJ_BBX_Draw (showHUD AS INTEGER)
     DIM boxColor AS _UNSIGNED LONG
 
@@ -313,7 +468,7 @@ SUB GJ_BBX_Draw (showHUD AS INTEGER)
         CASE ELSE: boxColor = GJ_BBX_CFG.colorIdle
     END SELECT
 
-    LINE (GJ_BBX_box.x, GJ_BBX_box.y)-(GJ_BBX_box.x + GJ_BBX_box.w, GJ_BBX_box.y + GJ_BBX_box.h), boxColor, B
+    LINE (GJ_BBX_box.x, GJ_BBX_box.y)-(GJ_BBX_box.x + GJ_BBX_box.w, GJ_BBX_box.y + GJ_BBX_box.h), boxColor, B, &B0101010101010101
     GJ_BBX_DrawHandles GJ_BBX_box, GJ_BBX_box.hoverHandle
 
     IF showHUD THEN
@@ -323,11 +478,23 @@ SUB GJ_BBX_Draw (showHUD AS INTEGER)
     END IF
 END SUB
 
+
+''
+' This is a convenience SUB for updating and drawing the bounding box
+' You can call this single SUB from your main loop
+' @param showHUD INTEGER Show the HUD debug information? (TRUE | FALSE)
+'
 SUB GJ_BBX_Tick (showHUD AS INTEGER)
     GJ_BBX_Update
     GJ_BBX_Draw showHUD
 END SUB
 
+
+''
+' Poll the mouse state
+' @param m GJ_BBX_MouseState The mouse state to update
+' @param init INTEGER Is this the initial poll? (TRUE | FALSE)
+'
 SUB GJ_BBX_PollMouse (m AS GJ_BBX_MouseState, init AS INTEGER)
     STATIC lastX AS INTEGER, lastY AS INTEGER, lastHeld AS INTEGER
 
@@ -356,10 +523,27 @@ SUB GJ_BBX_PollMouse (m AS GJ_BBX_MouseState, init AS INTEGER)
     WEND
 END SUB
 
+
+''
+' Check if a point is inside a bounding box
+' Used for mouse interaction and collision detection
+' @param mx INTEGER The x-coordinate of the point
+' @param my INTEGER The y-coordinate of the point
+' @param b GJ_BBX_BBOX The bounding box to check against
+' @return INTEGER (TRUE | FALSE)
+'
 FUNCTION GJ_BBX_PointInBox% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
     GJ_BBX_PointInBox% = (mx >= b.x AND mx <= b.x + b.w AND my >= b.y AND my <= b.y + b.h)
 END FUNCTION
 
+
+''
+' Get the hover handle for a point
+' @param mx INTEGER The mouse x-coordinate of the point
+' @param my INTEGER The mouse y-coordinate of the point
+' @param b GJ_BBX_BBOX The bounding box to check against
+' @return GJ_BBX_HANDLE_(TL|T|TR|L|R|BL|B|BR|NONE) handle that is hovered over
+'
 FUNCTION GJ_BBX_GetHoverHandle% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
     DIM cx AS INTEGER: cx = b.x + b.w \ 2
     DIM cy AS INTEGER: cy = b.y + b.h \ 2
@@ -376,10 +560,27 @@ FUNCTION GJ_BBX_GetHoverHandle% (mx AS INTEGER, my AS INTEGER, b AS GJ_BBX_BBOX)
     GJ_BBX_GetHoverHandle% = GJ_BBX_HANDLE_NONE
 END FUNCTION
 
+
+''
+' Check if a point is inside a rectangle
+' @param px INTEGER The x-coordinate of the point
+' @param py INTEGER The y-coordinate of the point
+' @param rx INTEGER The x-coordinate of the rectangle
+' @param ry INTEGER The y-coordinate of the rectangle
+' @param rw INTEGER The width of the rectangle
+' @param rh INTEGER The height of the rectangle
+' @return INTEGER (TRUE | FALSE)
+'
 FUNCTION GJ_BBX_PointInRect% (px AS INTEGER, py AS INTEGER, rx AS INTEGER, ry AS INTEGER, rw AS INTEGER, rh AS INTEGER)
     GJ_BBX_PointInRect% = (px >= rx AND px <= rx + rw AND py >= ry AND py <= ry + rh)
 END FUNCTION
 
+
+''
+' Resize the bounding box from the active handle
+' @param b GJ_BBX_BBOX The bounding box to resize
+' @param m GJ_BBX_MouseState The current mouse state
+'
 SUB GJ_BBX_ResizeFromHandle (b AS GJ_BBX_BBOX, m AS GJ_BBX_MouseState)
     SELECT CASE b.activeHandle
         CASE GJ_BBX_HANDLE_TL
@@ -402,6 +603,13 @@ SUB GJ_BBX_ResizeFromHandle (b AS GJ_BBX_BBOX, m AS GJ_BBX_MouseState)
     END SELECT
 END SUB
 
+
+''
+' Draw the resize handles for a bounding box
+' @param b GJ_BBX_BBOX The bounding box to draw handles for
+' @param hover INTEGER The currently hovered handle
+'        one of GJ_BBX_HANDLE_(TL|T|TR|L|R|BL|B|BR|NONE)
+'
 SUB GJ_BBX_DrawHandles (b AS GJ_BBX_BBOX, hover AS INTEGER)
     DIM cx AS INTEGER: cx = b.x + b.w \ 2
     DIM cy AS INTEGER: cy = b.y + b.h \ 2

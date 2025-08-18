@@ -1,3 +1,4 @@
 {
-    "svg.preview.background": "transparent"
+    "svg.preview.background": "transparent",
+    "editor.tabSize": 4
 }
