@@ -1,10 +1,5 @@
 using ai finish the project :D
 
-mouse events are not drawing when mouse stops
-    a timer could be used?
-
-idle / over are working
-but on click and select, once moving mouse, select disappears if mouse over, but stays if mouse not over
 
 
 
