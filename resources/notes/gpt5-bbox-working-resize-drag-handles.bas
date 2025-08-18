@@ -1,5 +1,5 @@
 ''
-' GRYMMJACK'S Bounding BoX (BBX) LIB FOR QB64
+' GRYMMJACK'S Bounding BOX (BBOX) LIB FOR QB64
 '
 ' This library provides a set of functions for creating and manipulating
 ' bounding boxes in QB64. This includes features like resizing, dragging,
@@ -143,7 +143,7 @@ GJ_BBX_InitDefaults
 
 DO
     CLS
-    GJ_BBX_Tick -1  ' show HUD
+    GJ_BBX_Tick _TRUE  ' show HUD
     _DISPLAY
 LOOP UNTIL _KEYHIT = 27
 END
@@ -195,7 +195,7 @@ SUB GJ_BBX_InitDefaults
         GJ_BBX_CFG.initH
 
     ' Poll the mouse state
-    GJ_BBX_PollMouse GJ_BBX_mouse, 1
+    GJ_BBX_PollMouse GJ_BBX_mouse, _TRUE
 END SUB
 
 ''
@@ -205,7 +205,7 @@ END SUB
 SUB GJ_BBX_InitWithConfig (cfg AS GJ_BBX_CFG)
     GJ_BBX_CFG = cfg
     GJ_BBX_InitBox GJ_BBX_CFG.initX, GJ_BBX_CFG.initY, GJ_BBX_CFG.initW, GJ_BBX_CFG.initH
-    GJ_BBX_PollMouse GJ_BBX_mouse, 1
+    GJ_BBX_PollMouse GJ_BBX_mouse, _TRUE
 END SUB
 
 ''
@@ -221,12 +221,12 @@ SUB GJ_BBX_InitBox (x AS INTEGER, y AS INTEGER, w AS INTEGER, h AS INTEGER)
     GJ_BBX_box.w                = w
     GJ_BBX_box.h                = h
     GJ_BBX_box.state            = GJ_BBX_STATE_IDLE
-    GJ_BBX_box.selected         = 0
-    GJ_BBX_box.hoverHandle      = 0
-    GJ_BBX_box.activeHandle     = 0
+    GJ_BBX_box.selected         = _FALSE
+    GJ_BBX_box.hoverHandle      = GJ_BBX_HANDLE_NONE
+    GJ_BBX_box.activeHandle     = GJ_BBX_HANDLE_NONE
     GJ_BBX_box.offsetX          = 0
     GJ_BBX_box.offsetY          = 0
-    GJ_BBX_box.wasClickedInside = 0
+    GJ_BBX_box.wasClickedInside = _FALSE
 END SUB
 
 ''
@@ -235,20 +235,20 @@ END SUB
 ' This should be called from your own main loop
 ' 
 SUB GJ_BBX_Update
-    GJ_BBX_PollMouse GJ_BBX_mouse, 0
+    GJ_BBX_PollMouse GJ_BBX_mouse, _FALSE
     GJ_BBX_box.hoverHandle = GJ_BBX_GetHoverHandle%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box)
 
     IF GJ_BBX_box.state < GJ_BBX_STATE_RESIZE_BASE AND GJ_BBX_box.hoverHandle AND GJ_BBX_mouse.clicked THEN
         GJ_BBX_box.activeHandle = GJ_BBX_box.hoverHandle
         GJ_BBX_box.state = GJ_BBX_STATE_RESIZE_BASE + GJ_BBX_box.activeHandle
-        GJ_BBX_box.selected = -1
-        GJ_BBX_box.wasClickedInside = 0
+        GJ_BBX_box.selected = _TRUE
+        GJ_BBX_box.wasClickedInside = _FALSE
     ELSEIF GJ_BBX_box.state < GJ_BBX_STATE_RESIZE_BASE AND GJ_BBX_PointInBox%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box) AND GJ_BBX_mouse.clicked THEN
         GJ_BBX_box.offsetX = GJ_BBX_mouse.x - GJ_BBX_box.x
         GJ_BBX_box.offsetY = GJ_BBX_mouse.y - GJ_BBX_box.y
         GJ_BBX_box.state = GJ_BBX_STATE_DRAG
-        GJ_BBX_box.selected = -1
-        GJ_BBX_box.wasClickedInside = -1
+        GJ_BBX_box.selected = _TRUE
+        GJ_BBX_box.wasClickedInside = _TRUE
     END IF
 
     IF GJ_BBX_box.state >= GJ_BBX_STATE_RESIZE_BASE THEN
@@ -265,17 +265,17 @@ SUB GJ_BBX_Update
             GJ_BBX_box.y = GJ_BBX_mouse.y - GJ_BBX_box.offsetY
         ELSE
             GJ_BBX_box.state = GJ_BBX_STATE_SELECTED
-            GJ_BBX_box.selected = -1
+            GJ_BBX_box.selected = _TRUE
         END IF
     ELSE
         IF GJ_BBX_mouse.released THEN
             IF GJ_BBX_box.wasClickedInside THEN
-                GJ_BBX_box.selected = -1
-                GJ_BBX_box.wasClickedInside = 0
+                GJ_BBX_box.selected = _TRUE
+                GJ_BBX_box.wasClickedInside = _FALSE
             ELSEIF NOT GJ_BBX_PointInBox%(GJ_BBX_mouse.x, GJ_BBX_mouse.y, GJ_BBX_box) THEN
-                GJ_BBX_box.selected = 0
+                GJ_BBX_box.selected = _FALSE
                 GJ_BBX_box.state = GJ_BBX_STATE_IDLE
-                GJ_BBX_box.wasClickedInside = 0
+                GJ_BBX_box.wasClickedInside = _FALSE
             END IF
         END IF
 
@@ -307,11 +307,11 @@ SUB GJ_BBX_Update
         IF isShift THEN movement = 10 ELSE movement = 1
         
         ' Handle keyboard input using _KEYDOWN() with key repeat
-        STATIC lastLeft%, lastRight%, lastUp%, lastDown%
-        STATIC leftTimer#, rightTimer#, upTimer#, downTimer#
+        STATIC AS INTEGER lastLeft, lastRight, lastUp, lastDown
+        STATIC AS DOUBLE leftTimer, rightTimer, upTimer, downTimer
         
-        DIM leftNow%, rightNow%, upNow%, downNow%
-        DIM currentTime#
+        DIM AS INTEGER leftNow, rightNow, upNow, downNow
+        DIM currentTime AS DOUBLE
         
         leftNow% = _KEYDOWN(GJ_BBX_KEY_LEFT&) <> 0
         rightNow% = _KEYDOWN(GJ_BBX_KEY_RIGHT&) <> 0
@@ -434,7 +434,7 @@ SUB GJ_BBX_Update
                     _MOUSESHOW "VERTICAL"
             END SELECT
         CASE GJ_BBX_STATE_DRAG
-            _MOUSESHOW "CROSSHAIR"
+            _MOUSESHOW "MOVE"
         CASE GJ_BBX_STATE_HOVER
             _MOUSESHOW "CROSSHAIR"
         CASE ELSE
@@ -501,11 +501,11 @@ SUB GJ_BBX_PollMouse (m AS GJ_BBX_MouseState, init AS INTEGER)
     IF init THEN
         lastX = _MOUSEX: lastY = _MOUSEY: lastHeld = _MOUSEBUTTON(1)
         m.x = lastX: m.y = lastY: m.dx = 0: m.dy = 0
-        m.held = lastHeld: m.clicked = 0: m.released = 0
+        m.held = lastHeld: m.clicked = _FALSE: m.released = _FALSE
         EXIT SUB
     END IF
 
-    m.clicked = 0: m.released = 0
+    m.clicked = _FALSE: m.released = _FALSE
 
     WHILE _MOUSEINPUT
         m.x = _MOUSEX: m.y = _MOUSEY
@@ -516,8 +516,8 @@ SUB GJ_BBX_PollMouse (m AS GJ_BBX_MouseState, init AS INTEGER)
 
         m.held = _MOUSEBUTTON(1)
 
-        IF m.held = -1 AND lastHeld = 0 THEN m.clicked = -1
-        IF m.held = 0 AND lastHeld = -1 THEN m.released = -1
+        IF m.held = _TRUE AND lastHeld = _FALSE THEN m.clicked = _TRUE
+        IF m.held = _FALSE AND lastHeld = _TRUE THEN m.released = _TRUE
 
         lastHeld = m.held
     WEND
