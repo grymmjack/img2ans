@@ -1,0 +1,9 @@
+{
+    "servers": {
+        "qb64pe": {
+            "command": "node",
+            "args": ["C:/Users/grymmjack/git/qb64pe-mcp-server/build/index.js"],
+            "env": {}
+        }
+    },
+}
