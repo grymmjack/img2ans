@@ -1,0 +1,2 @@
+PRINT "Test compilation"
+END
