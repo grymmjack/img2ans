@@ -585,8 +585,8 @@ SUB SetupMethodParameters (method AS INTEGER)
         CASE 0 ' Basic (Brightness/Contrast) - uses parameters(0) and parameters(1)
             parameterCount = 2
             parameterNames(0) = "Brightness"
-            parameterMins(0) = -100
-            parameterMaxs(0) = 100
+            parameterMins(0) = -255
+            parameterMaxs(0) = 255
             parameterSteps(0) = 5
             parameterNames(1) = "Contrast"
             parameterMins(1) = -100

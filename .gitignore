@@ -21,3 +21,11 @@
 **.venv
 include/InForm-PE
 include/QB64_GJ_LIB
+# QB64PE execution output
+qb64pe-screenshots/
+qb64pe-logs/
+*.exe
+*.dmg
+# QB64PE temporary files
+internal/temp/
+internal/c/parts/core/temp/
