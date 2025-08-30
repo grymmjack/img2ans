@@ -104,28 +104,49 @@ SUB ApplyAdjustments
 END SUB
 
 SUB ApplyGamma (img AS LONG, gamma AS SINGLE)
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
     DIM invGamma AS SINGLE
     invGamma = 1.0 / gamma
     
     w = _WIDTH(img): h = _HEIGHT(img)
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
+    
+    ' ULTRA-FAST: Pre-calculate gamma lookup table (MASSIVE speed boost!)
+    DIM gammaLUT(0 TO 255) AS INTEGER
+    DIM i AS INTEGER
+    FOR i = 0 TO 255
+        gammaLUT(i) = CINT(255 * ((i / 255.0) ^ invGamma))
+        IF gammaLUT(i) > 255 THEN gammaLUT(i) = 255
+    NEXT i
+    
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
     
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            r = CINT(255 * ((_RED32(c) / 255.0) ^ invGamma))
-            g = CINT(255 * ((_GREEN32(c) / 255.0) ^ invGamma))
-            b = CINT(255 * ((_BLUE32(c) / 255.0) ^ invGamma))
-            IF r > 255 THEN r = 255
-            IF g > 255 THEN g = 255
-            IF b > 255 THEN b = 255
-            PSET (x, y), _RGB32(r, g, b)
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' Apply gamma using pre-calculated lookup table (BLAZING FAST!)
+            r = gammaLUT(r)
+            g = gammaLUT(g)
+            b = gammaLUT(b)
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, b AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, g AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, r AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'

@@ -100,29 +100,56 @@ SUB ApplyAdjustments
 END SUB
 
 SUB ApplyFilmGrain (img AS LONG, amount AS INTEGER)
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM r AS INTEGER, g AS INTEGER, b AS INTEGER, noise AS INTEGER
     
     w = _WIDTH(img): h = _HEIGHT(img)
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
     
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
+    
+    ' OPTIMIZATION: Pre-generate LARGE noise array for realistic grain
+    DIM noiseArray(0 TO 65535) AS INTEGER  ' Much larger array (64K values)
+    DIM i AS LONG  ' Use LONG to handle 65535 range
     RANDOMIZE TIMER
+    FOR i = 0 TO 65535
+        noiseArray(i) = (RND * amount * 2) - amount
+    NEXT i
+    
+    ' ADVANCED: Use pseudo-random indexing to break up patterns
+    DIM seedX AS LONG, seedY AS LONG, noiseIndex AS LONG
+    seedX = 1103515245   ' Prime numbers for good distribution
+    seedY = 134775813
     
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            noise = (RND * amount * 2) - amount
-            r = _RED32(c) + noise
-            g = _GREEN32(c) + noise
-            b = _BLUE32(c) + noise
-            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
-            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
-            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
-            PSET (x, y), _RGB32(r, g, b)
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' REALISTIC GRAIN: Use position-based pseudo-random indexing
+            ' This creates natural-looking grain without visible patterns
+            noiseIndex = ((x * seedX) XOR (y * seedY)) AND 65535
+            noise = noiseArray(noiseIndex)
+            
+            r = r + noise: IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + noise: IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + noise: IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, b AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, g AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, r AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'

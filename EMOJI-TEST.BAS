@@ -2,7 +2,8 @@ _TITLE "Emoji Display in QB64PE"
 SCREEN _NEWIMAGE(800, 300, 32)
 
 ' Load a Unicode TTF font (use one that supports emojis, like Segoe UI Emoji)
-emojiFont& = _LOADFONT("C:\\WINDOWS\\FONTS\\seguiemj.ttf", 48) ' Make sure this TTF file is present
+emojiFont& = _LOADFONT("C:\\Users\\grymmjack\\AppData\\Local\\Microsoft\\Windows\\Fonts\\NotoEmoji-Regular.ttf", 48)
+' emojiFont& = _LOADFONT("C:\\WINDOWS\\FONTS\\seguiemj.ttf", 48) ' Make sure this TTF file is present
 _FONT emojiFont&
 
 ' Emoji Unicode character string

@@ -87,23 +87,39 @@ SUB ApplyAdjustments
 END SUB
 
 SUB ApplyInvert (img AS LONG)
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
     
     w = _WIDTH(img): h = _HEIGHT(img)
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
+    
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
     
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            r = 255 - _RED32(c)
-            g = 255 - _GREEN32(c)
-            b = 255 - _BLUE32(c)
-            PSET (x, y), _RGB32(r, g, b)
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' Invert colors (BLAZING FAST!)
+            r = 255 - r
+            g = 255 - g
+            b = 255 - b
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, b AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, g AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, r AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'

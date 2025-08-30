@@ -69,7 +69,7 @@ SUB SetupParameters
     ' Strength parameter
     parameterNames(0) = "Strength"
     parameterMins(0) = 0
-    parameterMaxs(0) = 100
+    parameterMaxs(0) = 255
     parameterSteps(0) = 5
     parameters(0) = 50  ' Default to 50% strength
     
@@ -103,31 +103,50 @@ SUB ApplyAdjustments
 END SUB
 
 SUB ApplyVignette (img AS LONG, strength AS SINGLE)
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
-    DIM centerX AS SINGLE, centerY AS SINGLE, maxDist AS SINGLE, dist AS SINGLE, factor AS SINGLE
+    DIM centerX AS SINGLE, centerY AS SINGLE, maxDistSq AS SINGLE, distSq AS SINGLE, factor AS SINGLE
+    DIM dx AS SINGLE, dy AS SINGLE
     
     w = _WIDTH(img): h = _HEIGHT(img)
     centerX = w / 2: centerY = h / 2
-    maxDist = SQR(centerX * centerX + centerY * centerY)
+    maxDistSq = centerX * centerX + centerY * centerY  ' Use squared distance to avoid SQR
     
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
     
     FOR y = 0 TO h - 1
+        dy = y - centerY
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            dist = SQR((x - centerX) * (x - centerX) + (y - centerY) * (y - centerY))
-            factor = 1.0 - (dist / maxDist) * strength
+            dx = x - centerX
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' OPTIMIZED: Use squared distance to avoid expensive SQR calls
+            distSq = dx * dx + dy * dy
+            factor = 1.0 - (distSq / maxDistSq) * strength
             IF factor < 0 THEN factor = 0
             
-            r = CINT(_RED32(c) * factor)
-            g = CINT(_GREEN32(c) * factor)
-            b = CINT(_BLUE32(c) * factor)
-            PSET (x, y), _RGB32(r, g, b)
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            ' Apply vignette factor (BLAZING FAST!)
+            r = CINT(r * factor)
+            g = CINT(g * factor)
+            b = CINT(b * factor)
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, b AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, g AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, r AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'

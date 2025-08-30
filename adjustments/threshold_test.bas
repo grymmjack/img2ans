@@ -103,25 +103,40 @@ SUB ApplyAdjustments
 END SUB
 
 SUB ApplyThreshold (img AS LONG, threshold AS INTEGER, mode AS INTEGER)
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM gray AS INTEGER
+    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
+    DIM result AS INTEGER
     
     w = _WIDTH(img): h = _HEIGHT(img)
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
+    
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
     
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            gray = (_RED32(c) + _GREEN32(c) + _BLUE32(c)) \ 3
-            IF gray > threshold THEN
-                PSET (x, y), _RGB32(255, 255, 255)
-            ELSE
-                PSET (x, y), _RGB32(0, 0, 0)
-            END IF
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' Calculate grayscale and apply threshold (BLAZING FAST!)
+            gray = (r + g + b) \ 3
+            IF gray > threshold THEN result = 255 ELSE result = 0
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, result AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, result AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, result AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'

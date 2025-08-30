@@ -87,22 +87,38 @@ SUB ApplyAdjustments
 END SUB
 
 SUB ApplyDesaturate (img AS LONG, method AS INTEGER)
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM gray AS INTEGER
+    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
     
     w = _WIDTH(img): h = _HEIGHT(img)
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
+    
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
     
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            ' Luminance-based grayscale
-            gray = CINT(_RED32(c) * 0.299 + _GREEN32(c) * 0.587 + _BLUE32(c) * 0.114)
-            PSET (x, y), _RGB32(gray, gray, gray)
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' Luminance-based grayscale (BLAZING FAST!)
+            gray = CINT(r * 0.299 + g * 0.587 + b * 0.114)
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, gray AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, gray AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, gray AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'

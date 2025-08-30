@@ -115,24 +115,38 @@ SUB ApplyAdjustments
 END SUB
 
 SUB ApplyBrightness (img AS LONG, offset AS INTEGER)
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
     w = _WIDTH(img): h = _HEIGHT(img)
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
+    
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
+    
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            r = _RED32(c) + offset
-            g = _GREEN32(c) + offset
-            b = _BLUE32(c) + offset
-            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
-            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
-            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
-            PSET (x, y), _RGB32(r, g, b)
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' Apply brightness offset with clamping
+            r = r + offset: IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + offset: IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + offset: IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, b AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, g AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, r AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 SUB ApplyContrast (img AS LONG, pct AS INTEGER)
@@ -141,24 +155,38 @@ SUB ApplyContrast (img AS LONG, pct AS INTEGER)
     DIM f AS DOUBLE
     f = (259.0 * (pct + 255.0)) / (255.0 * (259.0 - pct))
 
-    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG, c AS _UNSIGNED LONG
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
     w = _WIDTH(img): h = _HEIGHT(img)
-    DIM old AS LONG: old = _SOURCE: _SOURCE img
-    DIM oldW AS LONG: oldW = _DEST: _DEST img
+    
+    ' ULTRA-FAST: Use _MEMIMAGE for direct memory access
+    DIM imgBlock AS _MEM
+    imgBlock = _MEMIMAGE(img)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM memOffset AS _OFFSET
+    
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
-            c = POINT(x, y)
-            r = CINT(f * (_RED32(c) - 128) + 128)
-            g = CINT(f * (_GREEN32(c) - 128) + 128)
-            b = CINT(f * (_BLUE32(c) - 128) + 128)
-            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
-            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
-            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
-            PSET (x, y), _RGB32(r, g, b)
-        NEXT
-    NEXT
-    _SOURCE old: _DEST oldW
+            memOffset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory (BGR order in memory)
+            b = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset, _UNSIGNED _BYTE)
+            g = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(imgBlock, imgBlock.OFFSET + memOffset + 2, _UNSIGNED _BYTE)
+            
+            ' Apply contrast adjustment with clamping
+            r = CINT(f * (r - 128) + 128): IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = CINT(f * (g - 128) + 128): IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = CINT(f * (b - 128) + 128): IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            ' Write back to memory
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset, b AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 1, g AS _UNSIGNED _BYTE
+            _MEMPUT imgBlock, imgBlock.OFFSET + memOffset + 2, r AS _UNSIGNED _BYTE
+        NEXT x
+    NEXT y
+    
+    _MEMFREE imgBlock
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'

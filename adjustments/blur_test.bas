@@ -99,52 +99,64 @@ SUB ApplyAdjustments
     _DEST 0
 END SUB
 
-' Blur Effect - Applies a box blur with specified radius
+' Optimized Blur Effect - Uses reduced sampling for better performance
 SUB ApplyBlurEffect (img AS LONG, radius AS INTEGER)
     DIM tempImg AS LONG
-    DIM x AS INTEGER, y AS INTEGER, dx AS INTEGER, dy AS INTEGER
-    DIM totalR AS LONG, totalG AS LONG, totalB AS LONG, count AS INTEGER
-    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
-    DIM c AS _UNSIGNED LONG
-    DIM oldSource AS LONG, oldDest AS LONG
+    DIM bx AS INTEGER, by AS INTEGER, bdx AS INTEGER, bdy AS INTEGER
+    DIM btotalR AS LONG, btotalG AS LONG, btotalB AS LONG, bcount AS INTEGER
+    DIM br AS INTEGER, bg AS INTEGER, bb AS INTEGER
+    DIM bc AS _UNSIGNED LONG
+    DIM boldSource AS LONG, boldDest AS LONG
+    DIM bw AS INTEGER, bh AS INTEGER
+    DIM bstep AS INTEGER
     
-    oldSource = _SOURCE
-    oldDest = _DEST
+    IF radius <= 0 THEN EXIT SUB
+    
+    boldSource = _SOURCE
+    boldDest = _DEST
+    
+    bw = _WIDTH(img)
+    bh = _HEIGHT(img)
+    
+    ' Use optimized sampling - skip pixels for larger radii
+    bstep = 1
+    IF radius > 5 THEN bstep = 2
+    IF radius > 10 THEN bstep = 3
     
     tempImg = _COPYIMAGE(img, 32)
     _SOURCE tempImg
     _DEST img
     
-    FOR y = 0 TO _HEIGHT(img) - 1
-        FOR x = 0 TO _WIDTH(img) - 1
-            totalR = 0: totalG = 0: totalB = 0: count = 0
+    FOR by = 0 TO bh - 1
+        FOR bx = 0 TO bw - 1
+            btotalR = 0: btotalG = 0: btotalB = 0: bcount = 0
             
-            ' Sample surrounding pixels
-            FOR dy = -radius TO radius
-                FOR dx = -radius TO radius
-                    IF x + dx >= 0 AND x + dx < _WIDTH(img) AND y + dy >= 0 AND y + dy < _HEIGHT(img) THEN
-                        c = POINT(x + dx, y + dy)
-                        r = _RED32(c): g = _GREEN32(c): b = _BLUE32(c)
-                        totalR = totalR + r
-                        totalG = totalG + g
-                        totalB = totalB + b
-                        count = count + 1
+            ' Sample surrounding pixels with optimized step
+            FOR bdy = -radius TO radius STEP bstep
+                FOR bdx = -radius TO radius STEP bstep
+                    IF bx + bdx >= 0 AND bx + bdx < bw AND by + bdy >= 0 AND by + bdy < bh THEN
+                        bc = POINT(bx + bdx, by + bdy)
+                        br = _RED32(bc): bg = _GREEN32(bc): bb = _BLUE32(bc)
+                        btotalR = btotalR + br
+                        btotalG = btotalG + bg
+                        btotalB = btotalB + bb
+                        bcount = bcount + 1
                     END IF
-                NEXT dx
-            NEXT dy
+                NEXT bdx
+            NEXT bdy
             
-            IF count > 0 THEN
-                r = totalR \ count
-                g = totalG \ count
-                b = totalB \ count
-                PSET (x, y), _RGB32(r, g, b)
+            IF bcount > 0 THEN
+                br = btotalR \ bcount
+                bg = btotalG \ bcount
+                bb = btotalB \ bcount
+                PSET (bx, by), _RGB32(br, bg, bb)
             END IF
-        NEXT x
-    NEXT y
+        NEXT bx
+    NEXT by
     
     _FREEIMAGE tempImg
-    _SOURCE oldSource
-    _DEST oldDest
+    _SOURCE boldSource
+    _DEST boldDest
 END SUB
 
 '$INCLUDE:'../core/adjustment_common.bas'
