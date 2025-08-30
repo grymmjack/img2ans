@@ -1,6 +1,9 @@
 ' Common declarations for image adjustment algorithms
 ' Include this in all adjustment test files
 
+' Include our optimized core image operations library
+'$INCLUDE:'image_ops.bi'
+
 ' Common constants
 CONST SCREEN_W = 1400
 CONST SCREEN_H = 900
@@ -37,6 +40,18 @@ DECLARE FUNCTION IMGADJ_Contrast& (sourceImg AS LONG, direction AS STRING, amoun
 DECLARE FUNCTION IMGADJ_Gamma& (sourceImg AS LONG, direction AS STRING, amount AS INTEGER)
 DECLARE FUNCTION IMGADJ_Saturation& (sourceImg AS LONG, direction AS STRING, amount AS INTEGER)
 DECLARE FUNCTION IMGADJ_Hue& (sourceImg AS LONG, direction AS STRING, amount AS INTEGER)
+
+' Additional optimized effects
+DECLARE FUNCTION IMGADJ_Invert& (sourceImg AS LONG)
+DECLARE FUNCTION IMGADJ_Sepia& (sourceImg AS LONG)
+DECLARE FUNCTION IMGADJ_Desaturate& (sourceImg AS LONG, method AS INTEGER)
+DECLARE FUNCTION IMGADJ_Threshold& (sourceImg AS LONG, threshold AS INTEGER, mode AS INTEGER)
+DECLARE FUNCTION IMGADJ_Blur& (sourceImg AS LONG, radius AS INTEGER)
+DECLARE FUNCTION IMGADJ_Glow& (sourceImg AS LONG, radius AS INTEGER, intensity AS INTEGER)
+DECLARE FUNCTION IMGADJ_FilmGrain& (sourceImg AS LONG, amount AS INTEGER)
+DECLARE FUNCTION IMGADJ_Vignette& (sourceImg AS LONG, strength AS SINGLE)
+DECLARE FUNCTION IMGADJ_Levels& (sourceImg AS LONG, inputMin AS INTEGER, inputMax AS INTEGER, outputMin AS INTEGER, outputMax AS INTEGER)
+DECLARE FUNCTION IMGADJ_ColorBalance& (sourceImg AS LONG, redShift AS INTEGER, greenShift AS INTEGER, blueShift AS INTEGER)
 
 ' Utility functions
 DECLARE FUNCTION IMGADJ_LoadTestImage& (imageType AS STRING)
