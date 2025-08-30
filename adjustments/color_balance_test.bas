@@ -71,22 +71,22 @@ SUB SetupParameters
     
     ' Red-Cyan balance
     parameterNames(0) = "Red-Cyan"
-    parameterMins(0) = -100
-    parameterMaxs(0) = 100
+    parameterMins(0) = -255
+    parameterMaxs(0) = 255
     parameterSteps(0) = 5
     parameters(0) = 0
     
     ' Green-Magenta balance
     parameterNames(1) = "Green-Magenta"
-    parameterMins(1) = -100
-    parameterMaxs(1) = 100
+    parameterMins(1) = -255
+    parameterMaxs(1) = 255
     parameterSteps(1) = 5
     parameters(1) = 0
     
     ' Blue-Yellow balance
     parameterNames(2) = "Blue-Yellow"
-    parameterMins(2) = -100
-    parameterMaxs(2) = 100
+    parameterMins(2) = -255
+    parameterMaxs(2) = 255
     parameterSteps(2) = 5
     parameters(2) = 0
     

@@ -9,7 +9,7 @@ PRINT "Glow Effect Test Starting..."
 
 ' Algorithm-specific forward declarations
 DECLARE SUB ApplyGlowEffect (img AS LONG, glowRadius AS INTEGER, intensity AS INTEGER)
-DECLARE SUB ApplyBlurToImage (img AS LONG, radius AS INTEGER)
+DECLARE SUB ApplyFastBlur (img AS LONG, radius AS INTEGER)
 DECLARE SUB ApplyAdjustments ()
 DECLARE SUB SetupParameters ()
 
@@ -71,16 +71,18 @@ SUB SetupParameters
     
     ' Glow radius parameter
     parameterNames(0) = "Glow Radius"
-    parameterMins(0) = 1
-    parameterMaxs(0) = 10
+    parameterMins(0) = 0
+    parameterMaxs(0) = 100
     parameterSteps(0) = 1
+    parameterDefaults(0) = 3  ' Default: 3 pixel radius
     parameters(0) = 3  ' Default to 3 pixel radius
     
     ' Glow intensity parameter
     parameterNames(1) = "Glow Intensity"
-    parameterMins(1) = 10
-    parameterMaxs(1) = 100
+    parameterMins(1) = 0
+    parameterMaxs(1) = 1000
     parameterSteps(1) = 5
+    parameterDefaults(1) = 50  ' Default: 50% intensity
     parameters(1) = 50  ' Default to 50% intensity
     
     parameterIndex = 0
@@ -109,66 +111,90 @@ SUB ApplyAdjustments
     _DEST 0
 END SUB
 
-' Glow Effect - Adds a soft glow around bright areas
+' OPTIMIZED Glow Effect - Adds a soft glow around bright areas
 SUB ApplyGlowEffect (img AS LONG, glowRadius AS INTEGER, intensity AS INTEGER)
     DIM tempImg AS LONG, glowImg AS LONG
-    DIM x AS INTEGER, y AS INTEGER, dx AS INTEGER, dy AS INTEGER
+    DIM x AS INTEGER, y AS INTEGER
     DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
     DIM brightness AS SINGLE, glowAmount AS SINGLE
     DIM c AS _UNSIGNED LONG, gc AS _UNSIGNED LONG
     DIM gr AS INTEGER, gg AS INTEGER, gb AS INTEGER
     DIM finalR AS INTEGER, finalG AS INTEGER, finalB AS INTEGER
     DIM oldSource AS LONG, oldDest AS LONG
+    DIM w AS INTEGER, h AS INTEGER
     
     oldSource = _SOURCE
     oldDest = _DEST
     
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    
     tempImg = _COPYIMAGE(img, 32)
-    glowImg = _NEWIMAGE(_WIDTH(img), _HEIGHT(img), 32)
+    glowImg = _NEWIMAGE(w, h, 32)
     
-    ' First pass: Create glow map from bright areas
-    _SOURCE tempImg
-    _DEST glowImg
+    ' OPTIMIZED: Use _MEMIMAGE for direct pixel access instead of POINT/PSET
+    DIM sourceBlock AS _MEM, glowBlock AS _MEM, destBlock AS _MEM
+    sourceBlock = _MEMIMAGE(tempImg)
+    glowBlock = _MEMIMAGE(glowImg)
+    destBlock = _MEMIMAGE(img)
     
-    FOR y = 0 TO _HEIGHT(img) - 1
-        FOR x = 0 TO _WIDTH(img) - 1
-            c = POINT(x, y)
-            r = _RED32(c): g = _GREEN32(c): b = _BLUE32(c)
+    DIM pixelSize AS INTEGER: pixelSize = 4 ' 32-bit RGBA
+    DIM offset AS _OFFSET
+    
+    ' First pass: Create glow map from bright areas (MUCH FASTER)
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            offset = y * w * pixelSize + x * pixelSize
+            
+            ' Read RGB directly from memory
+            b = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset, _UNSIGNED _BYTE)
+            g = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 2, _UNSIGNED _BYTE)
             
             ' Calculate brightness
             brightness = (r + g + b) / (3 * 255.0)
             
             ' Only bright areas contribute to glow
             IF brightness > 0.7 THEN
-                glowAmount = (brightness - 0.7) / 0.3 ' Scale from 0.7-1.0 to 0.0-1.0
+                glowAmount = (brightness - 0.7) / 0.3
                 gr = CINT(r * glowAmount)
                 gg = CINT(g * glowAmount)
                 gb = CINT(b * glowAmount)
-                PSET (x, y), _RGB32(gr, gg, gb)
             ELSE
-                PSET (x, y), _RGB32(0, 0, 0)
+                gr = 0: gg = 0: gb = 0
             END IF
+            
+            ' Write directly to glow image memory
+            _MEMPUT glowBlock, glowBlock.OFFSET + offset, gb AS _UNSIGNED _BYTE
+            _MEMPUT glowBlock, glowBlock.OFFSET + offset + 1, gg AS _UNSIGNED _BYTE
+            _MEMPUT glowBlock, glowBlock.OFFSET + offset + 2, gr AS _UNSIGNED _BYTE
+            _MEMPUT glowBlock, glowBlock.OFFSET + offset + 3, 255 AS _UNSIGNED _BYTE ' Alpha
         NEXT x
     NEXT y
     
-    ' Second pass: Blur the glow map
-    CALL ApplyBlurToImage(glowImg, glowRadius)
+    _MEMFREE sourceBlock
+    _MEMFREE glowBlock
     
-    ' Third pass: Combine original with glow
-    _SOURCE tempImg
-    _DEST img
+    ' Second pass: Apply optimized blur
+    CALL ApplyFastBlur(glowImg, glowRadius)
     
-    FOR y = 0 TO _HEIGHT(img) - 1
-        FOR x = 0 TO _WIDTH(img) - 1
-            ' Get original pixel
-            c = POINT(x, y)
-            r = _RED32(c): g = _GREEN32(c): b = _BLUE32(c)
+    ' Third pass: Combine original with glow (OPTIMIZED)
+    sourceBlock = _MEMIMAGE(tempImg)
+    glowBlock = _MEMIMAGE(glowImg)
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            offset = y * w * pixelSize + x * pixelSize
             
-            ' Get glow pixel
-            _SOURCE glowImg
-            gc = POINT(x, y)
-            _SOURCE tempImg
-            gr = _RED32(gc): gg = _GREEN32(gc): gb = _BLUE32(gc)
+            ' Read original pixel
+            b = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset, _UNSIGNED _BYTE)
+            g = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 1, _UNSIGNED _BYTE)
+            r = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 2, _UNSIGNED _BYTE)
+            
+            ' Read glow pixel
+            gb = _MEMGET(glowBlock, glowBlock.OFFSET + offset, _UNSIGNED _BYTE)
+            gg = _MEMGET(glowBlock, glowBlock.OFFSET + offset + 1, _UNSIGNED _BYTE)
+            gr = _MEMGET(glowBlock, glowBlock.OFFSET + offset + 2, _UNSIGNED _BYTE)
             
             ' Combine with intensity scaling
             finalR = r + CINT(gr * intensity / 100.0)
@@ -180,9 +206,17 @@ SUB ApplyGlowEffect (img AS LONG, glowRadius AS INTEGER, intensity AS INTEGER)
             IF finalG > 255 THEN finalG = 255
             IF finalB > 255 THEN finalB = 255
             
-            PSET (x, y), _RGB32(finalR, finalG, finalB)
+            ' Write final result
+            _MEMPUT destBlock, destBlock.OFFSET + offset, finalB AS _UNSIGNED _BYTE
+            _MEMPUT destBlock, destBlock.OFFSET + offset + 1, finalG AS _UNSIGNED _BYTE
+            _MEMPUT destBlock, destBlock.OFFSET + offset + 2, finalR AS _UNSIGNED _BYTE
+            _MEMPUT destBlock, destBlock.OFFSET + offset + 3, 255 AS _UNSIGNED _BYTE
         NEXT x
     NEXT y
+    
+    _MEMFREE sourceBlock
+    _MEMFREE glowBlock
+    _MEMFREE destBlock
     
     _FREEIMAGE tempImg
     _FREEIMAGE glowImg
@@ -190,48 +224,113 @@ SUB ApplyGlowEffect (img AS LONG, glowRadius AS INTEGER, intensity AS INTEGER)
     _DEST oldDest
 END SUB
 
-' Helper function for glow effect blur
-SUB ApplyBlurToImage (img AS LONG, radius AS INTEGER)
+' OPTIMIZED Fast blur using separable box filter
+SUB ApplyFastBlur (img AS LONG, radius AS INTEGER)
+    IF radius <= 0 THEN EXIT SUB
+    
     DIM tempImg AS LONG
-    DIM x AS INTEGER, y AS INTEGER, dx AS INTEGER, dy AS INTEGER
-    DIM totalR AS LONG, totalG AS LONG, totalB AS LONG, count AS INTEGER
-    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
-    DIM c AS _UNSIGNED LONG
+    DIM w AS INTEGER, h AS INTEGER
+    DIM x AS INTEGER, y AS INTEGER
     DIM oldSource AS LONG, oldDest AS LONG
     
     oldSource = _SOURCE
     oldDest = _DEST
     
-    tempImg = _COPYIMAGE(img, 32)
-    _SOURCE tempImg
-    _DEST img
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    tempImg = _NEWIMAGE(w, h, 32)
     
-    FOR y = 0 TO _HEIGHT(img) - 1
-        FOR x = 0 TO _WIDTH(img) - 1
+    ' Use _MEMIMAGE for fastest pixel access
+    DIM sourceBlock AS _MEM, tempBlock AS _MEM
+    sourceBlock = _MEMIMAGE(img)
+    tempBlock = _MEMIMAGE(tempImg)
+    
+    DIM pixelSize AS INTEGER: pixelSize = 4
+    DIM offset AS _OFFSET, tempOffset AS _OFFSET
+    DIM r AS INTEGER, g AS INTEGER, b AS INTEGER
+    DIM totalR AS LONG, totalG AS LONG, totalB AS LONG
+    DIM dx AS INTEGER, count AS INTEGER
+    DIM kernelSize AS INTEGER
+    
+    kernelSize = radius * 2 + 1
+    
+    ' Horizontal pass (blur rows)
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
             totalR = 0: totalG = 0: totalB = 0: count = 0
             
-            FOR dy = -radius TO radius
-                FOR dx = -radius TO radius
-                    IF x + dx >= 0 AND x + dx < _WIDTH(img) AND y + dy >= 0 AND y + dy < _HEIGHT(img) THEN
-                        c = POINT(x + dx, y + dy)
-                        r = _RED32(c): g = _GREEN32(c): b = _BLUE32(c)
-                        totalR = totalR + r
-                        totalG = totalG + g
-                        totalB = totalB + b
-                        count = count + 1
-                    END IF
-                NEXT dx
-            NEXT dy
+            ' Sum pixels in horizontal kernel
+            FOR dx = -radius TO radius
+                IF x + dx >= 0 AND x + dx < w THEN
+                    offset = y * w * pixelSize + (x + dx) * pixelSize
+                    b = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset, _UNSIGNED _BYTE)
+                    g = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 1, _UNSIGNED _BYTE)
+                    r = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 2, _UNSIGNED _BYTE)
+                    totalR = totalR + r
+                    totalG = totalG + g
+                    totalB = totalB + b
+                    count = count + 1
+                END IF
+            NEXT dx
             
+            ' Write averaged pixel to temp image
             IF count > 0 THEN
                 r = totalR \ count
                 g = totalG \ count
                 b = totalB \ count
-                PSET (x, y), _RGB32(r, g, b)
+                tempOffset = y * w * pixelSize + x * pixelSize
+                _MEMPUT tempBlock, tempBlock.OFFSET + tempOffset, b AS _UNSIGNED _BYTE
+                _MEMPUT tempBlock, tempBlock.OFFSET + tempOffset + 1, g AS _UNSIGNED _BYTE
+                _MEMPUT tempBlock, tempBlock.OFFSET + tempOffset + 2, r AS _UNSIGNED _BYTE
+                _MEMPUT tempBlock, tempBlock.OFFSET + tempOffset + 3, 255 AS _UNSIGNED _BYTE
             END IF
         NEXT x
     NEXT y
     
+    _MEMFREE sourceBlock
+    _MEMFREE tempBlock
+    
+    ' Vertical pass (blur columns) - from temp back to original
+    sourceBlock = _MEMIMAGE(tempImg)
+    DIM destBlock AS _MEM
+    destBlock = _MEMIMAGE(img)
+    
+    DIM dy AS INTEGER
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            totalR = 0: totalG = 0: totalB = 0: count = 0
+            
+            ' Sum pixels in vertical kernel
+            FOR dy = -radius TO radius
+                IF y + dy >= 0 AND y + dy < h THEN
+                    offset = (y + dy) * w * pixelSize + x * pixelSize
+                    b = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset, _UNSIGNED _BYTE)
+                    g = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 1, _UNSIGNED _BYTE)
+                    r = _MEMGET(sourceBlock, sourceBlock.OFFSET + offset + 2, _UNSIGNED _BYTE)
+                    totalR = totalR + r
+                    totalG = totalG + g
+                    totalB = totalB + b
+                    count = count + 1
+                END IF
+            NEXT dy
+            
+            ' Write final blurred pixel
+            IF count > 0 THEN
+                r = totalR \ count
+                g = totalG \ count
+                b = totalB \ count
+                tempOffset = y * w * pixelSize + x * pixelSize
+                _MEMPUT destBlock, destBlock.OFFSET + tempOffset, b AS _UNSIGNED _BYTE
+                _MEMPUT destBlock, destBlock.OFFSET + tempOffset + 1, g AS _UNSIGNED _BYTE
+                _MEMPUT destBlock, destBlock.OFFSET + tempOffset + 2, r AS _UNSIGNED _BYTE
+                _MEMPUT destBlock, destBlock.OFFSET + tempOffset + 3, 255 AS _UNSIGNED _BYTE
+            END IF
+        NEXT x
+    NEXT y
+    
+    _MEMFREE sourceBlock
+    _MEMFREE destBlock
     _FREEIMAGE tempImg
     _SOURCE oldSource
     _DEST oldDest

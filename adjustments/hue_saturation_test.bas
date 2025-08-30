@@ -73,13 +73,15 @@ SUB SetupParameters
     parameterMins(0) = -180
     parameterMaxs(0) = 180
     parameterSteps(0) = 10
+    parameterDefaults(0) = 0  ' Default: no hue shift
     parameters(0) = 0
     
     ' Saturation parameter (as percentage)
     parameterNames(1) = "Saturation"
     parameterMins(1) = 0
-    parameterMaxs(1) = 200
+    parameterMaxs(1) = 255
     parameterSteps(1) = 10
+    parameterDefaults(1) = 100  ' Default: normal saturation (100%)
     parameters(1) = 100  ' Default to 100% (no change)
     
     parameterIndex = 0

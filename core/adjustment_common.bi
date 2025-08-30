@@ -15,6 +15,7 @@ DIM SHARED parameterCount AS INTEGER
 DIM SHARED parameterMins(0 TO 4) AS SINGLE
 DIM SHARED parameterMaxs(0 TO 4) AS SINGLE
 DIM SHARED parameterSteps(0 TO 4) AS SINGLE
+DIM SHARED parameterDefaults(0 TO 4) AS SINGLE
 
 ' Forward declarations
 DECLARE SUB CreateComplexTestImage ()

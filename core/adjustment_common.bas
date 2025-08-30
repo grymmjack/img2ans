@@ -211,7 +211,7 @@ END SUB
 SUB ResetParameters
     DIM i AS INTEGER
     FOR i = 0 TO parameterCount - 1
-        parameters(i) = 0 ' Default to 0 for most parameters
+        parameters(i) = parameterDefaults(i) ' Use proper default values
     NEXT i
     _DEST _CONSOLE
     PRINT "Parameters reset to defaults"

@@ -74,6 +74,7 @@ SUB SetupParameters
     parameterMins(0) = -255
     parameterMaxs(0) = 255
     parameterSteps(0) = 5
+    parameterDefaults(0) = 0  ' Default: no brightness change
     parameters(0) = 0
     
     ' Contrast parameter
@@ -81,6 +82,7 @@ SUB SetupParameters
     parameterMins(1) = -100
     parameterMaxs(1) = 100
     parameterSteps(1) = 5
+    parameterDefaults(1) = 0  ' Default: no contrast change
     parameters(1) = 0
     
     parameterIndex = 0

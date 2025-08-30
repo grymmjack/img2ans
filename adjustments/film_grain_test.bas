@@ -69,7 +69,7 @@ SUB SetupParameters
     ' Intensity parameter
     parameterNames(0) = "Intensity"
     parameterMins(0) = 0
-    parameterMaxs(0) = 100
+    parameterMaxs(0) = 512
     parameterSteps(0) = 5
     parameters(0) = 25  ' Default to 25% intensity
     

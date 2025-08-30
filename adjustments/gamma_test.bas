@@ -71,6 +71,7 @@ SUB SetupParameters
     parameterMins(0) = 10    ' Represents 0.1
     parameterMaxs(0) = 300   ' Represents 3.0
     parameterSteps(0) = 10   ' Step by 0.1
+    parameterDefaults(0) = 100  ' Default: gamma 1.0 (no change)
     parameters(0) = 100      ' Default to 1.0 (100)
     
     parameterIndex = 0

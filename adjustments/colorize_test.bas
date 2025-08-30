@@ -79,7 +79,7 @@ SUB SetupParameters
     ' Saturation parameter
     parameterNames(1) = "Saturation"
     parameterMins(1) = 0
-    parameterMaxs(1) = 200
+    parameterMaxs(1) = 255
     parameterSteps(1) = 10
     parameters(1) = 50  ' Default to moderate saturation
     
