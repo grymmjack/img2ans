@@ -21,7 +21,7 @@ OPTION _EXPLICIT
 '$DYNAMIC
 
 ' Set this to FALSE to enable debugging output to the console
-$LET NDEBUG = FALSE
+$LET NDEBUG = FALS
 
 $IF NDEBUG = FALSE THEN
     ' $DEBUG
@@ -38,8 +38,9 @@ CONST FONT_STYLE$      = "MONOSPACE"
 DIM SHARED AS LONG img_orig, img_pal
 DIM SHARED AS INTEGER cur_pal, cur_img, cur_scaler
 DIM SHARED AS STRING k, img_file, pal_file, FONT_DIR, FONT_FILE
-DIM SHARED AS _BYTE no_dithering
+DIM SHARED AS _BYTE dithering_enabled
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
+DIM SHARED AS SINGLE dither_amount
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
@@ -53,7 +54,12 @@ scalers$(3) = "HQ2XA"
 scalers$(4) = "HQ2XB"
 scalers$(5) = "HQ3XA"
 scalers$(6) = "HQ3XB"
+
 cur_scaler% = 0
+
+' Dithering is enabled by default
+dithering_enabled = 0 ' 0 = OFF, 1 = ON
+dither_amount = 0.5   ' 0.0 = no dither, 1.0 = full dither, 0.5 = 50%
 
 ' default image/pal
 img_files$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$ + "08_creon.gif"
@@ -110,6 +116,39 @@ zoom_adj = 0.1
 zoom_min = 0.1
 zoom_max = 10.0
 
+' Load the default image and palette
+CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$, "*", img_files$())
+CALL ARR_STR.sort(img_files$(), img_files_sorted$())
+CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$, "*.GPL", pal_files$())
+CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
+
+' Try to find the default image in the sorted list, otherwise use first available
+DIM default_img_path AS STRING
+default_img_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$ + "08_creon.gif"
+cur_img% = ARR_STR.find%(img_files_sorted$(), default_img_path)
+IF cur_img% < 0 AND UBOUND(img_files_sorted$) >= 0 THEN cur_img% = 0
+
+' Try to find the default palette in the sorted list, otherwise use first available
+DIM default_pal_path AS STRING
+default_pal_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$ + "EGA (16).GPL"
+cur_pal% = ARR_STR.find%(pal_files_sorted$(), default_pal_path)
+IF cur_pal% < 0 AND UBOUND(pal_files_sorted$) >= 0 THEN cur_pal% = 0
+
+' Load initial image and palette
+IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
+    IF dithering_enabled THEN
+        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+    ELSE
+        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+    END IF
+    img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+    IF UBOUND(pal_files_sorted$) >= 0 THEN
+        load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+    ELSE
+        load_default_ega_palette img_pal
+    END IF
+END IF
+
 draw_output
 
 DO
@@ -141,10 +180,18 @@ DO
         CASE "9"
             zoom = zoom_max
             draw_output
+        CASE "+"
+            dither_amount = dither_amount + 0.1
+            IF dither_amount > 2.0 THEN dither_amount = 2.0
+            draw_output
+        CASE "-"
+            dither_amount = dither_amount - 0.1
+            IF dither_amount < 0.0 THEN dither_amount = 0.0
+            draw_output
         CASE ","
             prev_scaler
             ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-            IF no_dithering THEN
+            IF dithering_enabled THEN
                 img_orig = _LOADIMAGE(img_file$, 32)
             ELSE
                 img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
@@ -153,7 +200,7 @@ DO
         CASE "."
             next_scaler
             ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-            IF no_dithering THEN
+            IF dithering_enabled THEN
                 img_orig = _LOADIMAGE(img_file$, 32)
             ELSE
                 img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
@@ -171,32 +218,52 @@ DO
             draw_output
         CASE CHR$(0) + CHR$(75) 'left arrow
             prev_pal_file
-            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+            IF UBOUND(pal_files_sorted$) >= 0 AND img_pal < -1 THEN
+                load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+            END IF
             draw_output
         CASE CHR$(0) + CHR$(77) 'right arrow
             next_pal_file
-            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+            IF UBOUND(pal_files_sorted$) >= 0 AND img_pal < -1 THEN
+                load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+            END IF
             draw_output
         CASE CHR$(0) + CHR$(73) 'page up - prev image
             ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
             prev_img_file
-            IF no_dithering THEN
-                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
-            ELSE
-                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+            IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
+                IF img_orig < -1 THEN _FREEIMAGE img_orig
+                IF img_pal < -1 THEN _FREEIMAGE img_pal
+                IF dithering_enabled THEN
+                    img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+                ELSE
+                    img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+                END IF
+                img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+                IF UBOUND(pal_files_sorted$) >= 0 THEN
+                    load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+                ELSE
+                    load_default_ega_palette img_pal
+                END IF
             END IF
-            img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
-            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             draw_output
         CASE CHR$(0) + CHR$(81) 'page down - next image
             next_img_file
-            IF no_dithering THEN
-                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
-            ELSE
-                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+            IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
+                IF img_orig < -1 THEN _FREEIMAGE img_orig
+                IF img_pal < -1 THEN _FREEIMAGE img_pal
+                IF dithering_enabled THEN
+                    img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+                ELSE
+                    img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+                END IF
+                img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+                IF UBOUND(pal_files_sorted$) >= 0 THEN
+                    load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+                ELSE
+                    load_default_ega_palette img_pal
+                END IF
             END IF
-            img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
-            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             draw_output
         CASE "l", "L":
             ' Choose an image file with dialog
@@ -220,11 +287,11 @@ DO
                 END IF
 
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-                IF no_dithering THEN
+                IF dithering_enabled THEN
                     img_orig = _LOADIMAGE(img_file$, 32)
                 ELSE
                     img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
-                END IF
+                END IF            
                 img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
                 load_default_ega_palette img_pal
                 REDIM img_files(0) AS STRING
@@ -260,29 +327,33 @@ DO
             END IF
 
         CASE "d", "D":
-            no_dithering = NOT no_dithering
-
-            IF LEN(img_file$) <> 0 THEN
+            dithering_enabled = NOT dithering_enabled
+            ' Always redraw to update the dither state, and reload image if one exists
+            IF img_orig < -1 AND UBOUND(img_files_sorted$) >= 0 THEN
                 IF img_orig < -1 THEN
                     _FREEIMAGE img_orig
                     img_orig = 0
                 END IF
-
                 IF img_pal < -1 THEN
                     _FREEIMAGE img_pal
                     img_pal = 0
                 END IF
-
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-                IF no_dithering THEN
-                    img_orig = _LOADIMAGE(img_files_sorted$(clamp%(0, UBOUND(img_files_sorted$), cur_img% - 1)), 32)
-                ELSE
-                    img_orig = _LOADIMAGE(img_files_sorted$(clamp%(0, UBOUND(img_files_sorted$), cur_img% - 1)), 256, scalers$(cur_scaler%))
+                IF _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
+                    IF dithering_enabled THEN
+                        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+                    ELSE
+                        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+                    END IF
+                    img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+                    IF UBOUND(pal_files_sorted$) >= 0 THEN
+                        load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+                    ELSE
+                        load_default_ega_palette img_pal
+                    END IF
                 END IF
-                img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
-                load_default_ega_palette img_pal
-                draw_output
             END IF
+            draw_output
         CASE "s":
             ' Save the image with the palette
             IF img_pal < -1 THEN
@@ -342,11 +413,11 @@ SUB update_status
     c$ = "L=LOAD,"
     c$ = c$ + "P=PAL,"
     c$ = c$ + "UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX)"
-    c$ = c$ + "D=DITH:" + _TRIM$(STR$(no_dithering))
+    c$ = c$ + "D=DITH:" + _TRIM$(STR$(dithering_enabled))
     c$ = c$ + "PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT"
     z$ = "ZOOM=" + _TRIM$(STR$(zoom))
     s$ = "-SCALER=" +  scalers$(cur_scaler%)
-    IF no_dithering THEN
+    IF dithering_enabled THEN
         PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
@@ -363,9 +434,9 @@ END SUB
 SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
-    IF no_dithering THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
+    IF dithering_enabled THEN
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%"
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
     ELSE
@@ -393,7 +464,11 @@ SUB draw_output
 
         ' Palletize the image only if everything is proper
         IF img_pal < -1 THEN
-            palettize img_pal, img_orig
+            IF dithering_enabled THEN
+                dither_palettize img_pal, img_orig
+            ELSE
+                palettize img_pal, img_orig
+            END IF
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
             dy1_pal = _FONTHEIGHT(FONTFACE&)*4
@@ -410,6 +485,120 @@ SUB draw_output
         _ASSERT 1, "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
     END IF
     _ASSERT 1, "ZOOM=" + _TRIM$(STR$(zoom))
+END SUB
+
+''
+' Floyd-Steinberg dithering palettize with controllable intensity
+' @param LONG dst The destination image. This must be an 8bpp image with the palette already loaded
+' @param LONG src The source image. This must be 32bpp or 8bpp
+SUB dither_palettize (dst AS LONG, src AS LONG)
+    _ASSERT dst < -1, "dst not allocated!"
+    _ASSERT src < -1, "src not allocated!"
+    _ASSERT _PIXELSIZE(src) = 4 OR _PIXELSIZE(src) = 1, "src pixel format is incorrect!"
+    _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
+
+    DIM oldDst AS LONG: oldDst = _DEST
+    _DEST dst
+    DIM oldSrc AS LONG: oldSrc = _SOURCE
+    _SOURCE src
+
+    DIM maxX AS LONG: maxX = _WIDTH(src) - 1
+    DIM maxY AS LONG: maxY = _HEIGHT(src) - 1
+
+    ' Build a smaller palette of actual colors (only non-black entries)
+    DIM palR(255) AS LONG, palG(255) AS LONG, palB(255) AS LONG
+    DIM palCount AS LONG: palCount = 0
+    DIM i AS LONG
+    FOR i = 0 TO 255
+        DIM palColor AS _UNSIGNED LONG
+        palColor = _PALETTECOLOR(i, dst)
+        DIM pr AS LONG, pg AS LONG, pb AS LONG
+        pr = _RED32(palColor)
+        pg = _GREEN32(palColor)
+        pb = _BLUE32(palColor)
+        ' Only include non-transparent colors
+        IF pr + pg + pb > 0 OR i = 0 THEN
+            palR(palCount) = pr
+            palG(palCount) = pg
+            palB(palCount) = pb
+            palCount = palCount + 1
+        END IF
+    NEXT i
+
+    ' Working arrays for error diffusion
+    DIM r() AS SINGLE, g() AS SINGLE, b() AS SINGLE
+    REDIM r(0 TO maxX, 0 TO maxY) AS SINGLE
+    REDIM g(0 TO maxX, 0 TO maxY) AS SINGLE
+    REDIM b(0 TO maxX, 0 TO maxY) AS SINGLE
+
+    ' Copy source pixels to working arrays
+    DIM x AS LONG, y AS LONG
+    FOR y = 0 TO maxY
+        FOR x = 0 TO maxX
+            IF _PIXELSIZE(src) = 4 THEN
+                DIM pc32 AS _UNSIGNED LONG: pc32 = POINT(x, y)
+                r(x, y) = _RED32(pc32)
+                g(x, y) = _GREEN32(pc32)
+                b(x, y) = _BLUE32(pc32)
+            ELSE
+                DIM pc AS _UNSIGNED _BYTE: pc = POINT(x, y)
+                r(x, y) = _RED(pc, src)
+                g(x, y) = _GREEN(pc, src)
+                b(x, y) = _BLUE(pc, src)
+            END IF
+        NEXT x
+    NEXT y
+
+    ' Floyd-Steinberg dithering with error diffusion
+    FOR y = 0 TO maxY
+        FOR x = 0 TO maxX
+            ' Find nearest palette color (only search actual palette)
+            DIM bestIdx AS LONG: bestIdx = 0
+            DIM bestDist AS SINGLE: bestDist = 1E+30
+            FOR i = 0 TO palCount - 1
+                DIM dist AS SINGLE
+                dist = (r(x, y) - palR(i)) * (r(x, y) - palR(i)) + (g(x, y) - palG(i)) * (g(x, y) - palG(i)) + (b(x, y) - palB(i)) * (b(x, y) - palB(i))
+                IF dist < bestDist THEN
+                    bestDist = dist
+                    bestIdx = i
+                END IF
+            NEXT i
+            
+            ' Set pixel
+            PSET (x, y), bestIdx
+            
+            ' Calculate error and apply dithering amount
+            DIM er AS SINGLE, eg AS SINGLE, eb AS SINGLE
+            er = (r(x, y) - palR(bestIdx)) * dither_amount
+            eg = (g(x, y) - palG(bestIdx)) * dither_amount
+            eb = (b(x, y) - palB(bestIdx)) * dither_amount
+            
+            ' Distribute error (Floyd-Steinberg pattern)
+            IF x < maxX THEN
+                r(x + 1, y) = r(x + 1, y) + er * 7 / 16
+                g(x + 1, y) = g(x + 1, y) + eg * 7 / 16
+                b(x + 1, y) = b(x + 1, y) + eb * 7 / 16
+            END IF
+            IF x > 0 AND y < maxY THEN
+                r(x - 1, y + 1) = r(x - 1, y + 1) + er * 3 / 16
+                g(x - 1, y + 1) = g(x - 1, y + 1) + eg * 3 / 16
+                b(x - 1, y + 1) = b(x - 1, y + 1) + eb * 3 / 16
+            END IF
+            IF y < maxY THEN
+                r(x, y + 1) = r(x, y + 1) + er * 5 / 16
+                g(x, y + 1) = g(x, y + 1) + eg * 5 / 16
+                b(x, y + 1) = b(x, y + 1) + eb * 5 / 16
+            END IF
+            IF x < maxX AND y < maxY THEN
+                r(x + 1, y + 1) = r(x + 1, y + 1) + er * 1 / 16
+                g(x + 1, y + 1) = g(x + 1, y + 1) + eg * 1 / 16
+                b(x + 1, y + 1) = b(x + 1, y + 1) + eb * 1 / 16
+            END IF
+        NEXT x
+    NEXT y
+
+    _SOURCE oldSrc
+    _DEST oldDst
 END SUB
 
 
@@ -636,10 +825,16 @@ SUB files_to_array(filepath$, mask$, arr$())
     lb& = LBOUND(arr$)
     DO WHILE LEN(f$) > 0
         fn$ = _TRIM$(f$)
-        IF fn$ <> "./" AND fn$ <> "../" AND fn$ <> ".DS_Store" THEN
-            ub& = UBOUND(arr$)
-            arr$(ub&) = filepath$ + f$
-            REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
+        ' Filter out directories and system files
+        IF fn$ <> "./" AND fn$ <> "../" AND fn$ <> "." AND fn$ <> ".." AND fn$ <> ".DS_Store" AND LEN(fn$) > 0 THEN
+            ' Only include files that have valid image extensions or are GPL files
+            DIM ext AS STRING
+            ext = UCASE$(RIGHT$(fn$, 4))
+            IF INSTR(ext, ".JPG") OR INSTR(ext, ".PNG") OR INSTR(ext, ".GIF") OR INSTR(ext, ".BMP") OR INSTR(ext, ".TGA") OR INSTR(ext, ".PSD") OR INSTR(ext, ".PCX") OR INSTR(ext, ".SVG") OR INSTR(ext, ".QOI") OR INSTR(UCASE$(RIGHT$(fn$, 5)), ".JPEG") OR INSTR(ext, ".GPL") THEN
+                ub& = UBOUND(arr$)
+                arr$(ub&) = filepath$ + f$
+                REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
+            END IF
         END IF
         f$ = _FILES$
     LOOP
@@ -675,17 +870,23 @@ END SUB
 ' Sets the image file to the previous image file
 ' 
 SUB prev_img_file
-    cur_img% = clamp%(LBOUND(img_files_sorted$), UBOUND(img_files_sorted$), cur_img% - 1)
-    _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+    IF UBOUND(img_files_sorted$) >= 0 THEN
+        cur_img% = cur_img% - 1
+        IF cur_img% < 0 THEN cur_img% = UBOUND(img_files_sorted$)
+        _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+    END IF
 END SUB
 
 
 ''
-' Sets the image file to the previous image file
+' Sets the image file to the next image file
 ' 
 SUB next_img_file
-    cur_img% = clamp%(LBOUND(img_files_sorted$), UBOUND(img_files_sorted$), cur_img% + 1)
-    _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+    IF UBOUND(img_files_sorted$) >= 0 THEN
+        cur_img% = cur_img% + 1
+        IF cur_img% > UBOUND(img_files_sorted$) THEN cur_img% = 0
+        _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+    END IF
 END SUB
 
 
@@ -693,17 +894,23 @@ END SUB
 ' Sets the palette file to the previous palette file
 ' 
 SUB prev_pal_file
-    cur_pal% = clamp%(LBOUND(pal_files_sorted$), UBOUND(pal_files_sorted$), cur_pal% - 1)
-    _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+    IF UBOUND(pal_files_sorted$) >= 0 THEN
+        cur_pal% = cur_pal% - 1
+        IF cur_pal% < 0 THEN cur_pal% = UBOUND(pal_files_sorted$)
+        _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+    END IF
 END SUB
 
 
 ''
-' Sets the palette file to the previous palette file
+' Sets the palette file to the next palette file
 ' 
 SUB next_pal_file
-    cur_pal% = clamp%(LBOUND(pal_files_sorted$), UBOUND(pal_files_sorted$), cur_pal% + 1)
-    _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+    IF UBOUND(pal_files_sorted$) >= 0 THEN
+        cur_pal% = cur_pal% + 1
+        IF cur_pal% > UBOUND(pal_files_sorted$) THEN cur_pal% = 0
+        _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+    END IF
 END SUB
 
 
