@@ -13,6 +13,7 @@
 '
 
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BI'
+'$INCLUDE:'include/QB64_GJ_LIB/IMGADJ/IMGADJ.BI'
 
 $CONSOLE
 _CONSOLE ON
@@ -36,12 +37,24 @@ CONST PROG_VERSION$    = "1.0"
 CONST FONT_STYLE$      = "MONOSPACE"
 
 DIM SHARED AS LONG img_orig, img_pal
+DIM SHARED AS LONG img_adjusted  ' Adjusted version of original image with all effects applied
 DIM SHARED AS INTEGER cur_pal, cur_img, cur_scaler
 DIM SHARED AS STRING k, img_file, pal_file, FONT_DIR, FONT_FILE
 DIM SHARED AS _BYTE dithering_enabled
 DIM SHARED AS INTEGER dither_method
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
 DIM SHARED AS SINGLE dither_amount
+
+' Image adjustment parameters - these chain together
+DIM SHARED AS INTEGER adj_brightness     ' -100 to +100
+DIM SHARED AS INTEGER adj_contrast       ' -100 to +100  
+DIM SHARED AS INTEGER adj_pixelate       ' 1 to 20 pixel size
+DIM SHARED AS INTEGER adj_hue            ' -180 to +180 degrees
+DIM SHARED AS INTEGER adj_threshold      ' 0 to 255
+DIM SHARED AS INTEGER adj_posterize      ' 2 to 32 levels
+DIM SHARED AS SINGLE adj_colorize_hue    ' 0 to 360 degrees
+DIM SHARED AS SINGLE adj_colorize_sat    ' 0.0 to 1.0
+DIM SHARED AS _BYTE adj_needs_update     ' Flag to rebuild adjusted image
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
@@ -70,6 +83,20 @@ dithering_enabled = 0 ' 0 = OFF, 1 = ON
 dither_method = 4     ' Default to Floyd-Steinberg (method 4)
 dither_amount = 0.5   ' 0.0 = no dither, 1.0 = full dither, 0.5 = 50%
 
+' Initialize image adjustments to default (no change) values
+adj_brightness = 0
+adj_contrast = 0
+adj_pixelate = 1
+adj_hue = 0
+adj_threshold = 128
+adj_posterize = 16
+adj_colorize_hue = 0
+adj_colorize_sat = 0
+adj_needs_update = _TRUE  ' Start with update needed
+
+' Initialize the IMGADJ library
+GJ_IMGADJ_Init
+
 ' default image/pal
 img_files$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$ + "08_creon.gif"
 img_files_sorted$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$ + "08_creon.gif"
@@ -91,8 +118,8 @@ $ELSEIF LINUX THEN
 $ELSEIF WIN THEN
     FONT_DIR$ = ENVIRON$("HOMEPATH") + "\AppData\Local\Microsoft\Windows\Fonts"
     CONST FONT_SIZE& = 24
-    CONST CANVAS_W&  = 1920
-    CONST CANVAS_H&  = 1080
+    CONST CANVAS_W&  = 2400
+    CONST CANVAS_H&  = 1200
 $END IF
 ' FONT_FILE$ = FONT_DIR$ + "/MorePerfectDOSVGANF-4.ttf"
 FONT_FILE$ = FONT_DIR$ + "/BerkeleyMonoNerdFont-Regular.ttf"
@@ -241,13 +268,13 @@ DO
             draw_output
         CASE CHR$(0) + CHR$(75) 'left arrow
             prev_pal_file
-            IF UBOUND(pal_files_sorted$) >= 0 AND img_pal < -1 THEN
+            IF UBOUND(pal_files_sorted$) >= 0 AND img_pal <> 0 THEN
                 load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             END IF
             draw_output
         CASE CHR$(0) + CHR$(77) 'right arrow
             next_pal_file
-            IF UBOUND(pal_files_sorted$) >= 0 AND img_pal < -1 THEN
+            IF UBOUND(pal_files_sorted$) >= 0 AND img_pal <> 0 THEN
                 load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
             END IF
             draw_output
@@ -255,8 +282,10 @@ DO
             ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
             prev_img_file
             IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
-                IF img_orig < -1 THEN _FREEIMAGE img_orig
-                IF img_pal < -1 THEN _FREEIMAGE img_pal
+                ' IF img_orig <> 0 THEN _FREEIMAGE img_orig
+                ' IF img_pal <> 0 THEN _FREEIMAGE img_pal
+                ' IF img_adjusted <> 0 THEN _FREEIMAGE img_adjusted
+                reset_adjustments
                 IF dithering_enabled THEN
                     img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
                 ELSE
@@ -273,8 +302,10 @@ DO
         CASE CHR$(0) + CHR$(81) 'page down - next image
             next_img_file
             IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
-                IF img_orig < -1 THEN _FREEIMAGE img_orig
-                IF img_pal < -1 THEN _FREEIMAGE img_pal
+                ' IF img_orig <> 0 THEN _FREEIMAGE img_orig
+                ' IF img_pal <> 0 THEN _FREEIMAGE img_pal
+                ' IF img_adjusted <> 0 THEN _FREEIMAGE img_adjusted
+                reset_adjustments
                 IF dithering_enabled THEN
                     img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
                 ELSE
@@ -288,6 +319,111 @@ DO
                 END IF
             END IF
             draw_output
+        CASE "r", "R":
+            ' Reset all adjustments
+            reset_adjustments
+            draw_output
+        CASE "b", "B":
+            ' Adjust brightness
+            DIM brightness_input AS STRING
+            brightness_input = _INPUTBOX$("IMG2PAL", "Brightness (-100 to +100)", _TRIM$(STR$(adj_brightness)))
+            IF LEN(brightness_input) <> 0 THEN
+                DIM new_brightness AS INTEGER
+                new_brightness = VAL(brightness_input)
+                IF new_brightness >= -100 AND new_brightness <= 100 THEN
+                    adj_brightness = new_brightness
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
+        CASE "c", "C":
+            ' Adjust contrast
+            DIM contrast_input AS STRING
+            contrast_input = _INPUTBOX$("IMG2PAL", "Contrast (-100 to +100)", _TRIM$(STR$(adj_contrast)))
+            IF LEN(contrast_input) <> 0 THEN
+                DIM new_contrast AS INTEGER
+                new_contrast = VAL(contrast_input)
+                IF new_contrast >= -100 AND new_contrast <= 100 THEN
+                    adj_contrast = new_contrast
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
+        CASE "x", "X":
+            ' Adjust pixelate
+            DIM pixelate_input AS STRING
+            pixelate_input = _INPUTBOX$("IMG2PAL", "Pixelate Size (1 to 20)", _TRIM$(STR$(adj_pixelate)))
+            IF LEN(pixelate_input) <> 0 THEN
+                DIM new_pixelate AS INTEGER
+                new_pixelate = VAL(pixelate_input)
+                IF new_pixelate >= 1 AND new_pixelate <= 20 THEN
+                    adj_pixelate = new_pixelate
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
+        CASE "u", "U":
+            ' Adjust hue shift
+            DIM hue_input AS STRING
+            hue_input = _INPUTBOX$("IMG2PAL", "Hue Shift (-180 to +180 degrees)", _TRIM$(STR$(adj_hue)))
+            IF LEN(hue_input) <> 0 THEN
+                DIM new_hue AS INTEGER
+                new_hue = VAL(hue_input)
+                IF new_hue >= -180 AND new_hue <= 180 THEN
+                    adj_hue = new_hue
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
+        CASE "z", "Z":
+            ' Adjust colorize
+            DIM colorize_input AS STRING
+            colorize_input = _INPUTBOX$("IMG2PAL", "Colorize Hue (0 to 360 degrees)", _TRIM$(STR$(adj_colorize_hue)))
+            IF LEN(colorize_input) <> 0 THEN
+                DIM new_colorize_hue AS SINGLE
+                new_colorize_hue = VAL(colorize_input)
+                IF new_colorize_hue >= 0 AND new_colorize_hue <= 360 THEN
+                    adj_colorize_hue = new_colorize_hue
+                    ' Ask for saturation too
+                    DIM colorize_sat_input AS STRING
+                    colorize_sat_input = _INPUTBOX$("IMG2PAL", "Colorize Saturation (0.0 to 1.0)", _TRIM$(STR$(adj_colorize_sat)))
+                    IF LEN(colorize_sat_input) <> 0 THEN
+                        DIM new_colorize_sat AS SINGLE
+                        new_colorize_sat = VAL(colorize_sat_input)
+                        IF new_colorize_sat >= 0.0 AND new_colorize_sat <= 1.0 THEN
+                            adj_colorize_sat = new_colorize_sat
+                            adj_needs_update = _TRUE
+                            draw_output
+                        END IF
+                    END IF
+                END IF
+            END IF
+        CASE "t", "T":
+            ' Adjust threshold
+            DIM threshold_input AS STRING
+            threshold_input = _INPUTBOX$("IMG2PAL", "Threshold (0 to 255)", _TRIM$(STR$(adj_threshold)))
+            IF LEN(threshold_input) <> 0 THEN
+                DIM new_threshold AS INTEGER
+                new_threshold = VAL(threshold_input)
+                IF new_threshold >= 0 AND new_threshold <= 255 THEN
+                    adj_threshold = new_threshold
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
+        CASE "o", "O":
+            ' Adjust posterize
+            DIM posterize_input AS STRING
+            posterize_input = _INPUTBOX$("IMG2PAL", "Posterize Levels (2 to 32)", _TRIM$(STR$(adj_posterize)))
+            IF LEN(posterize_input) <> 0 THEN
+                DIM new_posterize AS INTEGER
+                new_posterize = VAL(posterize_input)
+                IF new_posterize >= 2 AND new_posterize <= 32 THEN
+                    adj_posterize = new_posterize
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
         CASE "l", "L":
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
@@ -299,15 +435,22 @@ DO
                 0 _
             )
             IF LEN(img_file$) <> 0 THEN
-                IF img_orig < -1 THEN
+                IF img_orig <> 0 THEN
                     _FREEIMAGE img_orig
                     img_orig = 0
                 END IF
 
-                IF img_pal < -1 THEN
+                IF img_pal <> 0 THEN
                     _FREEIMAGE img_pal
                     img_pal = 0
                 END IF
+
+                IF img_adjusted <> 0 THEN
+                    ' _FREEIMAGE img_adjusted
+                    img_adjusted = 0
+                END IF
+
+                reset_adjustments
 
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
                 IF dithering_enabled THEN
@@ -328,7 +471,7 @@ DO
 
         CASE "p", "P":
             ' Only allow to load a palette if the main image is loaded
-            IF img_pal < -1 THEN
+            IF img_pal <> 0 THEN
                 ' Choose a palette file with dialog
                 pal_file$ = _OPENFILEDIALOG$( _
                     "Choose a GPL (GIMP) palette", _
@@ -352,15 +495,20 @@ DO
         CASE "d", "D":
             dithering_enabled = NOT dithering_enabled
             ' Always redraw to update the dither state, and reload image if one exists
-            IF img_orig < -1 AND UBOUND(img_files_sorted$) >= 0 THEN
-                IF img_orig < -1 THEN
+            IF img_orig <> 0 AND UBOUND(img_files_sorted$) >= 0 THEN
+                IF img_orig <> 0 THEN
                     _FREEIMAGE img_orig
                     img_orig = 0
                 END IF
-                IF img_pal < -1 THEN
+                IF img_pal <> 0 THEN
                     _FREEIMAGE img_pal
                     img_pal = 0
                 END IF
+                IF img_adjusted <> 0 THEN
+                    ' _FREEIMAGE img_adjusted
+                    img_adjusted = 0
+                END IF
+                reset_adjustments
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
                 IF _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
                     IF dithering_enabled THEN
@@ -379,7 +527,7 @@ DO
             draw_output
         CASE "s":
             ' Save the image with the palette
-            IF img_pal < -1 THEN
+            IF img_pal <> 0 THEN
                 DIM AS STRING save_file
                 save_file$ = _SAVEFILEDIALOG$( _
                     "Save the image with the palette", _
@@ -397,7 +545,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE,R=RESET ADJ,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -408,7 +556,7 @@ DO
                 IF cur_img% > UBOUND(img_files_sorted$) THEN cur_img% = UBOUND(img_files_sorted$)
                 draw_output
             END IF
-        CASE "l":
+        CASE "q", "Q":
             ' Jump to a specific palette
             jump_to$ = _INPUTBOX$("IMG2PAL", "Jump to palette number", "0")
             IF LEN(jump_to$) <> 0 THEN
@@ -420,13 +568,129 @@ DO
     END SELECT
 LOOP
 
-IF img_orig < -1 THEN _FREEIMAGE img_orig
-IF img_pal < -1 THEN _FREEIMAGE img_pal
+IF img_orig <> 0 THEN _FREEIMAGE img_orig
+IF img_pal <> 0 THEN _FREEIMAGE img_pal
+IF img_adjusted <> 0 THEN _FREEIMAGE img_adjusted
 SCREEN 0
 _FREEIMAGE CANVAS
 SYSTEM
 
 
+
+''
+' Reset all image adjustments to default values
+'
+SUB reset_adjustments
+    adj_brightness = 0
+    adj_contrast = 0
+    adj_pixelate = 1
+    adj_hue = 0
+    adj_threshold = 128
+    adj_posterize = 16
+    adj_colorize_hue = 0
+    adj_colorize_sat = 0
+    adj_needs_update = _TRUE
+END SUB
+
+''
+' Apply all chained adjustments to create the adjusted image
+' This rebuilds img_adjusted from img_orig with all current adjustment values
+'
+SUB apply_adjustments
+    IF img_orig <> 0 THEN
+        ' Free previous adjusted image if it exists
+        ' IF img_adjusted <> 0 THEN _FREEIMAGE img_adjusted
+        
+        ' Start with a copy of the original
+        img_adjusted = GJ_IMGADJ_CloneImage&(img_orig)
+        
+        ' Apply adjustments in order (each one modifies the result of the previous)
+        
+        ' 1. Brightness
+        IF adj_brightness <> 0 THEN
+            DIM temp_bright AS LONG
+            IF adj_brightness > 0 THEN
+                temp_bright = GJ_IMGADJ_Brightness(img_adjusted, "+", adj_brightness)
+            ELSE
+                temp_bright = GJ_IMGADJ_Brightness(img_adjusted, "-", ABS(adj_brightness))
+            END IF
+            IF temp_bright <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_bright
+            END IF
+        END IF
+        
+        ' 2. Contrast  
+        IF adj_contrast <> 0 THEN
+            DIM temp_contrast AS LONG
+            IF adj_contrast > 0 THEN
+                temp_contrast = GJ_IMGADJ_Contrast(img_adjusted, "+", adj_contrast)
+            ELSE
+                temp_contrast = GJ_IMGADJ_Contrast(img_adjusted, "-", ABS(adj_contrast))
+            END IF
+            IF temp_contrast <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_contrast
+            END IF
+        END IF
+        
+        ' 3. Hue shift
+        IF adj_hue <> 0 THEN
+            DIM temp_hue AS LONG
+            IF adj_hue > 0 THEN
+                temp_hue = GJ_IMGADJ_Hue(img_adjusted, "+", adj_hue)
+            ELSE
+                temp_hue = GJ_IMGADJ_Hue(img_adjusted, "-", ABS(adj_hue))
+            END IF
+            IF temp_hue <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_hue
+            END IF
+        END IF
+        
+        ' 4. Colorize (only if saturation > 0)
+        IF adj_colorize_sat > 0 THEN
+            DIM temp_colorize AS LONG
+            temp_colorize = GJ_IMGADJ_Colorize(img_adjusted, adj_colorize_hue, adj_colorize_sat)
+            IF temp_colorize <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_colorize
+            END IF
+        END IF
+        
+        ' 5. Threshold (only if not default value of 128)
+        IF adj_threshold <> 128 THEN
+            DIM temp_threshold AS LONG
+            temp_threshold = GJ_IMGADJ_Threshold(img_adjusted, adj_threshold, GJ_IMGADJ_THRESHOLD_BINARY)
+            IF temp_threshold <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_threshold
+            END IF
+        END IF
+        
+        ' 6. Posterize (only if not default value of 16)
+        IF adj_posterize <> 16 THEN
+            DIM temp_posterize AS LONG
+            temp_posterize = GJ_IMGADJ_Posterize(img_adjusted, adj_posterize)
+            IF temp_posterize <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_posterize
+            END IF
+        END IF
+        
+        ' 7. Pixelate (only if > 1)
+        IF adj_pixelate > 1 THEN
+            DIM temp_pixelate AS LONG
+            temp_pixelate = GJ_IMGADJ_Pixelate(img_adjusted, adj_pixelate)
+            IF temp_pixelate <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_pixelate
+            END IF
+        END IF
+        
+        adj_needs_update = 0  ' Mark as up to date
+    END IF
+END SUB
 
 ''
 ' Upates the status with command help
@@ -445,11 +709,15 @@ SUB update_status
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
+        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
     ELSE
         PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
+        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
+        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
     END IF
 END SUB
 
@@ -458,24 +726,33 @@ SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
     IF dithering_enabled THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
+        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
     ELSE
-        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
+        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,R=RESET ADJ,ESC=QUIT";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
+        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
+        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+    END IF
+
+    ' Apply adjustments if needed
+    IF adj_needs_update AND img_orig <> 0 THEN
+        apply_adjustments
     END IF
 
     ' Draw the images if they are loaded
-    IF img_orig < -1 THEN
+    IF img_orig <> 0 THEN
         _ASSERT 1, "bh="+_TRIM$(STR$(_HEIGHT(img_orig)))
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = _FONTHEIGHT(FONTFACE&)*4
+        dy1_orig = _FONTHEIGHT(FONTFACE&)*6  ' Make room for the extra line
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -483,18 +760,27 @@ SUB draw_output
             + _TRIM$(STR$(dy1_orig)) + ")-(" _
             + _TRIM$(STR$(dx2_orig)) + "," _ 
             + _TRIM$(STR$(dy2_orig)) + ")"
-        _PUTIMAGE (dx1_orig, dy1_orig)-(dx2_orig, dy2_orig), img_orig
+        
+        ' Use adjusted image if available, otherwise original
+        DIM source_img AS LONG
+        IF img_adjusted <> 0 THEN
+            source_img = img_adjusted
+        ELSE
+            source_img = img_orig
+        END IF
+        
+        _PUTIMAGE (dx1_orig, dy1_orig)-(dx2_orig, dy2_orig), source_img
 
         ' Palletize the image only if everything is proper
-        IF img_pal < -1 THEN
+        IF img_pal <> 0 THEN
             IF dithering_enabled THEN
-                dither_palettize img_pal, img_orig
+                dither_palettize img_pal, source_img
             ELSE
-                palettize img_pal, img_orig
+                palettize img_pal, source_img
             END IF
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
-            dy1_pal = _FONTHEIGHT(FONTFACE&)*4
+            dy1_pal = _FONTHEIGHT(FONTFACE&)*6  ' Make room for the extra line
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
@@ -607,7 +893,7 @@ SUB UpdatePaletteCache(dst AS LONG)
         palette_cache_b(i) = _BLUE32(palColor)
     NEXT
     
-    palette_cache_valid = -1
+    palette_cache_valid = _TRUE
     palette_cache_dst = dst
     
     $IF NDEBUG = FALSE THEN
@@ -1098,8 +1384,8 @@ END SUB
 ' @param LONG dst The destination image. This must be an 8bpp image with the palette already loaded
 ' @param LONG src The source image. This must be 32bpp or 8bpp
 SUB dither_palettize (dst AS LONG, src AS LONG)
-    _ASSERT dst < -1, "dst not allocated!"
-    _ASSERT src < -1, "src not allocated!"
+    _ASSERT dst <> 0, "dst not allocated!"
+    _ASSERT src <> 0, "src not allocated!"
     _ASSERT _PIXELSIZE(src) = 4 OR _PIXELSIZE(src) = 1, "src pixel format is incorrect!"
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
 
@@ -1154,8 +1440,8 @@ END SUB
 ' @param LONG src The source image. This must be an 8bpp image with its own palette
 '
 SUB palettize (dst AS LONG, src AS LONG)
-    _ASSERT dst < -1, "dst not allocated!"
-    _ASSERT src < -1, "src not allocated!"
+    _ASSERT dst <> 0, "dst not allocated!"
+    _ASSERT src <> 0, "src not allocated!"
     _ASSERT _PIXELSIZE(src) = 4 OR _PIXELSIZE(src) = 1, "src pixel format is incorrect!"
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
 
@@ -1203,7 +1489,7 @@ END SUB
 ' @param LONG dst The destination image. This must be an 8bpp image where the palette is loaded
 '
 SUB load_default_ega_palette (dst AS LONG)
-    _ASSERT dst < -1, "dst not allocated!"
+    _ASSERT dst <> 0, "dst not allocated!"
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
 
     $IF NDEBUG = FALSE THEN
@@ -1268,7 +1554,7 @@ END SUB
 '
 SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
 
-    _ASSERT dst < -1, "dst not allocated!"
+    _ASSERT dst <> 0, "dst not allocated!"
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
     _ASSERT _FILEEXISTS(gpl_file), gpl_file + " not found!"
     PRINT DUMP.string$(gpl_file, "gpl_file")
@@ -1485,3 +1771,4 @@ END FUNCTION
 
 
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BM'
+'$INCLUDE:'include/QB64_GJ_LIB/IMGADJ/IMGADJ.BM'
