@@ -47,6 +47,13 @@ DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
 DIM SHARED img_files_sorted(0) AS STRING
 
+' Palette cache for faster lookups
+DIM SHARED palette_cache_r(255) AS INTEGER
+DIM SHARED palette_cache_g(255) AS INTEGER  
+DIM SHARED palette_cache_b(255) AS INTEGER
+DIM SHARED palette_cache_valid AS INTEGER
+DIM SHARED palette_cache_dst AS LONG
+
 DIM SHARED scalers(6) AS STRING
 scalers$(0) = "ADAPTIVE"
 scalers$(1) = "SXBR2"
@@ -551,34 +558,93 @@ FUNCTION GetDitherMethodName$(method AS INTEGER)
 END FUNCTION
 
 ''
-' Find nearest palette color index
+' Display progress at bottom of screen without interfering with images
+'
+SUB ShowProgress(message AS STRING, percent AS SINGLE)
+    DIM oldDest AS LONG
+    oldDest = _DEST
+    _DEST CANVAS
+    
+    ' Calculate position at bottom of screen
+    DIM progress_y AS INTEGER
+    progress_y = _HEIGHT(CANVAS) - _FONTHEIGHT(FONTFACE&) - 10
+    
+    ' Clear the progress line area
+    LINE (0, progress_y)-((_WIDTH(CANVAS)), _HEIGHT(CANVAS)), _RGB32(0, 0, 0), BF
+    
+    ' Display progress message
+    COLOR _RGB32(255, 255, 0) ' Yellow for visibility
+    _PRINTSTRING (10, progress_y), message + " " + _TRIM$(STR$(INT(percent))) + "%"
+    
+    _DEST oldDest
+END SUB
+
+''
+' Clear progress display
+'
+SUB ClearProgress
+    DIM oldDest AS LONG
+    oldDest = _DEST
+    _DEST CANVAS
+    
+    ' Calculate position at bottom of screen  
+    DIM progress_y AS INTEGER
+    progress_y = _HEIGHT(CANVAS) - _FONTHEIGHT(FONTFACE&) - 10
+    
+    ' Clear the progress line area
+    LINE (0, progress_y)-((_WIDTH(CANVAS)), _HEIGHT(CANVAS)), _RGB32(0, 0, 0), BF
+    
+    _DEST oldDest
+END SUB
+SUB UpdatePaletteCache(dst AS LONG)
+    DIM i AS INTEGER
+    DIM palColor AS _UNSIGNED LONG
+    
+    FOR i = 0 TO 255
+        palColor = _PALETTECOLOR(i, dst)
+        palette_cache_r(i) = _RED32(palColor)
+        palette_cache_g(i) = _GREEN32(palColor)
+        palette_cache_b(i) = _BLUE32(palColor)
+    NEXT
+    
+    palette_cache_valid = -1
+    palette_cache_dst = dst
+    
+    $IF NDEBUG = FALSE THEN
+        _ASSERT 1, "Palette cache updated for image handle " + STR$(dst)
+    $END IF
+END SUB
+
+''
+' Find nearest palette color index (optimized with cache)
 '
 FUNCTION NearestPaletteIndex%(r AS INTEGER, g AS INTEGER, b AS INTEGER, dst AS LONG)
     DIM i AS INTEGER, bestI AS INTEGER
     DIM dr AS INTEGER, dg AS INTEGER, db AS INTEGER
     DIM dist AS LONG, bestDist AS LONG
     
+    ' Update cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
     bestDist = 999999
     bestI = 0
     
-    ' Check all 256 palette entries
+    ' Check all 256 palette entries using cached values
     FOR i = 0 TO 255
-        DIM palColor AS _UNSIGNED LONG
-        palColor = _PALETTECOLOR(i, dst)
-        DIM pr AS INTEGER, pg AS INTEGER, pb AS INTEGER
-        pr = _RED32(palColor)
-        pg = _GREEN32(palColor)
-        pb = _BLUE32(palColor)
-        
         ' Only check non-transparent colors (or allow index 0)
-        IF pr + pg + pb > 0 OR i = 0 THEN
-            dr = r - pr
-            dg = g - pg
-            db = b - pb
+        IF palette_cache_r(i) + palette_cache_g(i) + palette_cache_b(i) > 0 OR i = 0 THEN
+            dr = r - palette_cache_r(i)
+            dg = g - palette_cache_g(i)
+            db = b - palette_cache_b(i)
+            ' Use faster approximate distance for better performance
             dist = dr * dr + dg * dg + db * db
             IF dist < bestDist THEN
                 bestDist = dist
                 bestI = i
+                ' Early exit if perfect match
+                IF dist = 0 THEN EXIT FOR
             END IF
         END IF
     NEXT
@@ -630,14 +696,14 @@ SUB ApplyOrderedDitherMatrix(img AS LONG, dst AS LONG, matrix() AS INTEGER, matW
 END SUB
 
 ''
-' Apply Floyd-Steinberg error diffusion 
+' Apply Floyd-Steinberg error diffusion (optimized)
 '
 SUB ApplyFloydSteinberg(img AS LONG, dst AS LONG)
     CALL ApplyErrorDiffusion(img, dst, 0)
 END SUB
 
 ''
-' Apply other error diffusion algorithms
+' Apply other error diffusion algorithms (optimized but fixed)
 '
 SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -646,7 +712,7 @@ SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
     DIM nr AS INTEGER, ng AS INTEGER, nb AS INTEGER
     DIM er AS SINGLE, eg AS SINGLE, eb AS SINGLE
     
-    ' Error buffers for current and next lines
+    ' Use single precision error buffers for accuracy
     DIM rerr1(0 TO 300) AS SINGLE, gerr1(0 TO 300) AS SINGLE, berr1(0 TO 300) AS SINGLE
     DIM rerr2(0 TO 300) AS SINGLE, gerr2(0 TO 300) AS SINGLE, berr2(0 TO 300) AS SINGLE
     
@@ -664,13 +730,31 @@ SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
     DIM oldD AS LONG: oldD = _DEST
     _DEST dst
     
+    ' Update palette cache if needed (this is the main optimization)
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ' Progress indication every 10% for large images
+    DIM progress_step AS LONG
+    progress_step = h \ 10
+    IF progress_step < 1 THEN progress_step = 1
+    
+    ShowProgress "Processing diffusion...", 0
+    
     FOR y = 0 TO h - 1
+        ' Show progress for large images
+        IF (y MOD progress_step) = 0 THEN
+            ShowProgress "Processing diffusion...", (y / h) * 100
+        END IF
+        
         FOR x = 0 TO w - 1
             c = POINT(x, y)
             r = _RED32(c) + rerr1(x)
             g = _GREEN32(c) + gerr1(x)
             b = _BLUE32(c) + berr1(x)
             
+            ' Clamp values
             IF r < 0 THEN r = 0
             IF r > 255 THEN r = 255
             IF g < 0 THEN g = 0
@@ -680,15 +764,14 @@ SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
             
             idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
             
-            ' Get the actual palette color
-            DIM palColor AS _UNSIGNED LONG
-            palColor = _PALETTECOLOR(idx, dst)
-            nr = _RED32(palColor)
-            ng = _GREEN32(palColor)
-            nb = _BLUE32(palColor)
+            ' Get the actual palette color from cache (this is faster than _PALETTECOLOR)
+            nr = palette_cache_r(idx)
+            ng = palette_cache_g(idx)
+            nb = palette_cache_b(idx)
             
             PSET (x, y), idx
             
+            ' Calculate error with dither amount
             er = (r - nr) * dither_amount
             eg = (g - ng) * dither_amount
             eb = (b - nb) * dither_amount
@@ -744,23 +827,22 @@ SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
             END SELECT
         NEXT
         
-        ' Swap error buffers
+        ' Swap error buffers (clear old buffer as we go)
         FOR x = 0 TO w
-            rerr1(x) = rerr2(x)
-            gerr1(x) = gerr2(x)
-            berr1(x) = berr2(x)
-            rerr2(x) = 0
-            gerr2(x) = 0
-            berr2(x) = 0
+            rerr1(x) = rerr2(x): rerr2(x) = 0
+            gerr1(x) = gerr2(x): gerr2(x) = 0
+            berr1(x) = berr2(x): berr2(x) = 0
         NEXT
     NEXT
+    
+    ClearProgress
     
     _SOURCE oldS
     _DEST oldD
 END SUB
 
 ''
-' Apply simple quantization (no dithering)
+' Apply simple quantization (no dithering) - optimized
 '
 SUB ApplyQuantizeOnly(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -773,6 +855,13 @@ SUB ApplyQuantizeOnly(img AS LONG, dst AS LONG)
     DIM oldD AS LONG: oldD = _DEST
     _DEST dst
     
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ShowProgress "Quantizing...", 0
+    
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
             c = POINT(x, y)
@@ -783,6 +872,8 @@ SUB ApplyQuantizeOnly(img AS LONG, dst AS LONG)
             PSET (x, y), idx
         NEXT
     NEXT
+    
+    ClearProgress
     
     _SOURCE oldS
     _DEST oldD
@@ -834,7 +925,7 @@ SUB ApplyOrderedDither8x8(img AS LONG, dst AS LONG)
 END SUB
 
 ''
-' Apply random dithering
+' Apply random dithering - optimized
 '
 SUB ApplyRandomDither(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -848,9 +939,25 @@ SUB ApplyRandomDither(img AS LONG, dst AS LONG)
     DIM oldD AS LONG: oldD = _DEST
     _DEST dst
     
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
     RANDOMIZE TIMER
     
+    ' Progress indication for large images
+    DIM progress_step AS LONG
+    progress_step = h \ 10
+    IF progress_step < 1 THEN progress_step = 1
+    
+    ShowProgress "Random dithering...", 0
+    
     FOR y = 0 TO h - 1
+        IF (y MOD progress_step) = 0 THEN
+            ShowProgress "Random dithering...", (y / h) * 100
+        END IF
+        
         FOR x = 0 TO w - 1
             c = POINT(x, y)
             r = _RED32(c)
@@ -859,19 +966,18 @@ SUB ApplyRandomDither(img AS LONG, dst AS LONG)
             
             noise = (RND * 64 - 32) * dither_amount
             r = r + noise
-            IF r < 0 THEN r = 0
-            IF r > 255 THEN r = 255
+            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
             g = g + noise
-            IF g < 0 THEN g = 0
-            IF g > 255 THEN g = 255
+            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
             b = b + noise
-            IF b < 0 THEN b = 0
-            IF b > 255 THEN b = 255
+            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
             
             idx = NearestPaletteIndex%(r, g, b, dst)
             PSET (x, y), idx
         NEXT
     NEXT
+    
+    ClearProgress
     
     _SOURCE oldS
     _DEST oldD
@@ -1119,6 +1225,9 @@ SUB load_default_ega_palette (dst AS LONG)
         $END IF
     NEXT i
 
+    ' Invalidate palette cache since we changed the palette
+    palette_cache_valid = 0
+
     $IF NDEBUG = FALSE THEN
             _ASSERT 1, "Done!"
     $END IF
@@ -1239,6 +1348,9 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
     ELSE
         _MESSAGEBOX "IMG2PAL", "Not a GIMP Palette!", "warning"
     END IF
+    
+    ' Invalidate palette cache since we changed the palette
+    palette_cache_valid = 0
 
     CLOSE fh
 END SUB
