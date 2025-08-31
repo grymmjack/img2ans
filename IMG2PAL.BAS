@@ -658,7 +658,7 @@ END FUNCTION
 SUB ApplyOrderedDitherMatrix(img AS LONG, dst AS LONG, matrix() AS INTEGER, matW AS INTEGER, matH AS INTEGER, maxVal AS INTEGER)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
     DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
-    DIM threshold AS INTEGER
+    DIM threshold AS SINGLE
     
     w = _WIDTH(img)
     h = _HEIGHT(img)
@@ -667,6 +667,11 @@ SUB ApplyOrderedDitherMatrix(img AS LONG, dst AS LONG, matrix() AS INTEGER, matW
     DIM oldD AS LONG: oldD = _DEST
     _DEST dst
     
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
     FOR y = 0 TO h - 1
         FOR x = 0 TO w - 1
             c = POINT(x, y)
@@ -674,8 +679,10 @@ SUB ApplyOrderedDitherMatrix(img AS LONG, dst AS LONG, matrix() AS INTEGER, matW
             g = _GREEN32(c)
             b = _BLUE32(c)
             
-            threshold = matrix(x MOD matW, y MOD matH) * 8 - (maxVal * 4)
-            threshold = threshold * dither_amount
+            ' Proper ordered dithering formula: normalize matrix value and apply as threshold
+            ' Matrix values should be normalized to [-0.5, 0.5] range
+            threshold = ((matrix(x MOD matW, y MOD matH) / maxVal) - 0.5) * 64 * dither_amount
+            
             r = r + threshold
             IF r < 0 THEN r = 0
             IF r > 255 THEN r = 255
@@ -686,7 +693,7 @@ SUB ApplyOrderedDitherMatrix(img AS LONG, dst AS LONG, matrix() AS INTEGER, matW
             IF b < 0 THEN b = 0
             IF b > 255 THEN b = 255
             
-            idx = NearestPaletteIndex%(r, g, b, dst)
+            idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
             PSET (x, y), idx
         NEXT
     NEXT
