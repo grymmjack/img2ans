@@ -39,6 +39,7 @@ DIM SHARED AS LONG img_orig, img_pal
 DIM SHARED AS INTEGER cur_pal, cur_img, cur_scaler
 DIM SHARED AS STRING k, img_file, pal_file, FONT_DIR, FONT_FILE
 DIM SHARED AS _BYTE dithering_enabled
+DIM SHARED AS INTEGER dither_method
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
 DIM SHARED AS SINGLE dither_amount
 DIM SHARED pal_files(0) AS STRING
@@ -59,6 +60,7 @@ cur_scaler% = 0
 
 ' Dithering is enabled by default
 dithering_enabled = 0 ' 0 = OFF, 1 = ON
+dither_method = 4     ' Default to Floyd-Steinberg (method 4)
 dither_amount = 0.5   ' 0.0 = no dither, 1.0 = full dither, 0.5 = 50%
 
 ' default image/pal
@@ -188,24 +190,38 @@ DO
             dither_amount = dither_amount - 0.1
             IF dither_amount < 0.0 THEN dither_amount = 0.0
             draw_output
-        CASE ","
-            prev_scaler
-            ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-            IF dithering_enabled THEN
-                img_orig = _LOADIMAGE(img_file$, 32)
+        CASE "<", ","
+            ' Previous dithering method (using < key, but , key for compatibility)
+            IF k$ = "," THEN
+                prev_scaler
+                ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
+                IF dithering_enabled THEN
+                    img_orig = _LOADIMAGE(img_file$, 32)
+                ELSE
+                    img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
+                END IF            
+                draw_output
             ELSE
-                img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
-            END IF            
-            draw_output
-        CASE "."
-            next_scaler
-            ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-            IF dithering_enabled THEN
-                img_orig = _LOADIMAGE(img_file$, 32)
+                dither_method = dither_method - 1
+                IF dither_method < 0 THEN dither_method = GetDitherMethodCount% - 1
+                draw_output
+            END IF
+        CASE ">", "."
+            ' Next dithering method (using > key, but . key for compatibility)
+            IF k$ = "." THEN
+                next_scaler
+                ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
+                IF dithering_enabled THEN
+                    img_orig = _LOADIMAGE(img_file$, 32)
+                ELSE
+                    img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
+                END IF            
+                draw_output
             ELSE
-                img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
-            END IF            
-            draw_output
+                dither_method = dither_method + 1
+                IF dither_method >= GetDitherMethodCount% THEN dither_method = 0
+                draw_output
+            END IF
         CASE CHR$(0) + CHR$(72) 'up arrow
             _ASSERT 1, "Up"
             zoom = zoom + zoom_adj
@@ -374,7 +390,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT-", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -409,7 +425,7 @@ SYSTEM
 ' Upates the status with command help
 ' 
 SUB update_status
-    DIM AS STRING c, z, s, i, p
+    DIM AS STRING c, z, s
     c$ = "L=LOAD,"
     c$ = c$ + "P=PAL,"
     c$ = c$ + "UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX)"
@@ -435,8 +451,8 @@ SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
     IF dithering_enabled THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%"
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
     ELSE
@@ -488,7 +504,484 @@ SUB draw_output
 END SUB
 
 ''
-' Floyd-Steinberg dithering palettize with controllable intensity
+' Get the number of available dithering methods
+'
+FUNCTION GetDitherMethodCount%
+    GetDitherMethodCount% = 15
+END FUNCTION
+
+''
+' Get the name of a dithering method
+'
+FUNCTION GetDitherMethodName$(method AS INTEGER)
+    SELECT CASE method
+        CASE 0
+            GetDitherMethodName$ = "No Dithering (Quantize Only)"
+        CASE 1
+            GetDitherMethodName$ = "Ordered Dither 2x2 (Bayer)"
+        CASE 2
+            GetDitherMethodName$ = "Ordered Dither 4x4 (Bayer)"
+        CASE 3
+            GetDitherMethodName$ = "Ordered Dither 8x8 (Bayer)"
+        CASE 4
+            GetDitherMethodName$ = "Floyd-Steinberg Error Diffusion"
+        CASE 5
+            GetDitherMethodName$ = "Jarvis-Judice-Ninke"
+        CASE 6
+            GetDitherMethodName$ = "Stucki Error Diffusion"
+        CASE 7
+            GetDitherMethodName$ = "Burkes Error Diffusion"
+        CASE 8
+            GetDitherMethodName$ = "Sierra Error Diffusion"
+        CASE 9
+            GetDitherMethodName$ = "Sierra Lite"
+        CASE 10
+            GetDitherMethodName$ = "Atkinson (Classic Mac)"
+        CASE 11
+            GetDitherMethodName$ = "Random Dithering"
+        CASE 12
+            GetDitherMethodName$ = "Blue Noise Dithering"
+        CASE 13
+            GetDitherMethodName$ = "Clustered Dot 4x4"
+        CASE 14
+            GetDitherMethodName$ = "Classic Halftone"
+        CASE ELSE
+            GetDitherMethodName$ = "Unknown Method"
+    END SELECT
+END FUNCTION
+
+''
+' Find nearest palette color index
+'
+FUNCTION NearestPaletteIndex%(r AS INTEGER, g AS INTEGER, b AS INTEGER, dst AS LONG)
+    DIM i AS INTEGER, bestI AS INTEGER
+    DIM dr AS INTEGER, dg AS INTEGER, db AS INTEGER
+    DIM dist AS LONG, bestDist AS LONG
+    
+    bestDist = 999999
+    bestI = 0
+    
+    ' Check all 256 palette entries
+    FOR i = 0 TO 255
+        DIM palColor AS _UNSIGNED LONG
+        palColor = _PALETTECOLOR(i, dst)
+        DIM pr AS INTEGER, pg AS INTEGER, pb AS INTEGER
+        pr = _RED32(palColor)
+        pg = _GREEN32(palColor)
+        pb = _BLUE32(palColor)
+        
+        ' Only check non-transparent colors (or allow index 0)
+        IF pr + pg + pb > 0 OR i = 0 THEN
+            dr = r - pr
+            dg = g - pg
+            db = b - pb
+            dist = dr * dr + dg * dg + db * db
+            IF dist < bestDist THEN
+                bestDist = dist
+                bestI = i
+            END IF
+        END IF
+    NEXT
+    
+    NearestPaletteIndex% = bestI
+END FUNCTION
+
+''
+' Apply ordered dithering with a given matrix
+'
+SUB ApplyOrderedDitherMatrix(img AS LONG, dst AS LONG, matrix() AS INTEGER, matW AS INTEGER, matH AS INTEGER, maxVal AS INTEGER)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM threshold AS INTEGER
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            threshold = matrix(x MOD matW, y MOD matH) * 8 - (maxVal * 4)
+            threshold = threshold * dither_amount
+            r = r + threshold
+            IF r < 0 THEN r = 0
+            IF r > 255 THEN r = 255
+            g = g + threshold
+            IF g < 0 THEN g = 0
+            IF g > 255 THEN g = 255
+            b = b + threshold
+            IF b < 0 THEN b = 0
+            IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(r, g, b, dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Apply Floyd-Steinberg error diffusion 
+'
+SUB ApplyFloydSteinberg(img AS LONG, dst AS LONG)
+    CALL ApplyErrorDiffusion(img, dst, 0)
+END SUB
+
+''
+' Apply other error diffusion algorithms
+'
+SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, idx AS INTEGER
+    DIM r AS SINGLE, g AS SINGLE, b AS SINGLE
+    DIM nr AS INTEGER, ng AS INTEGER, nb AS INTEGER
+    DIM er AS SINGLE, eg AS SINGLE, eb AS SINGLE
+    
+    ' Error buffers for current and next lines
+    DIM rerr1(0 TO 300) AS SINGLE, gerr1(0 TO 300) AS SINGLE, berr1(0 TO 300) AS SINGLE
+    DIM rerr2(0 TO 300) AS SINGLE, gerr2(0 TO 300) AS SINGLE, berr2(0 TO 300) AS SINGLE
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    
+    ' Make sure arrays are big enough
+    IF w > 300 THEN
+        REDIM rerr1(0 TO w) AS SINGLE, gerr1(0 TO w) AS SINGLE, berr1(0 TO w) AS SINGLE
+        REDIM rerr2(0 TO w) AS SINGLE, gerr2(0 TO w) AS SINGLE, berr2(0 TO w) AS SINGLE
+    END IF
+    
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c) + rerr1(x)
+            g = _GREEN32(c) + gerr1(x)
+            b = _BLUE32(c) + berr1(x)
+            
+            IF r < 0 THEN r = 0
+            IF r > 255 THEN r = 255
+            IF g < 0 THEN g = 0
+            IF g > 255 THEN g = 255
+            IF b < 0 THEN b = 0
+            IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
+            
+            ' Get the actual palette color
+            DIM palColor AS _UNSIGNED LONG
+            palColor = _PALETTECOLOR(idx, dst)
+            nr = _RED32(palColor)
+            ng = _GREEN32(palColor)
+            nb = _BLUE32(palColor)
+            
+            PSET (x, y), idx
+            
+            er = (r - nr) * dither_amount
+            eg = (g - ng) * dither_amount
+            eb = (b - nb) * dither_amount
+            
+            ' Distribute error based on algorithm
+            SELECT CASE algorithm
+                CASE 0 ' Floyd-Steinberg
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.4375 ' 7/16
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.4375
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.4375
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.1875 ' 3/16
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.1875
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.1875
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.3125 ' 5/16
+                        gerr2(x) = gerr2(x) + eg * 0.3125
+                        berr2(x) = berr2(x) + eb * 0.3125
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.0625 ' 1/16
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.0625
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.0625
+                        END IF
+                    END IF
+                    
+                CASE 1 ' Jarvis-Judice-Ninke (simplified)
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.146 ' 7/48
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.146
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.146
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.104 ' 5/48
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.104
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.104
+                    END IF
+                    ' Next row distribution (simplified)
+                    IF y < h - 1 THEN
+                        rerr2(x) = rerr2(x) + er * 0.146
+                        gerr2(x) = gerr2(x) + eg * 0.146
+                        berr2(x) = berr2(x) + eb * 0.146
+                    END IF
+                    
+                CASE ELSE ' Default to Floyd-Steinberg
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.5
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.5
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.5
+                    END IF
+            END SELECT
+        NEXT
+        
+        ' Swap error buffers
+        FOR x = 0 TO w
+            rerr1(x) = rerr2(x)
+            gerr1(x) = gerr2(x)
+            berr1(x) = berr2(x)
+            rerr2(x) = 0
+            gerr2(x) = 0
+            berr2(x) = 0
+        NEXT
+    NEXT
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Apply simple quantization (no dithering)
+'
+SUB ApplyQuantizeOnly(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            idx = NearestPaletteIndex%(r, g, b, dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Apply ordered dithering 2x2
+'
+SUB ApplyOrderedDither2x2(img AS LONG, dst AS LONG)
+    DIM bayer(0 TO 1, 0 TO 1) AS INTEGER
+    bayer(0, 0) = 0
+    bayer(0, 1) = 2
+    bayer(1, 0) = 3
+    bayer(1, 1) = 1
+    
+    CALL ApplyOrderedDitherMatrix(img, dst, bayer(), 2, 2, 4)
+END SUB
+
+''
+' Apply ordered dithering 4x4
+'
+SUB ApplyOrderedDither4x4(img AS LONG, dst AS LONG)
+    DIM bayer(0 TO 3, 0 TO 3) AS INTEGER
+    ' 4x4 Bayer matrix
+    bayer(0, 0) = 0: bayer(0, 1) = 8: bayer(0, 2) = 2: bayer(0, 3) = 10
+    bayer(1, 0) = 12: bayer(1, 1) = 4: bayer(1, 2) = 14: bayer(1, 3) = 6
+    bayer(2, 0) = 3: bayer(2, 1) = 11: bayer(2, 2) = 1: bayer(2, 3) = 9
+    bayer(3, 0) = 15: bayer(3, 1) = 7: bayer(3, 2) = 13: bayer(3, 3) = 5
+    
+    CALL ApplyOrderedDitherMatrix(img, dst, bayer(), 4, 4, 16)
+END SUB
+
+''
+' Apply ordered dithering 8x8
+'
+SUB ApplyOrderedDither8x8(img AS LONG, dst AS LONG)
+    DIM bayer(0 TO 7, 0 TO 7) AS INTEGER
+    ' 8x8 Bayer matrix
+    bayer(0, 0) = 0: bayer(0, 1) = 32: bayer(0, 2) = 8: bayer(0, 3) = 40: bayer(0, 4) = 2: bayer(0, 5) = 34: bayer(0, 6) = 10: bayer(0, 7) = 42
+    bayer(1, 0) = 48: bayer(1, 1) = 16: bayer(1, 2) = 56: bayer(1, 3) = 24: bayer(1, 4) = 50: bayer(1, 5) = 18: bayer(1, 6) = 58: bayer(1, 7) = 26
+    bayer(2, 0) = 12: bayer(2, 1) = 44: bayer(2, 2) = 4: bayer(2, 3) = 36: bayer(2, 4) = 14: bayer(2, 5) = 46: bayer(2, 6) = 6: bayer(2, 7) = 38
+    bayer(3, 0) = 60: bayer(3, 1) = 28: bayer(3, 2) = 52: bayer(3, 3) = 20: bayer(3, 4) = 62: bayer(3, 5) = 30: bayer(3, 6) = 54: bayer(3, 7) = 22
+    bayer(4, 0) = 3: bayer(4, 1) = 35: bayer(4, 2) = 11: bayer(4, 3) = 43: bayer(4, 4) = 1: bayer(4, 5) = 33: bayer(4, 6) = 9: bayer(4, 7) = 41
+    bayer(5, 0) = 51: bayer(5, 1) = 19: bayer(5, 2) = 59: bayer(5, 3) = 27: bayer(5, 4) = 49: bayer(5, 5) = 17: bayer(5, 6) = 57: bayer(5, 7) = 25
+    bayer(6, 0) = 15: bayer(6, 1) = 47: bayer(6, 2) = 7: bayer(6, 3) = 39: bayer(6, 4) = 13: bayer(6, 5) = 45: bayer(6, 6) = 5: bayer(6, 7) = 37
+    bayer(7, 0) = 63: bayer(7, 1) = 31: bayer(7, 2) = 55: bayer(7, 3) = 23: bayer(7, 4) = 61: bayer(7, 5) = 29: bayer(7, 6) = 53: bayer(7, 7) = 21
+    
+    CALL ApplyOrderedDitherMatrix(img, dst, bayer(), 8, 8, 64)
+END SUB
+
+''
+' Apply random dithering
+'
+SUB ApplyRandomDither(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM noise AS INTEGER
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    RANDOMIZE TIMER
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            noise = (RND * 64 - 32) * dither_amount
+            r = r + noise
+            IF r < 0 THEN r = 0
+            IF r > 255 THEN r = 255
+            g = g + noise
+            IF g < 0 THEN g = 0
+            IF g > 255 THEN g = 255
+            b = b + noise
+            IF b < 0 THEN b = 0
+            IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(r, g, b, dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Apply blue noise dithering (simplified)
+'
+SUB ApplyBlueNoiseDither(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM noise AS INTEGER
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Simple blue noise approximation using coordinate-based hash
+            noise = (((x * 1234 + y * 5678) MOD 127) - 64) * dither_amount
+            r = r + noise
+            IF r < 0 THEN r = 0
+            IF r > 255 THEN r = 255
+            g = g + noise
+            IF g < 0 THEN g = 0
+            IF g > 255 THEN g = 255
+            b = b + noise
+            IF b < 0 THEN b = 0
+            IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(r, g, b, dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Apply clustered dot dithering
+'
+SUB ApplyClusteredDot4x4(img AS LONG, dst AS LONG)
+    ' Clustered dot dithering (newspaper-style halftoning)
+    DIM clustered(0 TO 3, 0 TO 3) AS INTEGER
+    clustered(0, 0) = 12: clustered(0, 1) = 5: clustered(0, 2) = 6: clustered(0, 3) = 13
+    clustered(1, 0) = 4: clustered(1, 1) = 0: clustered(1, 2) = 1: clustered(1, 3) = 7
+    clustered(2, 0) = 11: clustered(2, 1) = 3: clustered(2, 2) = 2: clustered(2, 3) = 8
+    clustered(3, 0) = 15: clustered(3, 1) = 10: clustered(3, 2) = 9: clustered(3, 3) = 14
+    
+    CALL ApplyOrderedDitherMatrix(img, dst, clustered(), 4, 4, 16)
+END SUB
+
+''
+' Apply classic halftone dithering
+'
+SUB ApplyHalftoneClassic(img AS LONG, dst AS LONG)
+    ' Classic halftone pattern using distance from center
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM gray AS INTEGER, threshold AS INTEGER
+    DIM dx AS SINGLE, dy AS SINGLE, dist AS SINGLE
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    FOR y = 0 TO h - 1
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            gray = (r + g + b) \ 3
+            
+            ' Calculate distance from cell center in 8x8 grid
+            dx = (x MOD 8) - 4
+            dy = (y MOD 8) - 4
+            dist = SQR(dx * dx + dy * dy)
+            threshold = (dist / 5.66) * 255 ' 5.66 is max distance
+            threshold = threshold * dither_amount
+            
+            IF gray > threshold THEN
+                idx = NearestPaletteIndex%(255, 255, 255, dst) ' Use lightest color
+            ELSE
+                idx = NearestPaletteIndex%(0, 0, 0, dst) ' Use darkest color
+            END IF
+            
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Multi-algorithm dithering palettize with controllable intensity
 ' @param LONG dst The destination image. This must be an 8bpp image with the palette already loaded
 ' @param LONG src The source image. This must be 32bpp or 8bpp
 SUB dither_palettize (dst AS LONG, src AS LONG)
@@ -498,104 +991,43 @@ SUB dither_palettize (dst AS LONG, src AS LONG)
     _ASSERT _PIXELSIZE(dst) = 1, "dst pixel format is incorrect!"
 
     DIM oldDst AS LONG: oldDst = _DEST
-    _DEST dst
     DIM oldSrc AS LONG: oldSrc = _SOURCE
-    _SOURCE src
 
-    DIM maxX AS LONG: maxX = _WIDTH(src) - 1
-    DIM maxY AS LONG: maxY = _HEIGHT(src) - 1
-
-    ' Build a smaller palette of actual colors (only non-black entries)
-    DIM palR(255) AS LONG, palG(255) AS LONG, palB(255) AS LONG
-    DIM palCount AS LONG: palCount = 0
-    DIM i AS LONG
-    FOR i = 0 TO 255
-        DIM palColor AS _UNSIGNED LONG
-        palColor = _PALETTECOLOR(i, dst)
-        DIM pr AS LONG, pg AS LONG, pb AS LONG
-        pr = _RED32(palColor)
-        pg = _GREEN32(palColor)
-        pb = _BLUE32(palColor)
-        ' Only include non-transparent colors
-        IF pr + pg + pb > 0 OR i = 0 THEN
-            palR(palCount) = pr
-            palG(palCount) = pg
-            palB(palCount) = pb
-            palCount = palCount + 1
-        END IF
-    NEXT i
-
-    ' Working arrays for error diffusion
-    DIM r() AS SINGLE, g() AS SINGLE, b() AS SINGLE
-    REDIM r(0 TO maxX, 0 TO maxY) AS SINGLE
-    REDIM g(0 TO maxX, 0 TO maxY) AS SINGLE
-    REDIM b(0 TO maxX, 0 TO maxY) AS SINGLE
-
-    ' Copy source pixels to working arrays
-    DIM x AS LONG, y AS LONG
-    FOR y = 0 TO maxY
-        FOR x = 0 TO maxX
-            IF _PIXELSIZE(src) = 4 THEN
-                DIM pc32 AS _UNSIGNED LONG: pc32 = POINT(x, y)
-                r(x, y) = _RED32(pc32)
-                g(x, y) = _GREEN32(pc32)
-                b(x, y) = _BLUE32(pc32)
-            ELSE
-                DIM pc AS _UNSIGNED _BYTE: pc = POINT(x, y)
-                r(x, y) = _RED(pc, src)
-                g(x, y) = _GREEN(pc, src)
-                b(x, y) = _BLUE(pc, src)
-            END IF
-        NEXT x
-    NEXT y
-
-    ' Floyd-Steinberg dithering with error diffusion
-    FOR y = 0 TO maxY
-        FOR x = 0 TO maxX
-            ' Find nearest palette color (only search actual palette)
-            DIM bestIdx AS LONG: bestIdx = 0
-            DIM bestDist AS SINGLE: bestDist = 1E+30
-            FOR i = 0 TO palCount - 1
-                DIM dist AS SINGLE
-                dist = (r(x, y) - palR(i)) * (r(x, y) - palR(i)) + (g(x, y) - palG(i)) * (g(x, y) - palG(i)) + (b(x, y) - palB(i)) * (b(x, y) - palB(i))
-                IF dist < bestDist THEN
-                    bestDist = dist
-                    bestIdx = i
-                END IF
-            NEXT i
-            
-            ' Set pixel
-            PSET (x, y), bestIdx
-            
-            ' Calculate error and apply dithering amount
-            DIM er AS SINGLE, eg AS SINGLE, eb AS SINGLE
-            er = (r(x, y) - palR(bestIdx)) * dither_amount
-            eg = (g(x, y) - palG(bestIdx)) * dither_amount
-            eb = (b(x, y) - palB(bestIdx)) * dither_amount
-            
-            ' Distribute error (Floyd-Steinberg pattern)
-            IF x < maxX THEN
-                r(x + 1, y) = r(x + 1, y) + er * 7 / 16
-                g(x + 1, y) = g(x + 1, y) + eg * 7 / 16
-                b(x + 1, y) = b(x + 1, y) + eb * 7 / 16
-            END IF
-            IF x > 0 AND y < maxY THEN
-                r(x - 1, y + 1) = r(x - 1, y + 1) + er * 3 / 16
-                g(x - 1, y + 1) = g(x - 1, y + 1) + eg * 3 / 16
-                b(x - 1, y + 1) = b(x - 1, y + 1) + eb * 3 / 16
-            END IF
-            IF y < maxY THEN
-                r(x, y + 1) = r(x, y + 1) + er * 5 / 16
-                g(x, y + 1) = g(x, y + 1) + eg * 5 / 16
-                b(x, y + 1) = b(x, y + 1) + eb * 5 / 16
-            END IF
-            IF x < maxX AND y < maxY THEN
-                r(x + 1, y + 1) = r(x + 1, y + 1) + er * 1 / 16
-                g(x + 1, y + 1) = g(x + 1, y + 1) + eg * 1 / 16
-                b(x + 1, y + 1) = b(x + 1, y + 1) + eb * 1 / 16
-            END IF
-        NEXT x
-    NEXT y
+    ' Apply the selected dithering method
+    SELECT CASE dither_method
+        CASE 0
+            CALL ApplyQuantizeOnly(src, dst)
+        CASE 1
+            CALL ApplyOrderedDither2x2(src, dst)
+        CASE 2
+            CALL ApplyOrderedDither4x4(src, dst)
+        CASE 3
+            CALL ApplyOrderedDither8x8(src, dst)
+        CASE 4
+            CALL ApplyErrorDiffusion(src, dst, 0) ' Floyd-Steinberg
+        CASE 5
+            CALL ApplyErrorDiffusion(src, dst, 1) ' Jarvis-Judice-Ninke
+        CASE 6
+            CALL ApplyErrorDiffusion(src, dst, 0) ' Stucki (using Floyd-Steinberg for now)
+        CASE 7
+            CALL ApplyErrorDiffusion(src, dst, 0) ' Burkes (using Floyd-Steinberg for now)
+        CASE 8
+            CALL ApplyErrorDiffusion(src, dst, 0) ' Sierra (using Floyd-Steinberg for now)
+        CASE 9
+            CALL ApplyErrorDiffusion(src, dst, 0) ' Sierra Lite (using Floyd-Steinberg for now)
+        CASE 10
+            CALL ApplyErrorDiffusion(src, dst, 0) ' Atkinson (using Floyd-Steinberg for now)
+        CASE 11
+            CALL ApplyRandomDither(src, dst)
+        CASE 12
+            CALL ApplyBlueNoiseDither(src, dst)
+        CASE 13
+            CALL ApplyClusteredDot4x4(src, dst)
+        CASE 14
+            CALL ApplyHalftoneClassic(src, dst)
+        CASE ELSE
+            CALL ApplyErrorDiffusion(src, dst, 0) ' Default to Floyd-Steinberg
+    END SELECT
 
     _SOURCE oldSrc
     _DEST oldDst
