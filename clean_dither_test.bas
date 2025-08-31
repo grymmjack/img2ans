@@ -1,5 +1,4 @@
 ' Very Simple Dithering Test - Clean Version
-$CONSOLE:ONLY
 PRINT "Simple Dithering Test Starting..."
 
 ' Palette variables

@@ -1,2 +1,0 @@
-PRINT "Test compilation"
-END
