@@ -48,7 +48,7 @@ CONST FONT_STYLE$      = "MONOSPACE"
 
 ' Toast message system constants
 CONST INFO_MSG_TIMEOUT = 3.0       ' Auto-clear delay in seconds
-CONST INFO_MSG_COLOR   = &H00FFFF& ' Cyan color (RGB: 0, 255, 255)
+CONST INFO_MSG_COLOR   = _RGB32(&H00, &HFF, &HFF) ' Cyan color (RGB: 0, 255, 255)
 CONST INFO_MSG_MAX     = 4         ' Maximum number of messages to show
 CONST INFO_MSG_Y_OFFSET = 2        ' Lines from bottom to start showing messages
 
@@ -171,8 +171,12 @@ DIM SHARED AS DOUBLE last_key_time        ' Timer for key repeat limiting
 DIM SHARED AS DOUBLE key_repeat_delay     ' Minimum delay between key repeats (in seconds)
 key_repeat_delay = 0.15                   ' 150ms delay = ~6.7 keys per second
 
+' Message cleanup timing
+DIM SHARED AS DOUBLE last_message_cleanup_time ' Timer for periodic message cleanup
+
 ' Initialize message system
 info_message_count = 0
+last_message_cleanup_time = TIMER  ' Initialize message cleanup timer
 DIM init_idx AS INTEGER
 FOR init_idx = 0 TO INFO_MSG_MAX - 1
     info_messages(init_idx) = ""
@@ -306,8 +310,11 @@ draw_output
 DO
     _LIMIT 30
     
-    ' Clear expired messages
-    clear_expired_messages
+    ' Clear expired messages every second
+    IF TIMER - last_message_cleanup_time >= 1.0 THEN
+        clear_expired_messages
+        last_message_cleanup_time = TIMER
+    END IF
     
     ' Check zoom adjustment factor (SHIFT for larger adjustments)
     IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN 
@@ -3403,11 +3410,19 @@ SUB clear_expired_messages
     
     ' Check each message for expiration
     FOR msg_idx = 0 TO info_message_count - 1
-        IF LEN(info_messages(msg_idx)) > 0 AND (current_time - info_message_times(msg_idx)) >= INFO_MSG_TIMEOUT THEN
-            ' Mark this message for removal
-            info_messages(msg_idx) = ""
-            info_message_times(msg_idx) = 0
-            shift_needed = 1
+        IF LEN(info_messages(msg_idx)) > 0 THEN
+            DIM time_elapsed AS DOUBLE
+            time_elapsed = current_time - info_message_times(msg_idx)
+            
+            ' Handle TIMER rollover at midnight (86400 seconds in a day)
+            IF time_elapsed < 0 THEN time_elapsed = time_elapsed + 86400
+            
+            IF time_elapsed >= INFO_MSG_TIMEOUT THEN
+                ' Mark this message for removal
+                info_messages(msg_idx) = ""
+                info_message_times(msg_idx) = 0
+                shift_needed = 1
+            END IF
         END IF
     NEXT msg_idx
     
@@ -3429,8 +3444,9 @@ SUB clear_expired_messages
             END IF
         NEXT msg_idx
         
-        info_message_count = new_count
+        info_message_count = new_count        
     END IF
+    display_info_messages
 END SUB
 
 ''
@@ -3439,12 +3455,20 @@ END SUB
 SUB display_info_messages
     DIM msg_idx AS INTEGER, msg_y AS INTEGER
     DIM old_dest AS LONG, old_color AS LONG
-    
-    IF info_message_count = 0 THEN EXIT SUB
-    
+
     old_dest = _DEST
     old_color = _DEFAULTCOLOR
+
     _DEST CANVAS
+    
+    DIM AS INTEGER msg_y_start, msg_y_end, msg_x_start, msg_x_end
+    msg_y_start = _HEIGHT(CANVAS) - ((INFO_MSG_Y_OFFSET + INFO_MSG_MAX) * _FONTHEIGHT(FONTFACE&)) - 50
+    msg_y_end = _HEIGHT(CANVAS)
+    msg_x_start = 0
+    msg_x_end = _WIDTH(CANVAS)
+    LINE (msg_x_start, msg_y_start)-(msg_x_end, msg_y_end), _RGB32(&H00, &H00, &H00), BF
+
+    IF info_message_count = 0 THEN EXIT SUB
     
     ' Calculate starting Y position (from bottom up) - make more visible
     msg_y = _HEIGHT(CANVAS) - (INFO_MSG_Y_OFFSET * _FONTHEIGHT(FONTFACE&)) - 50
