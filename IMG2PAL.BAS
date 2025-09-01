@@ -71,6 +71,13 @@ DIM SHARED AS INTEGER adj_color_bal_r    ' -100 to +100
 DIM SHARED AS INTEGER adj_color_bal_g    ' -100 to +100
 DIM SHARED AS INTEGER adj_color_bal_b    ' -100 to +100
 DIM SHARED AS _BYTE adj_needs_update     ' Flag to rebuild adjusted image
+
+' Scanline effect parameters
+DIM SHARED AS _BYTE scanline_enabled     ' 0 = off, 1 = on
+DIM SHARED AS INTEGER scanline_size      ' 1 to 10 pixel height/width
+DIM SHARED AS _BYTE scanline_horizontal  ' 0 = vertical, 1 = horizontal
+DIM SHARED AS SINGLE scanline_opacity    ' 0.0 to 1.0 (0% to 100%)
+
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
@@ -221,6 +228,9 @@ IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) T
         load_default_ega_palette img_pal
     END IF
 END IF
+
+' Initialize all adjustments and scanline settings to defaults
+reset_adjustments
 
 draw_output
 
@@ -730,6 +740,38 @@ DO
                     draw_output
                 END IF
             END IF
+        CASE "~":
+            ' Toggle scanline effect
+            scanline_enabled = NOT scanline_enabled
+            draw_output
+        CASE "[":
+            ' Decrease scanline size
+            scanline_size = scanline_size - 1
+            IF scanline_size < 1 THEN scanline_size = 1
+            draw_output
+        CASE "]":
+            ' Increase scanline size
+            scanline_size = scanline_size + 1
+            IF scanline_size > 10 THEN scanline_size = 10
+            draw_output
+        CASE "|":
+            ' Switch to vertical scanlines
+            scanline_horizontal = 0
+            draw_output
+        CASE "_":
+            ' Switch to horizontal scanlines
+            scanline_horizontal = 1
+            draw_output
+        CASE "{":
+            ' Decrease scanline opacity
+            scanline_opacity = scanline_opacity - 0.05
+            IF scanline_opacity < 0.0 THEN scanline_opacity = 0.0
+            draw_output
+        CASE "}":
+            ' Increase scanline opacity
+            scanline_opacity = scanline_opacity + 0.05
+            IF scanline_opacity > 1.0 THEN scanline_opacity = 1.0
+            draw_output
     END SELECT
 LOOP
 
@@ -765,6 +807,78 @@ SUB reset_adjustments
     adj_color_bal_g = 0
     adj_color_bal_b = 0
     adj_needs_update = _TRUE
+    
+    ' Initialize scanline parameters
+    scanline_enabled = 0
+    scanline_size = 1
+    scanline_horizontal = 1  ' Default to horizontal
+    scanline_opacity = 1.0   ' 100% opacity
+END SUB
+
+''
+' Apply scanline effect as a screen overlay at specified coordinates
+' Creates a fresh transparent image with ONLY scanlines, then composites it on screen
+'
+SUB apply_scanlines(img AS LONG, dest_x1 AS INTEGER, dest_y1 AS INTEGER, dest_x2 AS INTEGER, dest_y2 AS INTEGER)
+    IF NOT scanline_enabled OR img = 0 THEN EXIT SUB
+    
+    DIM AS INTEGER img_width, img_height, x, y, line_pos
+    DIM AS LONG old_dest, scanline_overlay
+    DIM AS INTEGER scanline_alpha
+    DIM AS INTEGER display_width, display_height
+    
+    img_width = _WIDTH(img)
+    img_height = _HEIGHT(img)
+    display_width = dest_x2 - dest_x1
+    display_height = dest_y2 - dest_y1
+    
+    ' Create a fresh 32-bit image for the scanline overlay (sized to display area)
+    scanline_overlay = _NEWIMAGE(display_width, display_height, 32)
+    
+    ' Save current destination
+    old_dest = _DEST
+    _DEST scanline_overlay
+    
+    ' Clear the overlay to fully transparent
+    CLS , _RGBA32(0, 0, 0, 0)
+    
+    ' Calculate alpha value for scanlines based on opacity (0-255)
+    scanline_alpha = INT(scanline_opacity * 255)
+    
+    ' Draw ONLY the scanlines on the transparent overlay
+    IF scanline_horizontal THEN
+        ' Horizontal scanlines - scale to display size
+        FOR y = 0 TO display_height - 1
+            ' Create scanlines every (scanline_size + 1) pixels
+            line_pos = y MOD (scanline_size + 1)
+            IF line_pos < scanline_size THEN
+                ' Draw a horizontal line across the entire width
+                LINE (0, y)-(display_width - 1, y), _RGBA32(0, 0, 0, scanline_alpha)
+            END IF
+        NEXT y
+    ELSE
+        ' Vertical scanlines - scale to display size
+        FOR x = 0 TO display_width - 1
+            ' Create scanlines every (scanline_size + 1) pixels
+            line_pos = x MOD (scanline_size + 1)
+            IF line_pos < scanline_size THEN
+                ' Draw a vertical line across the entire height
+                LINE (x, 0)-(x, display_height - 1), _RGBA32(0, 0, 0, scanline_alpha)
+            END IF
+        NEXT x
+    END IF
+    
+    ' Switch to CANVAS for screen rendering
+    _DEST CANVAS
+    
+    ' Composite the scanline overlay on top at the specified screen coordinates
+    _PUTIMAGE (dest_x1, dest_y1), scanline_overlay
+    
+    ' Clean up the overlay
+    _FREEIMAGE scanline_overlay
+    
+    ' Restore original destination
+    _DEST old_dest
 END SUB
 
 ''
@@ -961,6 +1075,7 @@ SUB draw_output
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
         PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
         PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+        PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
     ELSE
         PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,R=RESET ADJ,ESC=QUIT";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
@@ -968,6 +1083,7 @@ SUB draw_output
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
         PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
         PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+        PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
     END IF
 
     ' Apply adjustments if needed
@@ -981,7 +1097,7 @@ SUB draw_output
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = _FONTHEIGHT(FONTFACE&)*6  ' Make room for the extra line
+        dy1_orig = _FONTHEIGHT(FONTFACE&)*7  ' Make room for the extra line
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -1007,9 +1123,10 @@ SUB draw_output
             ELSE
                 palettize img_pal, source_img
             END IF
+            
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
-            dy1_pal = _FONTHEIGHT(FONTFACE&)*6  ' Make room for the extra line
+            dy1_pal = _FONTHEIGHT(FONTFACE&)*7  ' Make room for the extra line
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
@@ -1017,7 +1134,11 @@ SUB draw_output
             + _TRIM$(STR$(dy1_pal)) + ")-(" _
             + _TRIM$(STR$(dx2_pal)) + "," _ 
             + _TRIM$(STR$(dy2_pal)) + ")"
+            ' Display the palettized image first
             _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), img_pal
+            
+            ' Apply scanline effect as a last pass screen overlay at display coordinates
+            apply_scanlines img_pal, dx1_pal, dy1_pal, dx2_pal, dy2_pal
         END IF
         _ASSERT 1, "ah="+_TRIM$(STR$(_HEIGHT(img_orig)))
         _ASSERT 1, "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
