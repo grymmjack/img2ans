@@ -22,7 +22,7 @@ OPTION _EXPLICIT
 '$DYNAMIC
 
 ' Set this to FALSE to enable debugging output to the console
-$LET NDEBUG = FALS
+$LET NDEBUG = FALSE
 
 $IF NDEBUG = FALSE THEN
     ' $DEBUG
@@ -32,6 +32,14 @@ $END IF
 
 CONST KEY_RSHIFT&      = 100303
 CONST KEY_LSHIFT&      = 100304
+CONST KEY_LCTRL&       = 100305
+CONST KEY_RCTRL&       = 100306
+CONST KEY_LALT&        = 100308
+CONST KEY_RALT&        = 100307
+CONST KEY_UP&          = 18432
+CONST KEY_DOWN&        = 20480
+CONST KEY_LEFT&        = 19200
+CONST KEY_RIGHT&       = 19712
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
 CONST FONT_STYLE$      = "MONOSPACE"
@@ -77,6 +85,11 @@ DIM SHARED AS _BYTE scanline_enabled     ' 0 = off, 1 = on
 DIM SHARED AS INTEGER scanline_size      ' 1 to 10 pixel height/width
 DIM SHARED AS _BYTE scanline_horizontal  ' 0 = vertical, 1 = horizontal
 DIM SHARED AS SINGLE scanline_opacity    ' 0.0 to 1.0 (0% to 100%)
+
+' Preset system
+DIM SHARED preset_files(0) AS STRING
+DIM SHARED preset_files_sorted(0) AS STRING
+DIM SHARED AS INTEGER cur_preset
 
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
@@ -202,6 +215,12 @@ CALL ARR_STR.sort(img_files$(), img_files_sorted$())
 CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$, "*.GPL", pal_files$())
 CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
 
+' Load presets
+CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$, "*.INI", preset_files$())
+CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
+' Initialize cur_preset - will be set to 0 later if presets exist
+cur_preset = -1
+
 ' Try to find the default image in the sorted list, otherwise use first available
 DIM default_img_path AS STRING
 default_img_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$ + "08_creon.gif"
@@ -232,16 +251,70 @@ END IF
 ' Initialize all adjustments and scanline settings to defaults
 reset_adjustments
 
+' Load first preset if any exist (presets were already loaded during startup)
+IF UBOUND(preset_files_sorted$) >= 0 THEN
+    cur_preset = 0
+    load_preset preset_files_sorted$(cur_preset)
+END IF
+
 draw_output
 
 DO
     _LIMIT 30
-    k$ = INKEY$
+    
+    ' Check zoom adjustment factor (SHIFT for larger adjustments)
     IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN 
         zoom_adj = 0.5
     ELSE
         zoom_adj = 0.1
     END IF
+    
+    ' Handle modifier + arrow key combinations with _KEYDOWN (more reliable)
+    ' ALT/CTRL + UP: Previous preset
+    IF _KEYDOWN(KEY_UP&) AND ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF UBOUND(preset_files_sorted$) >= 0 THEN
+            cur_preset = cur_preset - 1
+            IF cur_preset < 0 THEN cur_preset = UBOUND(preset_files_sorted$)
+            load_preset preset_files_sorted$(cur_preset)
+            draw_output
+        END IF
+        _KEYCLEAR ' Clear the key buffer to prevent repeat
+        GOTO continue_loop
+    END IF
+    
+    ' ALT/CTRL + DOWN: Next preset  
+    IF _KEYDOWN(KEY_DOWN&) AND ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF UBOUND(preset_files_sorted$) >= 0 THEN
+            cur_preset = cur_preset + 1
+            IF cur_preset > UBOUND(preset_files_sorted$) THEN cur_preset = 0
+            load_preset preset_files_sorted$(cur_preset)
+            draw_output
+        END IF
+        _KEYCLEAR ' Clear the key buffer to prevent repeat
+        GOTO continue_loop
+    END IF
+    
+    ' Plain UP: Zoom in (only if no modifiers are pressed)
+    IF _KEYDOWN(KEY_UP&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        zoom = zoom + zoom_adj
+        IF (zoom > zoom_max) THEN zoom = zoom_max
+        draw_output
+        _KEYCLEAR ' Clear the key buffer to prevent repeat
+        GOTO continue_loop
+    END IF
+    
+    ' Plain DOWN: Zoom out (only if no modifiers are pressed)  
+    IF _KEYDOWN(KEY_DOWN&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        zoom = zoom - zoom_adj
+        IF (zoom < zoom_min) THEN zoom = zoom_min
+        draw_output
+        _KEYCLEAR ' Clear the key buffer to prevent repeat
+        GOTO continue_loop
+    END IF
+    
+    ' Get regular key input using INKEY$
+    k$ = INKEY$
+    
     SELECT CASE k$
         CASE CHR$(27)
             EXIT DO
@@ -303,16 +376,6 @@ DO
                 IF dither_method >= GetDitherMethodCount% THEN dither_method = 0
                 draw_output
             END IF
-        CASE CHR$(0) + CHR$(72) 'up arrow
-            _ASSERT 1, "Up"
-            zoom = zoom + zoom_adj
-            IF (zoom > zoom_max) THEN zoom = zoom_max
-            draw_output
-        CASE CHR$(0) + CHR$(80) 'down arrow
-            _ASSERT 1, "Down"
-            zoom = zoom - zoom_adj
-            IF (zoom < zoom_min) THEN zoom = zoom_min
-            draw_output
         CASE CHR$(0) + CHR$(75) 'left arrow
             prev_pal_file
             IF UBOUND(pal_files_sorted$) >= 0 AND img_pal <> 0 THEN
@@ -774,7 +837,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,ESC=QUIT", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -784,6 +847,44 @@ DO
                 IF cur_img% < 0 THEN cur_img% = 0
                 IF cur_img% > UBOUND(img_files_sorted$) THEN cur_img% = UBOUND(img_files_sorted$)
                 draw_output
+            END IF
+        CASE "w", "W":
+            ' Save current settings as preset
+            DIM AS STRING preset_name
+            preset_name = _INPUTBOX$("IMG2PAL", "Save preset as:", "MyPreset")
+            IF LEN(preset_name) > 0 THEN
+                save_preset preset_name
+                refresh_presets
+                ' Find and select the newly saved preset
+                DIM AS STRING new_preset_path
+                new_preset_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$ + preset_name + ".INI"
+                cur_preset = ARR_STR.find%(preset_files_sorted$(), new_preset_path)
+                IF cur_preset < 0 THEN cur_preset = 0  ' Fallback to first preset if not found
+                _MESSAGEBOX "IMG2PAL", "Preset saved as: " + preset_name + ".INI", "info"
+                draw_output  ' Refresh display to show new preset status
+            END IF
+        CASE "e", "E":
+            ' Load preset
+            IF UBOUND(preset_files_sorted$) >= 0 THEN
+                DIM AS STRING preset_list, selected_preset
+                preset_list = ""
+                DIM AS INTEGER i
+                FOR i = 0 TO UBOUND(preset_files_sorted$)
+                    preset_list = preset_list + _TRIM$(STR$(i)) + ": " + _TRIM$(MID$(preset_files_sorted$(i), _INSTRREV(preset_files_sorted$(i), SLASH$) + 1)) + CHR$(13) + CHR$(10)
+                NEXT i
+                selected_preset = _INPUTBOX$("IMG2PAL", "Available presets:" + CHR$(13) + CHR$(10) + preset_list + "Enter preset number:", "0")
+                IF LEN(selected_preset) > 0 THEN
+                    DIM AS INTEGER preset_idx
+                    preset_idx = VAL(selected_preset)
+                    IF preset_idx >= 0 AND preset_idx <= UBOUND(preset_files_sorted$) THEN
+                        cur_preset = preset_idx
+                        load_preset preset_files_sorted$(cur_preset)
+                        draw_output
+                        _MESSAGEBOX "IMG2PAL", "Loaded preset: " + _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1)), "info"
+                    END IF
+                END IF
+            ELSE
+                _MESSAGEBOX "IMG2PAL", "No presets found in resources/presets/", "info"
             END IF
         CASE "q", "Q":
             ' Jump to a specific palette
@@ -853,6 +954,8 @@ DO
             IF scanline_opacity > 1.0 THEN scanline_opacity = 1.0
             draw_output
     END SELECT
+    
+continue_loop:
 LOOP
 
 IF img_orig <> 0 THEN _FREEIMAGE img_orig
@@ -960,6 +1063,205 @@ SUB apply_scanlines(img AS LONG, dest_x1 AS INTEGER, dest_y1 AS INTEGER, dest_x2
     ' Restore original destination
     _DEST old_dest
 END SUB
+
+''
+' Save current settings as a preset
+'
+SUB save_preset(preset_name AS STRING)
+    DIM AS STRING preset_path, content
+    preset_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$ + preset_name + ".INI"
+    
+    ' Build INI content with all current settings
+    content = "[IMG2PAL_PRESET]" + CHR$(13) + CHR$(10)
+    content = content + "VERSION=1.0" + CHR$(13) + CHR$(10)
+    content = content + "IMAGE_FILE=" + img_files_sorted$(cur_img%) + CHR$(13) + CHR$(10)
+    content = content + "PALETTE_FILE=" + pal_files_sorted$(cur_pal%) + CHR$(13) + CHR$(10)
+    content = content + "DITHERING_ENABLED=" + _TRIM$(STR$(dithering_enabled)) + CHR$(13) + CHR$(10)
+    content = content + "ZOOM=" + _TRIM$(STR$(zoom)) + CHR$(13) + CHR$(10)
+    content = content + "SCALER=" + _TRIM$(STR$(cur_scaler%)) + CHR$(13) + CHR$(10)
+    
+    ' Adjustments
+    content = content + "[ADJUSTMENTS]" + CHR$(13) + CHR$(10)
+    content = content + "BRIGHTNESS=" + _TRIM$(STR$(adj_brightness)) + CHR$(13) + CHR$(10)
+    content = content + "CONTRAST=" + _TRIM$(STR$(adj_contrast)) + CHR$(13) + CHR$(10)
+    content = content + "PIXELATE=" + _TRIM$(STR$(adj_pixelate)) + CHR$(13) + CHR$(10)
+    content = content + "HUE=" + _TRIM$(STR$(adj_hue)) + CHR$(13) + CHR$(10)
+    content = content + "THRESHOLD=" + _TRIM$(STR$(adj_threshold)) + CHR$(13) + CHR$(10)
+    content = content + "POSTERIZE=" + _TRIM$(STR$(adj_posterize)) + CHR$(13) + CHR$(10)
+    content = content + "COLORIZE_HUE=" + _TRIM$(STR$(adj_colorize_hue)) + CHR$(13) + CHR$(10)
+    content = content + "COLORIZE_SAT=" + _TRIM$(STR$(adj_colorize_sat)) + CHR$(13) + CHR$(10)
+    content = content + "GAMMA=" + _TRIM$(STR$(adj_gamma)) + CHR$(13) + CHR$(10)
+    content = content + "FILM_GRAIN=" + _TRIM$(STR$(adj_film_grain)) + CHR$(13) + CHR$(10)
+    content = content + "INVERT=" + _TRIM$(STR$(adj_invert)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_IN_MIN=" + _TRIM$(STR$(adj_levels_in_min)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_IN_MAX=" + _TRIM$(STR$(adj_levels_in_max)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_OUT_MIN=" + _TRIM$(STR$(adj_levels_out_min)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_OUT_MAX=" + _TRIM$(STR$(adj_levels_out_max)) + CHR$(13) + CHR$(10)
+    content = content + "COLOR_BAL_R=" + _TRIM$(STR$(adj_color_bal_r)) + CHR$(13) + CHR$(10)
+    content = content + "COLOR_BAL_G=" + _TRIM$(STR$(adj_color_bal_g)) + CHR$(13) + CHR$(10)
+    content = content + "COLOR_BAL_B=" + _TRIM$(STR$(adj_color_bal_b)) + CHR$(13) + CHR$(10)
+    
+    ' Scanlines
+    content = content + "[SCANLINES]" + CHR$(13) + CHR$(10)
+    content = content + "ENABLED=" + _TRIM$(STR$(scanline_enabled)) + CHR$(13) + CHR$(10)
+    content = content + "SIZE=" + _TRIM$(STR$(scanline_size)) + CHR$(13) + CHR$(10)
+    content = content + "HORIZONTAL=" + _TRIM$(STR$(scanline_horizontal)) + CHR$(13) + CHR$(10)
+    content = content + "OPACITY=" + _TRIM$(STR$(scanline_opacity)) + CHR$(13) + CHR$(10)
+    
+    ' Write to file
+    DIM AS INTEGER file_handle
+    file_handle = FREEFILE
+    OPEN preset_path FOR OUTPUT AS #file_handle
+    PRINT #file_handle, content;
+    CLOSE #file_handle
+END SUB
+
+''
+' Load a preset and apply all settings
+'
+SUB load_preset(preset_file AS STRING)
+    IF NOT _FILEEXISTS(preset_file) THEN EXIT SUB
+    
+    DIM AS INTEGER file_handle, img_index, pal_index
+    DIM AS STRING line_text, section, ini_key, value
+    
+    file_handle = FREEFILE
+    OPEN preset_file FOR INPUT AS #file_handle
+    
+    section = ""
+    DO WHILE NOT EOF(file_handle)
+        LINE INPUT #file_handle, line_text
+        line_text = _TRIM$(line_text)
+        
+        ' Skip empty lines and comments
+        IF LEN(line_text) = 0 OR LEFT$(line_text, 1) = ";" THEN GOTO next_line
+        
+        ' Check for section headers
+        IF LEFT$(line_text, 1) = "[" AND RIGHT$(line_text, 1) = "]" THEN
+            section = MID$(line_text, 2, LEN(line_text) - 2)
+            GOTO next_line
+        END IF
+        
+        ' Parse key=value pairs
+        DIM AS INTEGER eq_pos
+        eq_pos = INSTR(line_text, "=")
+        IF eq_pos > 0 THEN
+            ini_key = _TRIM$(LEFT$(line_text, eq_pos - 1))
+            value = _TRIM$(MID$(line_text, eq_pos + 1))
+            
+            ' Apply settings based on section and key
+            SELECT CASE UCASE$(section)
+                CASE "IMG2PAL_PRESET"
+                    SELECT CASE UCASE$(ini_key)
+                        CASE "IMAGE_FILE"
+                            img_index = ARR_STR.find%(img_files_sorted$(), value)
+                            IF img_index >= 0 THEN cur_img% = img_index
+                        CASE "PALETTE_FILE"
+                            pal_index = ARR_STR.find%(pal_files_sorted$(), value)
+                            IF pal_index >= 0 THEN cur_pal% = pal_index
+                        CASE "DITHERING_ENABLED"
+                            dithering_enabled = VAL(value)
+                        CASE "ZOOM"
+                            zoom = VAL(value)
+                        CASE "SCALER"
+                            cur_scaler% = VAL(value)
+                    END SELECT
+                CASE "ADJUSTMENTS"
+                    SELECT CASE UCASE$(ini_key)
+                        CASE "BRIGHTNESS": adj_brightness = VAL(value)
+                        CASE "CONTRAST": adj_contrast = VAL(value)
+                        CASE "PIXELATE": adj_pixelate = VAL(value)
+                        CASE "HUE": adj_hue = VAL(value)
+                        CASE "THRESHOLD": adj_threshold = VAL(value)
+                        CASE "POSTERIZE": adj_posterize = VAL(value)
+                        CASE "COLORIZE_HUE": adj_colorize_hue = VAL(value)
+                        CASE "COLORIZE_SAT": adj_colorize_sat = VAL(value)
+                        CASE "GAMMA": adj_gamma = VAL(value)
+                        CASE "FILM_GRAIN": adj_film_grain = VAL(value)
+                        CASE "INVERT": adj_invert = VAL(value)
+                        CASE "LEVELS_IN_MIN": adj_levels_in_min = VAL(value)
+                        CASE "LEVELS_IN_MAX": adj_levels_in_max = VAL(value)
+                        CASE "LEVELS_OUT_MIN": adj_levels_out_min = VAL(value)
+                        CASE "LEVELS_OUT_MAX": adj_levels_out_max = VAL(value)
+                        CASE "COLOR_BAL_R": adj_color_bal_r = VAL(value)
+                        CASE "COLOR_BAL_G": adj_color_bal_g = VAL(value)
+                        CASE "COLOR_BAL_B": adj_color_bal_b = VAL(value)
+                    END SELECT
+                CASE "SCANLINES"
+                    SELECT CASE UCASE$(ini_key)
+                        CASE "ENABLED": scanline_enabled = VAL(value)
+                        CASE "SIZE": scanline_size = VAL(value)
+                        CASE "HORIZONTAL": scanline_horizontal = VAL(value)
+                        CASE "OPACITY": scanline_opacity = VAL(value)
+                    END SELECT
+            END SELECT
+        END IF
+        
+next_line:
+    LOOP
+    CLOSE #file_handle
+    
+    ' Mark adjustments as needing update and reload image
+    adj_needs_update = _TRUE
+    
+    ' Reload image and palette
+    IF img_orig <> 0 THEN _FREEIMAGE img_orig: img_orig = 0
+    IF img_pal <> 0 THEN _FREEIMAGE img_pal: img_pal = 0
+    IF img_adjusted <> 0 THEN img_adjusted = 0
+    
+    IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
+        IF dithering_enabled THEN
+            img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+        ELSE
+            img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+        END IF
+        img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+        IF UBOUND(pal_files_sorted$) >= 0 THEN
+            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+        ELSE
+            load_default_ega_palette img_pal
+        END IF
+    END IF
+END SUB
+
+''
+' Refresh preset file list
+'
+SUB refresh_presets
+    CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$, "*.INI", preset_files$())
+    CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
+END SUB
+
+''
+' Generate preset status string with debug information
+'
+FUNCTION get_preset_status$ (include_debug AS INTEGER)
+    DIM AS STRING preset_status
+    IF UBOUND(preset_files_sorted$) >= 0 THEN
+        IF cur_preset >= 0 AND cur_preset <= UBOUND(preset_files_sorted$) THEN
+            DIM AS STRING current_preset_name
+            IF cur_preset <= UBOUND(preset_files_sorted$) THEN
+                current_preset_name = _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1))
+                ' Handle the case where there's no extension or the file path is malformed
+                IF _INSTRREV(current_preset_name, ".") > 0 THEN
+                    current_preset_name = LEFT$(current_preset_name, _INSTRREV(current_preset_name, ".") - 1) ' Remove .INI extension
+                END IF
+                IF LEN(current_preset_name) = 0 THEN current_preset_name = "UNKNOWN"
+            ELSE
+                current_preset_name = "OUT_OF_BOUNDS"
+            END IF
+            preset_status = "PRESETS: [W]RITE [E]NVOKE ALT/CTRL+UP/DN=PREV/NEXT - CURRENT: " + current_preset_name + " (" + _TRIM$(STR$(cur_preset + 1)) + "/" + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + ")"
+            IF include_debug THEN preset_status = preset_status + " PATH:" + preset_files_sorted$(cur_preset)
+        ELSE
+            preset_status = "PRESETS: [W]RITE [E]NVOKE ALT/CTRL+UP/DN=PREV/NEXT - AVAILABLE: " + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + " (NONE LOADED)"
+            IF include_debug THEN preset_status = preset_status + " CUR_PRESET=" + _TRIM$(STR$(cur_preset))
+        END IF
+    ELSE
+        preset_status = "PRESETS: [W]RITE [E]NVOKE ALT/CTRL+UP/DN=PREV/NEXT - NO PRESETS FOUND"
+        IF include_debug THEN preset_status = preset_status + " UBOUND=" + _TRIM$(STR$(UBOUND(preset_files_sorted$)))
+    END IF
+    get_preset_status$ = preset_status
+END FUNCTION
 
 ''
 ' Apply all chained adjustments to create the adjusted image
@@ -1116,55 +1418,51 @@ SUB apply_adjustments
 END SUB
 
 ''
-' Upates the status with command help
-' 
-SUB update_status
-    DIM AS STRING c, z, s
-    c$ = "L=LOAD,"
-    c$ = c$ + "P=PAL,"
-    c$ = c$ + "UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX)"
-    c$ = c$ + "D=DITH:" + _TRIM$(STR$(dithering_enabled))
-    c$ = c$ + "PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT"
-    z$ = "ZOOM=" + _TRIM$(STR$(zoom))
-    s$ = "-SCALER=" +  scalers$(cur_scaler%)
-    IF dithering_enabled THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
-        PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert))
+' Centralized status display function
+'
+SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGER)
+    IF show_dither_details THEN
+        ' Dithering mode status
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
     ELSE
-        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
+        ' Standard mode status
+        IF dithering_enabled THEN
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+            PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
+        ELSE
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
+            PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
+        END IF
+    END IF
+    
+    ' Common status lines
+    PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+    PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+    PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"
+    
+    IF show_dither_details THEN
+        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+        PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
+    ELSE
         PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert))
     END IF
+    
+    PRINT get_preset_status$(include_debug)
+END SUB
+
+''
+' Updates the status with command help
+' 
+SUB update_status
+    display_status_lines 0, 1  ' Standard mode, with debug
 END SUB
 
 
 SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
-    IF dithering_enabled THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
-        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
-        PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
-    ELSE
-        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,R=RESET ADJ,ESC=QUIT";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
-        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
-        PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
-    END IF
+    display_status_lines 1, 0  ' Detailed mode, no debug
 
     ' Apply adjustments if needed
     IF adj_needs_update AND img_orig <> 0 THEN
@@ -1177,7 +1475,7 @@ SUB draw_output
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = _FONTHEIGHT(FONTFACE&)*7  ' Make room for the extra line
+        dy1_orig = _FONTHEIGHT(FONTFACE&)*10  ' Make room for the extra line
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -1206,7 +1504,7 @@ SUB draw_output
             
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
-            dy1_pal = _FONTHEIGHT(FONTFACE&)*7  ' Make room for the extra line
+            dy1_pal = _FONTHEIGHT(FONTFACE&)*10  ' Make room for the extra line
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
@@ -2803,10 +3101,10 @@ SUB files_to_array(filepath$, mask$, arr$())
         fn$ = _TRIM$(f$)
         ' Filter out directories and system files
         IF fn$ <> "./" AND fn$ <> "../" AND fn$ <> "." AND fn$ <> ".." AND fn$ <> ".DS_Store" AND LEN(fn$) > 0 THEN
-            ' Only include files that have valid image extensions or are GPL files
+            ' Only include files that have valid image extensions or are GPL files or INI files
             DIM ext AS STRING
             ext = UCASE$(RIGHT$(fn$, 4))
-            IF INSTR(ext, ".JPG") OR INSTR(ext, ".PNG") OR INSTR(ext, ".GIF") OR INSTR(ext, ".BMP") OR INSTR(ext, ".TGA") OR INSTR(ext, ".PSD") OR INSTR(ext, ".PCX") OR INSTR(ext, ".SVG") OR INSTR(ext, ".QOI") OR INSTR(UCASE$(RIGHT$(fn$, 5)), ".JPEG") OR INSTR(ext, ".GPL") THEN
+            IF INSTR(ext, ".JPG") OR INSTR(ext, ".PNG") OR INSTR(ext, ".GIF") OR INSTR(ext, ".BMP") OR INSTR(ext, ".TGA") OR INSTR(ext, ".PSD") OR INSTR(ext, ".PCX") OR INSTR(ext, ".SVG") OR INSTR(ext, ".QOI") OR INSTR(UCASE$(RIGHT$(fn$, 5)), ".JPEG") OR INSTR(ext, ".GPL") OR INSTR(ext, ".INI") THEN
                 ub& = UBOUND(arr$)
                 arr$(ub&) = filepath$ + f$
                 REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
