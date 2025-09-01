@@ -1598,19 +1598,19 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
     IF show_dither_details THEN
         ' Dithering mode status - check actual dithering state
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,ESC=QUIT"
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,ESC=QUIT"
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     ELSE
         ' Standard mode status
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,?=RANDOMIZE,`=RANDIMG,ESC=QUIT- "
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,?=RANDOMIZE,`=RANDIMG,ESC=QUIT- "
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     END IF
