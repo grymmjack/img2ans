@@ -685,8 +685,73 @@ DO
                     "PNG Image" _
                 )
                 IF LEN(save_file$) <> 0 THEN
-                    _SAVEIMAGE save_file$, img_pal
-                    _MESSAGEBOX "IMG2PAL", "Image saved as " + save_file$, "info"
+                    ' Create a composite image with scanlines if enabled
+                    DIM AS LONG save_img, old_dest
+                    DIM AS INTEGER save_width, save_height
+                    
+                    ' Calculate the zoomed dimensions
+                    save_width = INT(zoom * _WIDTH(img_pal))
+                    save_height = INT(zoom * _HEIGHT(img_pal))
+                    
+                    IF scanline_enabled THEN
+                        ' Create a 32-bit image for proper alpha blending at zoomed size
+                        save_img = _NEWIMAGE(save_width, save_height, 32)
+                        old_dest = _DEST
+                        _DEST save_img
+                        
+                        ' Copy the palettized image to the save image at zoomed size
+                        _PUTIMAGE (0, 0)-(save_width - 1, save_height - 1), img_pal
+                        
+                        ' Apply scanlines directly to the zoomed save image
+                        DIM AS INTEGER x, y, line_pos
+                        DIM AS LONG scanline_overlay
+                        DIM AS INTEGER scanline_alpha
+                        
+                        ' Create scanline overlay at zoomed size
+                        scanline_overlay = _NEWIMAGE(save_width, save_height, 32)
+                        _DEST scanline_overlay
+                        CLS , _RGBA32(0, 0, 0, 0)
+                        
+                        ' Calculate alpha value for scanlines based on opacity (0-255)
+                        scanline_alpha = INT(scanline_opacity * 255)
+                        
+                        ' Draw scanlines on the overlay at original scale (not zoomed)
+                        IF scanline_horizontal THEN
+                            FOR y = 0 TO save_height - 1
+                                line_pos = y MOD (scanline_size + 1)
+                                IF line_pos < scanline_size THEN
+                                    LINE (0, y)-(save_width - 1, y), _RGBA32(0, 0, 0, scanline_alpha)
+                                END IF
+                            NEXT y
+                        ELSE
+                            FOR x = 0 TO save_width - 1
+                                line_pos = x MOD (scanline_size + 1)
+                                IF line_pos < scanline_size THEN
+                                    LINE (x, 0)-(x, save_height - 1), _RGBA32(0, 0, 0, scanline_alpha)
+                                END IF
+                            NEXT x
+                        END IF
+                        
+                        ' Composite scanlines onto save image
+                        _DEST save_img
+                        _PUTIMAGE (0, 0), scanline_overlay
+                        _FREEIMAGE scanline_overlay
+                        _DEST old_dest
+                        
+                        ' Save the composite image
+                        _SAVEIMAGE save_file$, save_img
+                        _FREEIMAGE save_img
+                    ELSE
+                        ' Save without scanlines but with zoom applied
+                        save_img = _NEWIMAGE(save_width, save_height, 32)
+                        old_dest = _DEST
+                        _DEST save_img
+                        _PUTIMAGE (0, 0)-(save_width - 1, save_height - 1), img_pal
+                        _DEST old_dest
+                        _SAVEIMAGE save_file$, save_img
+                        _FREEIMAGE save_img
+                    END IF
+                    _MESSAGEBOX "IMG2PAL", "Image saved as " + save_file$ + " (zoom: " + _TRIM$(STR$(INT(zoom * 100))) + "%)", "info"
                 END IF
             END IF
         CASE "a":
