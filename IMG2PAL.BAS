@@ -32,6 +32,15 @@ $END IF
 
 CONST KEY_RSHIFT&      = 100303
 CONST KEY_LSHIFT&      = 100304
+CONST KEY_LCTRL&       = 100305
+CONST KEY_RCTRL&       = 100306
+CONST KEY_LALT&        = 100308
+CONST KEY_RALT&        = 100307
+CONST KEY_UP&          = 18432
+CONST KEY_DOWN&        = 20480
+CONST KEY_LEFT&        = 19200
+CONST KEY_RIGHT&       = 19712
+CONST KEY_S&           = 83
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
 CONST FONT_STYLE$      = "MONOSPACE"
@@ -44,6 +53,12 @@ DIM SHARED AS _BYTE dithering_enabled
 DIM SHARED AS INTEGER dither_method
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
 DIM SHARED AS SINGLE dither_amount
+
+' Pattern dithering variables
+DIM SHARED pattern_img AS LONG
+DIM SHARED current_pattern AS INTEGER
+DIM SHARED pattern_names(0 TO 5) AS STRING
+DIM SHARED custom_pattern_file AS STRING
 
 ' Image adjustment parameters - these chain together
 DIM SHARED AS INTEGER adj_brightness     ' -100 to +100
@@ -65,6 +80,18 @@ DIM SHARED AS INTEGER adj_color_bal_r    ' -100 to +100
 DIM SHARED AS INTEGER adj_color_bal_g    ' -100 to +100
 DIM SHARED AS INTEGER adj_color_bal_b    ' -100 to +100
 DIM SHARED AS _BYTE adj_needs_update     ' Flag to rebuild adjusted image
+
+' Scanline effect parameters
+DIM SHARED AS _BYTE scanline_enabled     ' 0 = off, 1 = on
+DIM SHARED AS INTEGER scanline_size      ' 1 to 10 pixel height/width
+DIM SHARED AS _BYTE scanline_horizontal  ' 0 = vertical, 1 = horizontal
+DIM SHARED AS SINGLE scanline_opacity    ' 0.0 to 1.0 (0% to 100%)
+
+' Preset system
+DIM SHARED preset_files(0) AS STRING
+DIM SHARED preset_files_sorted(0) AS STRING
+DIM SHARED AS INTEGER cur_preset
+
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
@@ -93,6 +120,17 @@ dithering_enabled = 0 ' 0 = OFF, 1 = ON
 dither_method = 4     ' Default to Floyd-Steinberg (method 4)
 dither_amount = 0.5   ' 0.0 = no dither, 1.0 = full dither, 0.5 = 50%
 
+' Initialize pattern dithering
+current_pattern = 0
+pattern_names(0) = "Crosshatch"
+pattern_names(1) = "Dots"
+pattern_names(2) = "Lines"
+pattern_names(3) = "Mesh"
+pattern_names(4) = "Custom"
+pattern_names(5) = "From File"
+pattern_img = 0
+custom_pattern_file = ""
+
 ' Initialize image adjustments to default (no change) values
 adj_brightness = 0
 adj_contrast = 0
@@ -113,6 +151,11 @@ adj_color_bal_r = 0
 adj_color_bal_g = 0
 adj_color_bal_b = 0
 adj_needs_update = _TRUE  ' Start with update needed
+
+' Key repeat rate limiting
+DIM SHARED AS DOUBLE last_key_time        ' Timer for key repeat limiting
+DIM SHARED AS DOUBLE key_repeat_delay     ' Minimum delay between key repeats (in seconds)
+key_repeat_delay = 0.15                   ' 150ms delay = ~6.7 keys per second
 
 ' Initialize the IMGADJ library
 GJ_IMGADJ_Init
@@ -175,9 +218,15 @@ zoom_max = 10.0
 
 ' Load the default image and palette
 CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$, "*", img_files$())
-CALL ARR_STR.sort(img_files$(), img_files_sorted$())
+IF UBOUND(img_files$) >= 0 THEN CALL ARR_STR.sort(img_files$(), img_files_sorted$())
 CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$, "*.GPL", pal_files$())
-CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
+IF UBOUND(pal_files$) >= 0 THEN CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
+
+' Load presets
+CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$, "*.INI", preset_files$())
+IF UBOUND(preset_files$) >= 0 THEN CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
+' Initialize cur_preset - will be set to 0 later if presets exist
+cur_preset = -1
 
 ' Try to find the default image in the sorted list, otherwise use first available
 DIM default_img_path AS STRING
@@ -203,19 +252,127 @@ IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) T
         load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
     ELSE
         load_default_ega_palette img_pal
-    END IF
+    END IF 
+END IF
+
+' Initialize all adjustments and scanline settings to defaults
+reset_adjustments
+
+' Load first preset if any exist (presets were already loaded during startup)
+IF UBOUND(preset_files_sorted$) >= 0 THEN
+    cur_preset = 0
+    load_preset preset_files_sorted$(cur_preset)
+ELSE
+    ' Ensure cur_preset is properly set when no presets exist
+    cur_preset = -1
+END IF
+
+' Additional safety check before calling draw_output
+IF UBOUND(img_files_sorted$) < 0 OR UBOUND(pal_files_sorted$) < 0 THEN
+    PRINT "ERROR: Required image or palette files not found!"
+    PRINT "Please ensure the following directories exist and contain files:"
+    PRINT "  " + _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$
+    PRINT "  " + _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$
+    PRINT "Press any key to exit..."
+    _KEYCLEAR
+    DO: LOOP UNTIL LEN(INKEY$) > 0
+    SYSTEM
 END IF
 
 draw_output
 
 DO
     _LIMIT 30
-    k$ = INKEY$
+    
+    ' Check zoom adjustment factor (SHIFT for larger adjustments)
     IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN 
         zoom_adj = 0.5
     ELSE
         zoom_adj = 0.1
     END IF
+    
+    ' Handle modifier + arrow key combinations with _KEYDOWN (more reliable)
+    ' ALT/CTRL + UP: Previous preset
+    IF _KEYDOWN(KEY_UP&) AND ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            IF UBOUND(preset_files_sorted$) >= 0 THEN
+                ' Ensure cur_preset is valid before cycling
+                IF cur_preset < 0 THEN cur_preset = 0
+                cur_preset = cur_preset - 1
+                IF cur_preset < 0 THEN cur_preset = UBOUND(preset_files_sorted$)
+                load_preset preset_files_sorted$(cur_preset)
+                draw_output
+            END IF
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
+    ' ALT/CTRL + DOWN: Next preset  
+    IF _KEYDOWN(KEY_DOWN&) AND ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            IF UBOUND(preset_files_sorted$) >= 0 THEN
+                ' Ensure cur_preset is valid before cycling
+                IF cur_preset < 0 THEN cur_preset = -1  ' Will become 0 after increment
+                cur_preset = cur_preset + 1
+                IF cur_preset > UBOUND(preset_files_sorted$) THEN cur_preset = 0
+                load_preset preset_files_sorted$(cur_preset)
+                draw_output
+            END IF
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
+    ' CTRL + S: Overwrite current preset (quick save)
+    IF _KEYDOWN(KEY_S&) AND ((_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            IF UBOUND(preset_files_sorted$) >= 0 AND cur_preset >= 0 AND cur_preset <= UBOUND(preset_files_sorted$) THEN
+                ' Extract preset name from current preset file
+                DIM AS STRING current_preset_path, preset_name_to_save
+                current_preset_path = preset_files_sorted$(cur_preset)
+                preset_name_to_save = _TRIM$(MID$(current_preset_path, _INSTRREV(current_preset_path, SLASH$) + 1))
+                ' Remove .INI extension
+                IF _INSTRREV(preset_name_to_save, ".") > 0 THEN
+                    preset_name_to_save = LEFT$(preset_name_to_save, _INSTRREV(preset_name_to_save, ".") - 1)
+                END IF
+                ' Save over the existing preset
+                save_preset preset_name_to_save
+                _MESSAGEBOX "IMG2PAL", "Preset updated: " + preset_name_to_save + ".INI", "info"
+                draw_output
+            ELSE
+                _MESSAGEBOX "IMG2PAL", "No preset selected to overwrite. Use W to save a new preset first.", "info"
+            END IF
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
+    ' Plain UP: Zoom in (only if no modifiers are pressed)
+    IF _KEYDOWN(KEY_UP&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            zoom = zoom + zoom_adj
+            IF (zoom > zoom_max) THEN zoom = zoom_max
+            draw_output
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
+    ' Plain DOWN: Zoom out (only if no modifiers are pressed)  
+    IF _KEYDOWN(KEY_DOWN&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            zoom = zoom - zoom_adj
+            IF (zoom < zoom_min) THEN zoom = zoom_min
+            draw_output
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
+    ' Get regular key input using INKEY$
+    k$ = INKEY$
+    
     SELECT CASE k$
         CASE CHR$(27)
             EXIT DO
@@ -277,16 +434,6 @@ DO
                 IF dither_method >= GetDitherMethodCount% THEN dither_method = 0
                 draw_output
             END IF
-        CASE CHR$(0) + CHR$(72) 'up arrow
-            _ASSERT 1, "Up"
-            zoom = zoom + zoom_adj
-            IF (zoom > zoom_max) THEN zoom = zoom_max
-            draw_output
-        CASE CHR$(0) + CHR$(80) 'down arrow
-            _ASSERT 1, "Down"
-            zoom = zoom - zoom_adj
-            IF (zoom < zoom_min) THEN zoom = zoom_min
-            draw_output
         CASE CHR$(0) + CHR$(75) 'left arrow
             prev_pal_file
             IF UBOUND(pal_files_sorted$) >= 0 AND img_pal <> 0 THEN
@@ -586,7 +733,7 @@ DO
                 REDIM img_files(0) AS STRING
                 REDIM img_files_sorted(0) AS STRING
                 CALL files_to_array(LEFT$(img_file$, _INSTRREV(img_file$, SLASH$)), "*", img_files$())
-                CALL ARR_STR.sort(img_files$(), img_files_sorted$())
+                IF UBOUND(img_files$) >= 0 THEN CALL ARR_STR.sort(img_files$(), img_files_sorted$())
                 cur_img% = ARR_STR.find%(img_files_sorted$(), img_file$)
                 _ECHO _TRIM$(STR$(cur_img%))
                 draw_output
@@ -608,7 +755,7 @@ DO
                     REDIM pal_files(0) AS STRING
                     REDIM pal_files_sorted(0) AS STRING
                     CALL files_to_array(LEFT$(pal_file$, _INSTRREV(pal_file$, SLASH$)), "*.GPL", pal_files$())
-                    CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
+                    IF UBOUND(pal_files$) >= 0 THEN CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
                     cur_pal% = ARR_STR.find%(pal_files_sorted$(), pal_file$)
                     _ECHO _TRIM$(STR$(cur_pal%))
                 END IF
@@ -616,6 +763,15 @@ DO
             END IF
 
         CASE "d", "D":
+            ' Save current scanline settings before toggling dithering
+            DIM AS _BYTE saved_scanline_enabled, saved_scanline_horizontal
+            DIM AS INTEGER saved_scanline_size
+            DIM AS SINGLE saved_scanline_opacity
+            saved_scanline_enabled = scanline_enabled
+            saved_scanline_size = scanline_size
+            saved_scanline_horizontal = scanline_horizontal
+            saved_scanline_opacity = scanline_opacity
+            
             dithering_enabled = NOT dithering_enabled
             ' Always redraw to update the dither state, and reload image if one exists
             IF img_orig <> 0 AND UBOUND(img_files_sorted$) >= 0 THEN
@@ -632,6 +788,12 @@ DO
                     img_adjusted = 0
                 END IF
                 reset_adjustments
+                
+                ' Restore scanline settings after reset
+                scanline_enabled = saved_scanline_enabled
+                scanline_size = saved_scanline_size
+                scanline_horizontal = saved_scanline_horizontal
+                scanline_opacity = saved_scanline_opacity
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
                 IF _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
                     IF dithering_enabled THEN
@@ -659,8 +821,73 @@ DO
                     "PNG Image" _
                 )
                 IF LEN(save_file$) <> 0 THEN
-                    _SAVEIMAGE save_file$, img_pal
-                    _MESSAGEBOX "IMG2PAL", "Image saved as " + save_file$, "info"
+                    ' Create a composite image with scanlines if enabled
+                    DIM AS LONG save_img, old_dest
+                    DIM AS INTEGER save_width, save_height
+                    
+                    ' Calculate the zoomed dimensions
+                    save_width = INT(zoom * _WIDTH(img_pal))
+                    save_height = INT(zoom * _HEIGHT(img_pal))
+                    
+                    IF scanline_enabled THEN
+                        ' Create a 32-bit image for proper alpha blending at zoomed size
+                        save_img = _NEWIMAGE(save_width, save_height, 32)
+                        old_dest = _DEST
+                        _DEST save_img
+                        
+                        ' Copy the palettized image to the save image at zoomed size
+                        _PUTIMAGE (0, 0)-(save_width - 1, save_height - 1), img_pal
+                        
+                        ' Apply scanlines directly to the zoomed save image
+                        DIM AS INTEGER x, y, line_pos
+                        DIM AS LONG scanline_overlay
+                        DIM AS INTEGER scanline_alpha
+                        
+                        ' Create scanline overlay at zoomed size
+                        scanline_overlay = _NEWIMAGE(save_width, save_height, 32)
+                        _DEST scanline_overlay
+                        CLS , _RGBA32(0, 0, 0, 0)
+                        
+                        ' Calculate alpha value for scanlines based on opacity (0-255)
+                        scanline_alpha = INT(scanline_opacity * 255)
+                        
+                        ' Draw scanlines on the overlay at original scale (not zoomed)
+                        IF scanline_horizontal THEN
+                            FOR y = 0 TO save_height - 1
+                                line_pos = y MOD (scanline_size + 1)
+                                IF line_pos < scanline_size THEN
+                                    LINE (0, y)-(save_width - 1, y), _RGBA32(0, 0, 0, scanline_alpha)
+                                END IF
+                            NEXT y
+                        ELSE
+                            FOR x = 0 TO save_width - 1
+                                line_pos = x MOD (scanline_size + 1)
+                                IF line_pos < scanline_size THEN
+                                    LINE (x, 0)-(x, save_height - 1), _RGBA32(0, 0, 0, scanline_alpha)
+                                END IF
+                            NEXT x
+                        END IF
+                        
+                        ' Composite scanlines onto save image
+                        _DEST save_img
+                        _PUTIMAGE (0, 0), scanline_overlay
+                        _FREEIMAGE scanline_overlay
+                        _DEST old_dest
+                        
+                        ' Save the composite image
+                        _SAVEIMAGE save_file$, save_img
+                        _FREEIMAGE save_img
+                    ELSE
+                        ' Save without scanlines but with zoom applied
+                        save_img = _NEWIMAGE(save_width, save_height, 32)
+                        old_dest = _DEST
+                        _DEST save_img
+                        _PUTIMAGE (0, 0)-(save_width - 1, save_height - 1), img_pal
+                        _DEST old_dest
+                        _SAVEIMAGE save_file$, save_img
+                        _FREEIMAGE save_img
+                    END IF
+                    _MESSAGEBOX "IMG2PAL", "Image saved as " + save_file$ + " (zoom: " + _TRIM$(STR$(INT(zoom * 100))) + "%)", "info"
                 END IF
             END IF
         CASE "a":
@@ -668,7 +895,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,ESC=QUIT", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -679,6 +906,45 @@ DO
                 IF cur_img% > UBOUND(img_files_sorted$) THEN cur_img% = UBOUND(img_files_sorted$)
                 draw_output
             END IF
+        CASE "w", "W":
+            ' Save current settings as preset
+            DIM AS STRING preset_name
+            preset_name = _INPUTBOX$("IMG2PAL", "Save preset as:", "MyPreset")
+            IF LEN(preset_name) > 0 THEN
+                save_preset preset_name
+                refresh_presets
+                ' Find and select the newly saved preset
+                DIM AS STRING new_preset_path
+                new_preset_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$ + preset_name + ".INI"
+                cur_preset = ARR_STR.find%(preset_files_sorted$(), new_preset_path)
+                IF cur_preset < 0 THEN cur_preset = 0  ' Fallback to first preset if not found
+                _MESSAGEBOX "IMG2PAL", "Preset saved as: " + preset_name + ".INI", "info"
+                draw_output  ' Refresh display to show new preset status
+            END IF
+        CASE "e", "E":
+            ' Load existing preset (does not create or modify presets)
+            IF UBOUND(preset_files_sorted$) >= 0 THEN
+                DIM AS STRING preset_list, selected_preset
+                preset_list = ""
+                DIM AS INTEGER i
+                FOR i = 0 TO UBOUND(preset_files_sorted$)
+                    preset_list = preset_list + _TRIM$(STR$(i)) + ": " + _TRIM$(MID$(preset_files_sorted$(i), _INSTRREV(preset_files_sorted$(i), SLASH$) + 1)) + CHR$(13) + CHR$(10)
+                NEXT i
+                selected_preset = _INPUTBOX$("IMG2PAL", "Select existing preset:" + CHR$(13) + CHR$(10) + preset_list + "Enter preset number:", "0")
+                IF LEN(selected_preset) > 0 THEN
+                    DIM AS INTEGER preset_idx
+                    preset_idx = VAL(selected_preset)
+                    IF preset_idx >= 0 AND preset_idx <= UBOUND(preset_files_sorted$) THEN
+                        ' Only reference and select existing preset - do not modify preset list
+                        cur_preset = preset_idx
+                        load_preset preset_files_sorted$(cur_preset)
+                        draw_output
+                        _MESSAGEBOX "IMG2PAL", "Loaded existing preset: " + _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1)), "info"
+                    END IF
+                END IF
+            ELSE
+                _MESSAGEBOX "IMG2PAL", "No presets found in resources/presets/", "info"
+            END IF
         CASE "q", "Q":
             ' Jump to a specific palette
             jump_to$ = _INPUTBOX$("IMG2PAL", "Jump to palette number", "0")
@@ -688,7 +954,67 @@ DO
                 IF cur_pal% > UBOUND(pal_files_sorted$) THEN cur_pal% = UBOUND(pal_files_sorted$)
                 draw_output
             END IF
+        CASE "k", "K":
+            ' Cycle through pattern dithering patterns
+            IF dither_method = 23 THEN ' Only when pattern dithering is active
+                current_pattern = current_pattern + 1
+                IF current_pattern > 5 THEN current_pattern = 0
+                CALL LoadDitherPattern(current_pattern)
+                draw_output
+            END IF
+        CASE "m", "M":
+            ' Load custom bitmap pattern file
+            IF dither_method = 23 THEN ' Only when pattern dithering is active
+                DIM pattern_file AS STRING
+                pattern_file = _OPENFILEDIALOG$( _
+                    "Choose a pattern bitmap file", _
+                    _STARTDIR$ + SLASH$ + "resources" + SLASH$, _
+                    "*.bmp|*.png|*.gif|*.tga|*.BMP|*.PNG|*.GIF|*.TGA", _
+                    "Pattern Files", _
+                    0 _
+                )
+                IF LEN(pattern_file) <> 0 THEN
+                    custom_pattern_file = pattern_file
+                    current_pattern = 5 ' Set to "From File" pattern
+                    CALL LoadDitherPattern(current_pattern)
+                    draw_output
+                END IF
+            END IF
+        CASE "~":
+            ' Toggle scanline effect
+            scanline_enabled = NOT scanline_enabled
+            draw_output
+        CASE "[":
+            ' Decrease scanline size
+            scanline_size = scanline_size - 1
+            IF scanline_size < 1 THEN scanline_size = 1
+            draw_output
+        CASE "]":
+            ' Increase scanline size
+            scanline_size = scanline_size + 1
+            IF scanline_size > 10 THEN scanline_size = 10
+            draw_output
+        CASE "|":
+            ' Switch to vertical scanlines
+            scanline_horizontal = 0
+            draw_output
+        CASE "_":
+            ' Switch to horizontal scanlines
+            scanline_horizontal = 1
+            draw_output
+        CASE "{":
+            ' Decrease scanline opacity
+            scanline_opacity = scanline_opacity - 0.05
+            IF scanline_opacity < 0.0 THEN scanline_opacity = 0.0
+            draw_output
+        CASE "}":
+            ' Increase scanline opacity
+            scanline_opacity = scanline_opacity + 0.05
+            IF scanline_opacity > 1.0 THEN scanline_opacity = 1.0
+            draw_output
     END SELECT
+    
+continue_loop:
 LOOP
 
 IF img_orig <> 0 THEN _FREEIMAGE img_orig
@@ -723,7 +1049,296 @@ SUB reset_adjustments
     adj_color_bal_g = 0
     adj_color_bal_b = 0
     adj_needs_update = _TRUE
+    
+    ' Initialize scanline parameters
+    scanline_enabled = 0
+    scanline_size = 1
+    scanline_horizontal = 1  ' Default to horizontal
+    scanline_opacity = 1.0   ' 100% opacity
 END SUB
+
+''
+' Apply scanline effect as a screen overlay at specified coordinates
+' Creates a fresh transparent image with ONLY scanlines, then composites it on screen
+'
+SUB apply_scanlines(img AS LONG, dest_x1 AS INTEGER, dest_y1 AS INTEGER, dest_x2 AS INTEGER, dest_y2 AS INTEGER)
+    IF NOT scanline_enabled OR img = 0 THEN EXIT SUB
+    
+    DIM AS INTEGER img_width, img_height, x, y, line_pos
+    DIM AS LONG old_dest, scanline_overlay
+    DIM AS INTEGER scanline_alpha
+    DIM AS INTEGER display_width, display_height
+    
+    img_width = _WIDTH(img)
+    img_height = _HEIGHT(img)
+    display_width = dest_x2 - dest_x1
+    display_height = dest_y2 - dest_y1
+    
+    ' Create a fresh 32-bit image for the scanline overlay (sized to display area)
+    scanline_overlay = _NEWIMAGE(display_width, display_height, 32)
+    
+    ' Save current destination
+    old_dest = _DEST
+    _DEST scanline_overlay
+    
+    ' Clear the overlay to fully transparent
+    CLS , _RGBA32(0, 0, 0, 0)
+    
+    ' Calculate alpha value for scanlines based on opacity (0-255)
+    scanline_alpha = INT(scanline_opacity * 255)
+    
+    ' Draw ONLY the scanlines on the transparent overlay
+    IF scanline_horizontal THEN
+        ' Horizontal scanlines - scale to display size
+        FOR y = 0 TO display_height - 1
+            ' Create scanlines every (scanline_size + 1) pixels
+            line_pos = y MOD (scanline_size + 1)
+            IF line_pos < scanline_size THEN
+                ' Draw a horizontal line across the entire width
+                LINE (0, y)-(display_width - 1, y), _RGBA32(0, 0, 0, scanline_alpha)
+            END IF
+        NEXT y
+    ELSE
+        ' Vertical scanlines - scale to display size
+        FOR x = 0 TO display_width - 1
+            ' Create scanlines every (scanline_size + 1) pixels
+            line_pos = x MOD (scanline_size + 1)
+            IF line_pos < scanline_size THEN
+                ' Draw a vertical line across the entire height
+                LINE (x, 0)-(x, display_height - 1), _RGBA32(0, 0, 0, scanline_alpha)
+            END IF
+        NEXT x
+    END IF
+    
+    ' Switch to CANVAS for screen rendering
+    _DEST CANVAS
+    
+    ' Composite the scanline overlay on top at the specified screen coordinates
+    _PUTIMAGE (dest_x1, dest_y1), scanline_overlay
+    
+    ' Clean up the overlay
+    _FREEIMAGE scanline_overlay
+    
+    ' Restore original destination
+    _DEST old_dest
+END SUB
+
+''
+' Save current settings as a preset
+'
+SUB save_preset(preset_name AS STRING)
+    DIM AS STRING preset_path, content
+    preset_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$ + preset_name + ".INI"
+    
+    ' Build INI content with all current settings
+    content = "[IMG2PAL_PRESET]" + CHR$(13) + CHR$(10)
+    content = content + "VERSION=1.0" + CHR$(13) + CHR$(10)
+    content = content + "IMAGE_FILE=" + img_files_sorted$(cur_img%) + CHR$(13) + CHR$(10)
+    content = content + "PALETTE_FILE=" + pal_files_sorted$(cur_pal%) + CHR$(13) + CHR$(10)
+    content = content + "DITHERING_ENABLED=" + _TRIM$(STR$(dithering_enabled)) + CHR$(13) + CHR$(10)
+    content = content + "DITHER_METHOD=" + _TRIM$(STR$(dither_method)) + CHR$(13) + CHR$(10)
+    content = content + "DITHER_AMOUNT=" + _TRIM$(STR$(dither_amount)) + CHR$(13) + CHR$(10)
+    content = content + "CURRENT_PATTERN=" + _TRIM$(STR$(current_pattern)) + CHR$(13) + CHR$(10)
+    content = content + "CUSTOM_PATTERN_FILE=" + custom_pattern_file + CHR$(13) + CHR$(10)
+    content = content + "ZOOM=" + _TRIM$(STR$(zoom)) + CHR$(13) + CHR$(10)
+    content = content + "SCALER=" + _TRIM$(STR$(cur_scaler%)) + CHR$(13) + CHR$(10)
+    
+    ' Adjustments
+    content = content + "[ADJUSTMENTS]" + CHR$(13) + CHR$(10)
+    content = content + "BRIGHTNESS=" + _TRIM$(STR$(adj_brightness)) + CHR$(13) + CHR$(10)
+    content = content + "CONTRAST=" + _TRIM$(STR$(adj_contrast)) + CHR$(13) + CHR$(10)
+    content = content + "PIXELATE=" + _TRIM$(STR$(adj_pixelate)) + CHR$(13) + CHR$(10)
+    content = content + "HUE=" + _TRIM$(STR$(adj_hue)) + CHR$(13) + CHR$(10)
+    content = content + "THRESHOLD=" + _TRIM$(STR$(adj_threshold)) + CHR$(13) + CHR$(10)
+    content = content + "POSTERIZE=" + _TRIM$(STR$(adj_posterize)) + CHR$(13) + CHR$(10)
+    content = content + "COLORIZE_HUE=" + _TRIM$(STR$(adj_colorize_hue)) + CHR$(13) + CHR$(10)
+    content = content + "COLORIZE_SAT=" + _TRIM$(STR$(adj_colorize_sat)) + CHR$(13) + CHR$(10)
+    content = content + "GAMMA=" + _TRIM$(STR$(adj_gamma)) + CHR$(13) + CHR$(10)
+    content = content + "FILM_GRAIN=" + _TRIM$(STR$(adj_film_grain)) + CHR$(13) + CHR$(10)
+    content = content + "INVERT=" + _TRIM$(STR$(adj_invert)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_IN_MIN=" + _TRIM$(STR$(adj_levels_in_min)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_IN_MAX=" + _TRIM$(STR$(adj_levels_in_max)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_OUT_MIN=" + _TRIM$(STR$(adj_levels_out_min)) + CHR$(13) + CHR$(10)
+    content = content + "LEVELS_OUT_MAX=" + _TRIM$(STR$(adj_levels_out_max)) + CHR$(13) + CHR$(10)
+    content = content + "COLOR_BAL_R=" + _TRIM$(STR$(adj_color_bal_r)) + CHR$(13) + CHR$(10)
+    content = content + "COLOR_BAL_G=" + _TRIM$(STR$(adj_color_bal_g)) + CHR$(13) + CHR$(10)
+    content = content + "COLOR_BAL_B=" + _TRIM$(STR$(adj_color_bal_b)) + CHR$(13) + CHR$(10)
+    
+    ' Scanlines
+    content = content + "[SCANLINES]" + CHR$(13) + CHR$(10)
+    content = content + "ENABLED=" + _TRIM$(STR$(scanline_enabled)) + CHR$(13) + CHR$(10)
+    content = content + "SIZE=" + _TRIM$(STR$(scanline_size)) + CHR$(13) + CHR$(10)
+    content = content + "HORIZONTAL=" + _TRIM$(STR$(scanline_horizontal)) + CHR$(13) + CHR$(10)
+    content = content + "OPACITY=" + _TRIM$(STR$(scanline_opacity)) + CHR$(13) + CHR$(10)
+    
+    ' Write to file
+    DIM AS INTEGER file_handle
+    file_handle = FREEFILE
+    OPEN preset_path FOR OUTPUT AS #file_handle
+    PRINT #file_handle, content;
+    CLOSE #file_handle
+END SUB
+
+''
+' Load a preset and apply all settings
+'
+SUB load_preset(preset_file AS STRING)
+    IF NOT _FILEEXISTS(preset_file) THEN EXIT SUB
+    
+    DIM AS INTEGER file_handle, img_index, pal_index
+    DIM AS STRING line_text, section, ini_key, value
+    
+    file_handle = FREEFILE
+    OPEN preset_file FOR INPUT AS #file_handle
+    
+    section = ""
+    DO WHILE NOT EOF(file_handle)
+        LINE INPUT #file_handle, line_text
+        line_text = _TRIM$(line_text)
+        
+        ' Skip empty lines and comments
+        IF LEN(line_text) = 0 OR LEFT$(line_text, 1) = ";" THEN GOTO next_line
+        
+        ' Check for section headers
+        IF LEFT$(line_text, 1) = "[" AND RIGHT$(line_text, 1) = "]" THEN
+            section = MID$(line_text, 2, LEN(line_text) - 2)
+            GOTO next_line
+        END IF
+        
+        ' Parse key=value pairs
+        DIM AS INTEGER eq_pos
+        eq_pos = INSTR(line_text, "=")
+        IF eq_pos > 0 THEN
+            ini_key = _TRIM$(LEFT$(line_text, eq_pos - 1))
+            value = _TRIM$(MID$(line_text, eq_pos + 1))
+            
+            ' Apply settings based on section and key
+            SELECT CASE UCASE$(section)
+                CASE "IMG2PAL_PRESET"
+                    SELECT CASE UCASE$(ini_key)
+                        CASE "IMAGE_FILE"
+                            img_index = ARR_STR.find%(img_files_sorted$(), value)
+                            IF img_index >= 0 THEN cur_img% = img_index
+                        CASE "PALETTE_FILE"
+                            pal_index = ARR_STR.find%(pal_files_sorted$(), value)
+                            IF pal_index >= 0 THEN cur_pal% = pal_index
+                        CASE "DITHERING_ENABLED"
+                            dithering_enabled = VAL(value)
+                        CASE "DITHER_METHOD"
+                            dither_method = VAL(value)
+                        CASE "DITHER_AMOUNT"
+                            dither_amount = VAL(value)
+                        CASE "CURRENT_PATTERN"
+                            current_pattern = VAL(value)
+                        CASE "CUSTOM_PATTERN_FILE"
+                            custom_pattern_file = value
+                        CASE "ZOOM"
+                            zoom = VAL(value)
+                        CASE "SCALER"
+                            cur_scaler% = VAL(value)
+                    END SELECT
+                CASE "ADJUSTMENTS"
+                    SELECT CASE UCASE$(ini_key)
+                        CASE "BRIGHTNESS": adj_brightness = VAL(value)
+                        CASE "CONTRAST": adj_contrast = VAL(value)
+                        CASE "PIXELATE": adj_pixelate = VAL(value)
+                        CASE "HUE": adj_hue = VAL(value)
+                        CASE "THRESHOLD": adj_threshold = VAL(value)
+                        CASE "POSTERIZE": adj_posterize = VAL(value)
+                        CASE "COLORIZE_HUE": adj_colorize_hue = VAL(value)
+                        CASE "COLORIZE_SAT": adj_colorize_sat = VAL(value)
+                        CASE "GAMMA": adj_gamma = VAL(value)
+                        CASE "FILM_GRAIN": adj_film_grain = VAL(value)
+                        CASE "INVERT": adj_invert = VAL(value)
+                        CASE "LEVELS_IN_MIN": adj_levels_in_min = VAL(value)
+                        CASE "LEVELS_IN_MAX": adj_levels_in_max = VAL(value)
+                        CASE "LEVELS_OUT_MIN": adj_levels_out_min = VAL(value)
+                        CASE "LEVELS_OUT_MAX": adj_levels_out_max = VAL(value)
+                        CASE "COLOR_BAL_R": adj_color_bal_r = VAL(value)
+                        CASE "COLOR_BAL_G": adj_color_bal_g = VAL(value)
+                        CASE "COLOR_BAL_B": adj_color_bal_b = VAL(value)
+                    END SELECT
+                CASE "SCANLINES"
+                    SELECT CASE UCASE$(ini_key)
+                        CASE "ENABLED": scanline_enabled = VAL(value)
+                        CASE "SIZE": scanline_size = VAL(value)
+                        CASE "HORIZONTAL": scanline_horizontal = VAL(value)
+                        CASE "OPACITY": scanline_opacity = VAL(value)
+                    END SELECT
+            END SELECT
+        END IF
+        
+next_line:
+    LOOP
+    CLOSE #file_handle
+    
+    ' Mark adjustments as needing update and reload image
+    adj_needs_update = _TRUE
+    
+    ' Reload image and palette
+    IF img_orig <> 0 THEN _FREEIMAGE img_orig: img_orig = 0
+    IF img_pal <> 0 THEN _FREEIMAGE img_pal: img_pal = 0
+    IF img_adjusted <> 0 THEN img_adjusted = 0
+    
+    IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
+        IF dithering_enabled THEN
+            img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+        ELSE
+            img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+        END IF
+        img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+        IF UBOUND(pal_files_sorted$) >= 0 THEN
+            load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+        ELSE
+            load_default_ega_palette img_pal
+        END IF
+    END IF
+    
+    ' Reload pattern if pattern dithering is enabled
+    IF dither_method = 23 THEN
+        CALL LoadDitherPattern(current_pattern)
+    END IF
+END SUB
+
+''
+' Refresh preset file list
+'
+SUB refresh_presets
+    CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$, "*.INI", preset_files$())
+    IF UBOUND(preset_files$) >= 0 THEN CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
+END SUB
+
+''
+' Generate preset status string with debug information
+'
+FUNCTION get_preset_status$ (include_debug AS INTEGER)
+    DIM AS STRING preset_status
+    
+    ' Defensive check: ensure arrays are properly initialized
+    IF UBOUND(preset_files_sorted$) >= 0 AND cur_preset >= 0 AND cur_preset <= UBOUND(preset_files_sorted$) THEN
+        ' Valid preset is selected
+        DIM AS STRING current_preset_name
+        current_preset_name = _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1))
+        ' Handle the case where there's no extension or the file path is malformed
+        IF _INSTRREV(current_preset_name, ".") > 0 THEN
+            current_preset_name = LEFT$(current_preset_name, _INSTRREV(current_preset_name, ".") - 1) ' Remove .INI extension
+        END IF
+        IF LEN(current_preset_name) = 0 THEN current_preset_name = "UNKNOWN"
+        
+        preset_status = "PRESETS: [W]RITE / CTRL+[S]AVE (OVER) / LOAD [E]XISTING  ALT/CTRL+UP/DN=PREV/NEXT - CURRENT: " + current_preset_name + " (" + _TRIM$(STR$(cur_preset + 1)) + "/" + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + ")"
+        IF include_debug THEN preset_status = preset_status + " PATH:" + preset_files_sorted$(cur_preset)
+    ELSEIF UBOUND(preset_files_sorted$) >= 0 THEN
+        ' Presets exist but none selected
+        preset_status = "PRESETS: [W]RITE / CTRL+[S]AVE (OVER) / LOAD [E]XISTING  ALT/CTRL+UP/DN=PREV/NEXT - AVAILABLE: " + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + " (NONE LOADED)"
+        IF include_debug THEN preset_status = preset_status + " CUR_PRESET=" + _TRIM$(STR$(cur_preset))
+    ELSE
+        ' No presets exist
+        preset_status = "PRESETS: [W]RITE / CTRL+[S]AVE (OVER) / LOAD [E]XISTING  ALT/CTRL+UP/DN=PREV/NEXT - NO PRESETS FOUND"
+        IF include_debug THEN preset_status = preset_status + " UBOUND=" + _TRIM$(STR$(UBOUND(preset_files_sorted$)))
+    END IF
+    
+    get_preset_status$ = preset_status
+END FUNCTION
 
 ''
 ' Apply all chained adjustments to create the adjusted image
@@ -880,53 +1495,51 @@ SUB apply_adjustments
 END SUB
 
 ''
-' Upates the status with command help
-' 
-SUB update_status
-    DIM AS STRING c, z, s
-    c$ = "L=LOAD,"
-    c$ = c$ + "P=PAL,"
-    c$ = c$ + "UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX)"
-    c$ = c$ + "D=DITH:" + _TRIM$(STR$(dithering_enabled))
-    c$ = c$ + "PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT"
-    z$ = "ZOOM=" + _TRIM$(STR$(zoom))
-    s$ = "-SCALER=" +  scalers$(cur_scaler%)
-    IF dithering_enabled THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
-        PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert))
+' Centralized status display function
+'
+SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGER)
+    IF show_dither_details THEN
+        ' Dithering mode status
+        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
+        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
     ELSE
-        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
+        ' Standard mode status
+        IF dithering_enabled THEN
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+            PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
+        ELSE
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
+            PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
+        END IF
+    END IF
+    
+    ' Common status lines
+    PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+    PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+    PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"
+    
+    IF show_dither_details THEN
+        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+        PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
+    ELSE
         PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert))
     END IF
+    
+    PRINT get_preset_status$(include_debug)
+END SUB
+
+''
+' Updates the status with command help
+' 
+SUB update_status
+    display_status_lines 0, 1  ' Standard mode, with debug
 END SUB
 
 
 SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
-    IF dithering_enabled THEN
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
-        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
-    ELSE
-        PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,R=RESET ADJ,ESC=QUIT";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
-        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
-        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
-        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
-    END IF
+    display_status_lines 1, 0  ' Detailed mode, no debug
 
     ' Apply adjustments if needed
     IF adj_needs_update AND img_orig <> 0 THEN
@@ -939,7 +1552,7 @@ SUB draw_output
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = _FONTHEIGHT(FONTFACE&)*6  ' Make room for the extra line
+        dy1_orig = _FONTHEIGHT(FONTFACE&)*10  ' Make room for the extra line
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -965,9 +1578,10 @@ SUB draw_output
             ELSE
                 palettize img_pal, source_img
             END IF
+            
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
-            dy1_pal = _FONTHEIGHT(FONTFACE&)*6  ' Make room for the extra line
+            dy1_pal = _FONTHEIGHT(FONTFACE&)*10  ' Make room for the extra line
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
@@ -975,7 +1589,11 @@ SUB draw_output
             + _TRIM$(STR$(dy1_pal)) + ")-(" _
             + _TRIM$(STR$(dx2_pal)) + "," _ 
             + _TRIM$(STR$(dy2_pal)) + ")"
+            ' Display the palettized image first
             _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), img_pal
+            
+            ' Apply scanline effect as a last pass screen overlay at display coordinates
+            apply_scanlines img_pal, dx1_pal, dy1_pal, dx2_pal, dy2_pal
         END IF
         _ASSERT 1, "ah="+_TRIM$(STR$(_HEIGHT(img_orig)))
         _ASSERT 1, "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
@@ -987,7 +1605,7 @@ END SUB
 ' Get the number of available dithering methods
 '
 FUNCTION GetDitherMethodCount%
-    GetDitherMethodCount% = 15
+    GetDitherMethodCount% = 24
 END FUNCTION
 
 ''
@@ -1025,6 +1643,37 @@ FUNCTION GetDitherMethodName$(method AS INTEGER)
             GetDitherMethodName$ = "Clustered Dot 4x4"
         CASE 14
             GetDitherMethodName$ = "Classic Halftone"
+        CASE 15
+            GetDitherMethodName$ = "False Floyd-Steinberg"
+        CASE 16
+            GetDitherMethodName$ = "Fan Error Diffusion"
+        CASE 17
+            GetDitherMethodName$ = "Stevenson-Arce"
+        CASE 18
+            GetDitherMethodName$ = "Two-Row Sierra"
+        CASE 19
+            GetDitherMethodName$ = "Shiau-Fan"
+        CASE 20
+            GetDitherMethodName$ = "Ordered 16x16 Bayer"
+        CASE 21
+            GetDitherMethodName$ = "Interleaved Gradient Noise"
+        CASE 22
+            GetDitherMethodName$ = "Spiral Dithering"
+        CASE 23
+            DIM display_name AS STRING
+            IF current_pattern = 5 AND LEN(custom_pattern_file) > 0 THEN
+                ' Show just the filename without path
+                DIM last_slash AS INTEGER
+                last_slash = _INSTRREV(custom_pattern_file, SLASH$)
+                IF last_slash > 0 THEN
+                    display_name = MID$(custom_pattern_file, last_slash + 1)
+                ELSE
+                    display_name = custom_pattern_file
+                END IF
+                GetDitherMethodName$ = "Pattern Dithering (" + display_name + ")"
+            ELSE
+                GetDitherMethodName$ = "Pattern Dithering (" + pattern_names(current_pattern) + ")"
+            END IF
         CASE ELSE
             GetDitherMethodName$ = "Unknown Method"
     END SELECT
@@ -1298,6 +1947,316 @@ SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
                         berr2(x) = berr2(x) + eb * 0.146
                     END IF
                     
+                CASE 2 ' Stucki
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.1905 ' 8/42
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.1905
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.1905
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.0952 ' 4/42
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.0952
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.0952
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0476 ' 2/42
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0476
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0476
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.0952 ' 4/42
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.0952
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.0952
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.1905 ' 8/42
+                        gerr2(x) = gerr2(x) + eg * 0.1905
+                        berr2(x) = berr2(x) + eb * 0.1905
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.0952 ' 4/42
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.0952
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.0952
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0476 ' 2/42
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0476
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0476
+                        END IF
+                    END IF
+                    
+                CASE 3 ' Burkes
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.25 ' 8/32
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.25
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.25
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.125 ' 4/32
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.125
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.125
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 2/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 4/32
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 8/32
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 4/32
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 2/32
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
+                CASE 4 ' Sierra
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.15625 ' 5/32
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.15625
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.15625
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.09375 ' 3/32
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.09375
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.09375
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 2/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 4/32
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.15625 ' 5/32
+                        gerr2(x) = gerr2(x) + eg * 0.15625
+                        berr2(x) = berr2(x) + eb * 0.15625
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 4/32
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 2/32
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
+                CASE 5 ' Sierra Lite
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.5 ' 2/4
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.5
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.5
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.25 ' 1/4
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.25
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.25
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 1/4
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                    END IF
+                    
+                CASE 6 ' Atkinson
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.125 ' 1/8
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.125
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.125
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.125 ' 1/8
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.125
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.125
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 1/8
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.125 ' 1/8
+                        gerr2(x) = gerr2(x) + eg * 0.125
+                        berr2(x) = berr2(x) + eb * 0.125
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 1/8
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                    END IF
+                    
+                CASE 7 ' False Floyd-Steinberg (simplified)
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.5 ' 1/2
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.5
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.5
+                    END IF
+                    IF y < h - 1 THEN
+                        rerr2(x) = rerr2(x) + er * 0.5 ' 1/2
+                        gerr2(x) = gerr2(x) + eg * 0.5
+                        berr2(x) = berr2(x) + eb * 0.5
+                    END IF
+                    
+                CASE 8 ' Fan Error Diffusion (high quality)
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.4375 ' 7/16
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.4375
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.4375
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.0625 ' 1/16
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.0625
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.0625
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 1/16
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 2/16
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 4/16
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 2/16
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                    END IF
+                    
+                CASE 9 ' Stevenson-Arce
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.203125 ' 32/157
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.203125
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.203125
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.127389 ' 20/157
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.127389
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.127389
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.063694 ' 10/157
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.063694
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.063694
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.152866 ' 24/157
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.152866
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.152866
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.203125 ' 32/157
+                        gerr2(x) = gerr2(x) + eg * 0.203125
+                        berr2(x) = berr2(x) + eb * 0.203125
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.152866 ' 24/157
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.152866
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.152866
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.063694 ' 10/157
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.063694
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.063694
+                        END IF
+                    END IF
+                    
+                CASE 10 ' Two-Row Sierra
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.15625 ' 5/32
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.15625
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.15625
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.09375 ' 3/32
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.09375
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.09375
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 2/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 4/32
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.15625 ' 5/32
+                        gerr2(x) = gerr2(x) + eg * 0.15625
+                        berr2(x) = berr2(x) + eb * 0.15625
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 4/32
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 2/32
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
+                CASE 11 ' Shiau-Fan
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.125 ' 1/8
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.125
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.125
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.0625 ' 1/16
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.0625
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.0625
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.03125 ' 1/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.03125
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.03125
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 1/8
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 1/4
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 1/8
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 1/16
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
                 CASE ELSE ' Default to Floyd-Steinberg
                     IF x < w - 1 THEN
                         rerr1(x + 1) = rerr1(x + 1) + er * 0.5
@@ -1567,6 +2526,356 @@ SUB ApplyHalftoneClassic(img AS LONG, dst AS LONG)
 END SUB
 
 ''
+' Apply 16x16 Bayer ordered dithering
+'
+SUB ApplyOrderedDither16x16(img AS LONG, dst AS LONG)
+    DIM bayer(0 TO 15, 0 TO 15) AS INTEGER
+    ' 16x16 Bayer matrix (generated pattern)
+    DIM i AS INTEGER, j AS INTEGER
+    FOR i = 0 TO 15
+        FOR j = 0 TO 15
+            bayer(i, j) = ((i * 17) XOR (j * 17)) MOD 256
+        NEXT
+    NEXT
+    
+    CALL ApplyOrderedDitherMatrix(img, dst, bayer(), 16, 16, 256)
+END SUB
+
+''
+' Apply interleaved gradient noise dithering
+'
+SUB ApplyInterleavedGradientNoise(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM noise AS SINGLE
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ShowProgress "IGN dithering...", 0
+    
+    FOR y = 0 TO h - 1
+        IF (y MOD 10) = 0 THEN
+            ShowProgress "IGN dithering...", (y / h) * 100
+        END IF
+        
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Interleaved gradient noise formula
+            noise = ((52.9829189 * (0.06711056 * x + 0.00583715 * y)) MOD 1) - 0.5
+            noise = noise * 64 * dither_amount
+            
+            r = r + noise
+            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + noise
+            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + noise
+            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    ClearProgress
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Apply spiral dithering (unique pattern)
+'
+SUB ApplySpiralDither(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM threshold AS SINGLE, angle AS SINGLE, radius AS SINGLE
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ShowProgress "Spiral dithering...", 0
+    
+    FOR y = 0 TO h - 1
+        IF (y MOD 10) = 0 THEN
+            ShowProgress "Spiral dithering...", (y / h) * 100
+        END IF
+        
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Create spiral pattern
+            radius = SQR((x - w/2)^2 + (y - h/2)^2)
+            angle = _ATAN2(y - h/2, x - w/2)
+            threshold = (SIN(radius * 0.1 + angle * 3) + 1) * 32 * dither_amount
+            
+            r = r + threshold - 32
+            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + threshold - 32
+            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + threshold - 32
+            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(r, g, b, dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    ClearProgress
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Load a dithering pattern (built-in patterns or custom)
+'
+SUB LoadDitherPattern(pattern_num AS INTEGER)
+    ' Free existing pattern if any
+    IF pattern_img <> 0 THEN _FREEIMAGE pattern_img
+    
+    ' Create a 32x32 pattern image
+    pattern_img = _NEWIMAGE(32, 32, 32)
+    DIM oldDest AS LONG: oldDest = _DEST
+    _DEST pattern_img
+    
+    DIM x AS INTEGER, y AS INTEGER, value AS INTEGER
+    
+    SELECT CASE pattern_num
+        CASE 0 ' Crosshatch
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    IF (x MOD 8 = 0) OR (y MOD 8 = 0) THEN
+                        value = 64  ' Dark lines
+                    ELSE
+                        value = 192 ' Light areas
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 1 ' Dots
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    DIM dist AS SINGLE
+                    dist = SQR(((x MOD 8) - 4)^2 + ((y MOD 8) - 4)^2)
+                    IF dist < 2 THEN
+                        value = 64  ' Dark dots
+                    ELSE
+                        value = 192 ' Light background
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 2 ' Lines
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    IF y MOD 4 < 2 THEN
+                        value = 64  ' Dark lines
+                    ELSE
+                        value = 192 ' Light lines
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 3 ' Mesh
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    IF (x + y) MOD 8 < 4 THEN
+                        value = 64
+                    ELSE
+                        value = 192
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 4 ' Custom (procedural)
+            ' Mathematical pattern using sine/cosine waves
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    value = 128 + 64 * SIN(x * 0.2) * COS(y * 0.2)
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 5 ' From File (bitmap pattern)
+            IF LEN(custom_pattern_file) > 0 AND _FILEEXISTS(custom_pattern_file) THEN
+                CALL LoadBitmapPattern(custom_pattern_file)
+            ELSE
+                ' Default pattern if no file is loaded
+                FOR y = 0 TO 31
+                    FOR x = 0 TO 31
+                        ' Create a checkerboard pattern as default
+                        IF ((x \ 4) + (y \ 4)) MOD 2 = 0 THEN
+                            value = 64
+                        ELSE
+                            value = 192
+                        END IF
+                        PSET (x, y), _RGB32(value, value, value)
+                    NEXT
+                NEXT
+            END IF
+    END SELECT
+    
+    _DEST oldDest
+END SUB
+
+''
+' Load a bitmap pattern from file and convert to dithering pattern
+'
+SUB LoadBitmapPattern(filename AS STRING)
+    DIM temp_img AS LONG, x AS INTEGER, y AS INTEGER
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER
+    DIM gray AS INTEGER, threshold AS INTEGER
+    
+    ' Load the bitmap file
+    temp_img = _LOADIMAGE(filename, 32)
+    IF temp_img = 0 THEN EXIT SUB
+    
+    DIM oldDest AS LONG: oldDest = _DEST
+    DIM oldSrc AS LONG: oldSrc = _SOURCE
+    _SOURCE temp_img
+    _DEST pattern_img
+    
+    ' Get source image dimensions
+    DIM src_w AS INTEGER, src_h AS INTEGER
+    src_w = _WIDTH(temp_img)
+    src_h = _HEIGHT(temp_img)
+    
+    ' Extract pattern and convert to 32x32 threshold pattern
+    FOR y = 0 TO 31
+        FOR x = 0 TO 31
+            ' Sample from source image (tile if necessary)
+            DIM src_x AS INTEGER, src_y AS INTEGER
+            src_x = (x * src_w) \ 32
+            src_y = (y * src_h) \ 32
+            IF src_x >= src_w THEN src_x = x MOD src_w
+            IF src_y >= src_h THEN src_y = y MOD src_h
+            
+            ' Get pixel color
+            c = POINT(src_x, src_y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Convert to grayscale
+            gray = (r + g + b) \ 3
+            
+            ' Convert to binary threshold (1-bit style)
+            ' Dark pixels (< 128) become low threshold (64)
+            ' Light pixels (>= 128) become high threshold (192)
+            IF gray < 128 THEN
+                threshold = 64  ' Dark = low threshold
+            ELSE
+                threshold = 192 ' Light = high threshold
+            END IF
+            
+            PSET (x, y), _RGB32(threshold, threshold, threshold)
+        NEXT
+    NEXT
+    
+    _SOURCE oldSrc
+    _DEST oldDest
+    _FREEIMAGE temp_img
+END SUB
+
+''
+' Apply pattern dithering using a custom black and white pattern
+'
+SUB ApplyPatternDither(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM pattern_x AS INTEGER, pattern_y AS INTEGER, pattern_value AS _UNSIGNED LONG
+    DIM threshold AS SINGLE
+    
+    ' Load pattern if not already loaded
+    IF pattern_img = 0 THEN CALL LoadDitherPattern(current_pattern)
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ShowProgress "Pattern dithering...", 0
+    
+    FOR y = 0 TO h - 1
+        IF (y MOD 10) = 0 THEN
+            ShowProgress "Pattern dithering...", (y / h) * 100
+        END IF
+        
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Get pattern threshold value (tile the pattern)
+            pattern_x = x MOD _WIDTH(pattern_img)
+            pattern_y = y MOD _HEIGHT(pattern_img)
+            
+            ' Get pattern pixel value
+            DIM oldS2 AS LONG: oldS2 = _SOURCE
+            _SOURCE pattern_img
+            pattern_value = POINT(pattern_x, pattern_y)
+            _SOURCE oldS2
+            
+            ' Use pattern as threshold (convert to 0-255 range)
+            threshold = (_RED32(pattern_value) - 128) * dither_amount
+            
+            r = r + threshold
+            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + threshold
+            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + threshold
+            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    ClearProgress
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
 ' Multi-algorithm dithering palettize with controllable intensity
 ' @param LONG dst The destination image. This must be an 8bpp image with the palette already loaded
 ' @param LONG src The source image. This must be 32bpp or 8bpp
@@ -1594,15 +2903,15 @@ SUB dither_palettize (dst AS LONG, src AS LONG)
         CASE 5
             CALL ApplyErrorDiffusion(src, dst, 1) ' Jarvis-Judice-Ninke
         CASE 6
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Stucki (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 2) ' Stucki
         CASE 7
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Burkes (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 3) ' Burkes
         CASE 8
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Sierra (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 4) ' Sierra
         CASE 9
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Sierra Lite (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 5) ' Sierra Lite
         CASE 10
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Atkinson (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 6) ' Atkinson
         CASE 11
             CALL ApplyRandomDither(src, dst)
         CASE 12
@@ -1611,6 +2920,24 @@ SUB dither_palettize (dst AS LONG, src AS LONG)
             CALL ApplyClusteredDot4x4(src, dst)
         CASE 14
             CALL ApplyHalftoneClassic(src, dst)
+        CASE 15
+            CALL ApplyErrorDiffusion(src, dst, 7) ' False Floyd-Steinberg
+        CASE 16
+            CALL ApplyErrorDiffusion(src, dst, 8) ' Fan Error Diffusion
+        CASE 17
+            CALL ApplyErrorDiffusion(src, dst, 9) ' Stevenson-Arce
+        CASE 18
+            CALL ApplyErrorDiffusion(src, dst, 10) ' Two-Row Sierra
+        CASE 19
+            CALL ApplyErrorDiffusion(src, dst, 11) ' Shiau-Fan
+        CASE 20
+            CALL ApplyOrderedDither16x16(src, dst)
+        CASE 21
+            CALL ApplyInterleavedGradientNoise(src, dst)
+        CASE 22
+            CALL ApplySpiralDither(src, dst)
+        CASE 23
+            CALL ApplyPatternDither(src, dst)
         CASE ELSE
             CALL ApplyErrorDiffusion(src, dst, 0) ' Default to Floyd-Steinberg
     END SELECT
@@ -1845,30 +3172,43 @@ END SUB
 SUB files_to_array(filepath$, mask$, arr$())
     DIM AS STRING f, fn
     DIM AS LONG lb, ub
+    
+    ' Clear the array first to prevent accumulation of old entries
+    REDIM arr(0) AS STRING
+    lb& = 0
+    ub& = 0
+    
     f$ = _FILES$(filepath$ + mask$)
-    lb& = LBOUND(arr$)
     DO WHILE LEN(f$) > 0
         fn$ = _TRIM$(f$)
         ' Filter out directories and system files
         IF fn$ <> "./" AND fn$ <> "../" AND fn$ <> "." AND fn$ <> ".." AND fn$ <> ".DS_Store" AND LEN(fn$) > 0 THEN
-            ' Only include files that have valid image extensions or are GPL files
+            ' Only include files that have valid image extensions or are GPL files or INI files
             DIM ext AS STRING
             ext = UCASE$(RIGHT$(fn$, 4))
-            IF INSTR(ext, ".JPG") OR INSTR(ext, ".PNG") OR INSTR(ext, ".GIF") OR INSTR(ext, ".BMP") OR INSTR(ext, ".TGA") OR INSTR(ext, ".PSD") OR INSTR(ext, ".PCX") OR INSTR(ext, ".SVG") OR INSTR(ext, ".QOI") OR INSTR(UCASE$(RIGHT$(fn$, 5)), ".JPEG") OR INSTR(ext, ".GPL") THEN
-                ub& = UBOUND(arr$)
-                arr$(ub&) = filepath$ + f$
-                REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
+            IF INSTR(ext, ".JPG") OR INSTR(ext, ".PNG") OR INSTR(ext, ".GIF") OR INSTR(ext, ".BMP") OR INSTR(ext, ".TGA") OR INSTR(ext, ".PSD") OR INSTR(ext, ".PCX") OR INSTR(ext, ".SVG") OR INSTR(ext, ".QOI") OR INSTR(UCASE$(RIGHT$(fn$, 5)), ".JPEG") OR INSTR(ext, ".GPL") OR INSTR(ext, ".INI") THEN
+                ' Add the file to the array
+                IF ub& = 0 AND LEN(arr$(0)) = 0 THEN
+                    ' First entry
+                    arr$(0) = filepath$ + f$
+                ELSE
+                    ' Additional entries
+                    ub& = UBOUND(arr$)
+                    REDIM _PRESERVE arr(0 TO ub& + 1) AS STRING
+                    arr$(ub& + 1) = filepath$ + f$
+                END IF
             END IF
         END IF
         f$ = _FILES$
     LOOP
-    REDIM _PRESERVE arr(lb& TO ub&) AS STRING
+    
+    ' Clean up empty array if no files were found
+    IF UBOUND(arr$) = 0 AND LEN(arr$(0)) = 0 THEN
+        REDIM arr(-1) AS STRING  ' Empty array
+    END IF
+    
     DIM old_dest AS LONG
-    old_dest& = _DEST
-    _DEST _CONSOLE
-    PRINT DUMP.string$(filepath$, "filepath")
-    PRINT DUMP.string_array$(arr$(), "files_to_array")
-    _DEST old_dest&
+    ' Debug output removed to prevent crashes with empty arrays
 END SUB
 
 
