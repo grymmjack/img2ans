@@ -46,6 +46,12 @@ CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
 CONST FONT_STYLE$      = "MONOSPACE"
 
+' Toast message system constants
+CONST INFO_MSG_TIMEOUT = 3.0       ' Auto-clear delay in seconds
+CONST INFO_MSG_COLOR   = _RGB32(&H00, &HFF, &HFF) ' Cyan color (RGB: 0, 255, 255)
+CONST INFO_MSG_MAX     = 4         ' Maximum number of messages to show
+CONST INFO_MSG_Y_OFFSET = 2        ' Lines from bottom to start showing messages
+
 DIM SHARED AS LONG img_orig, img_pal
 DIM SHARED AS LONG img_adjusted  ' Adjusted version of original image with all effects applied
 DIM SHARED AS INTEGER cur_pal, cur_img, cur_scaler
@@ -98,6 +104,11 @@ DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
 DIM SHARED img_files_sorted(0) AS STRING
+
+' Toast message system variables
+DIM SHARED info_messages(INFO_MSG_MAX - 1) AS STRING
+DIM SHARED info_message_times(INFO_MSG_MAX - 1) AS DOUBLE
+DIM SHARED info_message_count AS INTEGER
 
 ' Palette cache for faster lookups
 DIM SHARED palette_cache_r(255) AS INTEGER
@@ -159,6 +170,18 @@ adj_use_nonblack_bc = 0   ' Default to regular brightness/contrast
 DIM SHARED AS DOUBLE last_key_time        ' Timer for key repeat limiting
 DIM SHARED AS DOUBLE key_repeat_delay     ' Minimum delay between key repeats (in seconds)
 key_repeat_delay = 0.15                   ' 150ms delay = ~6.7 keys per second
+
+' Message cleanup timing
+DIM SHARED AS DOUBLE last_message_cleanup_time ' Timer for periodic message cleanup
+
+' Initialize message system
+info_message_count = 0
+last_message_cleanup_time = TIMER  ' Initialize message cleanup timer
+DIM init_idx AS INTEGER
+FOR init_idx = 0 TO INFO_MSG_MAX - 1
+    info_messages(init_idx) = ""
+    info_message_times(init_idx) = 0
+NEXT init_idx
 
 ' Initialize the IMGADJ library
 GJ_IMGADJ_Init
@@ -287,6 +310,12 @@ draw_output
 DO
     _LIMIT 30
     
+    ' Clear expired messages every second
+    IF TIMER - last_message_cleanup_time >= 1.0 THEN
+        clear_expired_messages
+        last_message_cleanup_time = TIMER
+    END IF
+    
     ' Check zoom adjustment factor (SHIFT for larger adjustments)
     IF _KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&) THEN 
         zoom_adj = 0.5
@@ -341,10 +370,10 @@ DO
                 END IF
                 ' Save over the existing preset
                 save_preset preset_name_to_save
-                _MESSAGEBOX "IMG2PAL", "Preset updated: " + preset_name_to_save + ".INI", "info"
+                show_info_msg "Preset updated: " + preset_name_to_save + ".INI"
                 draw_output
             ELSE
-                _MESSAGEBOX "IMG2PAL", "No preset selected to overwrite. Use W to save a new preset first.", "info"
+                show_info_msg "No preset selected to overwrite. Use W to save a new preset first."
             END IF
             last_key_time = TIMER
         END IF
@@ -361,7 +390,8 @@ DO
             ELSE
                 toggle_message = "Switched to Regular Brightness/Contrast mode"
             END IF
-            _MESSAGEBOX "IMG2PAL", toggle_message, "info"
+
+            show_info_msg "IMG2PAL: " + toggle_message$
             ' If we have any brightness or contrast adjustments, re-apply them
             IF adj_brightness <> 0 OR adj_contrast <> 0 THEN
                 adj_needs_update = _TRUE
@@ -521,6 +551,8 @@ DO
                 ' Adjust brightness
                 DIM brightness_input AS STRING
                 brightness_input = _INPUTBOX$("IMG2PAL", "Brightness (-100 to +100)", _TRIM$(STR$(adj_brightness)))
+                ' Clear keyboard state after dialog to prevent stuck keys
+                _KEYCLEAR
                 IF LEN(brightness_input) <> 0 THEN
                     DIM new_brightness AS INTEGER
                     new_brightness = VAL(brightness_input)
@@ -535,6 +567,8 @@ DO
             ' Adjust contrast
             DIM contrast_input AS STRING
             contrast_input = _INPUTBOX$("IMG2PAL", "Contrast (-100 to +100)", _TRIM$(STR$(adj_contrast)))
+            ' Clear keyboard state after dialog to prevent stuck keys
+            _KEYCLEAR
             IF LEN(contrast_input) <> 0 THEN
                 DIM new_contrast AS INTEGER
                 new_contrast = VAL(contrast_input)
@@ -548,6 +582,8 @@ DO
             ' Adjust pixelate
             DIM pixelate_input AS STRING
             pixelate_input = _INPUTBOX$("IMG2PAL", "Pixelate Size (1 to 20)", _TRIM$(STR$(adj_pixelate)))
+            ' Clear keyboard state after dialog to prevent stuck keys
+            _KEYCLEAR
             IF LEN(pixelate_input) <> 0 THEN
                 DIM new_pixelate AS INTEGER
                 new_pixelate = VAL(pixelate_input)
@@ -561,6 +597,8 @@ DO
             ' Adjust hue shift
             DIM hue_input AS STRING
             hue_input = _INPUTBOX$("IMG2PAL", "Hue Shift (-180 to +180 degrees)", _TRIM$(STR$(adj_hue)))
+            ' Clear keyboard state after dialog to prevent stuck keys
+            _KEYCLEAR
             IF LEN(hue_input) <> 0 THEN
                 DIM new_hue AS INTEGER
                 new_hue = VAL(hue_input)
@@ -623,6 +661,8 @@ DO
             ' Adjust gamma
             DIM gamma_input AS STRING
             gamma_input = _INPUTBOX$("IMG2PAL", "Gamma (-100 to +100)", _TRIM$(STR$(adj_gamma)))
+            ' Clear keyboard state after dialog to prevent stuck keys
+            _KEYCLEAR
             IF LEN(gamma_input) <> 0 THEN
                 DIM new_gamma AS INTEGER
                 new_gamma = VAL(gamma_input)
@@ -914,15 +954,15 @@ DO
                         _SAVEIMAGE save_file$, save_img
                         _FREEIMAGE save_img
                     END IF
-                    _MESSAGEBOX "IMG2PAL", "Image saved as " + save_file$ + " (zoom: " + _TRIM$(STR$(INT(zoom * 100))) + "%)", "info"
+                    show_info_msg "Image saved as " + save_file$ + " (zoom: " + _TRIM$(STR$(INT(zoom * 100))) + "%)"
                 END IF
             END IF
         CASE "a":
             ' About
-            _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
+            show_info_msg "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT", "info"
+            show_info_msg "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -945,7 +985,7 @@ DO
                 new_preset_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$ + preset_name + ".INI"
                 cur_preset = ARR_STR.find%(preset_files_sorted$(), new_preset_path)
                 IF cur_preset < 0 THEN cur_preset = 0  ' Fallback to first preset if not found
-                _MESSAGEBOX "IMG2PAL", "Preset saved as: " + preset_name + ".INI", "info"
+                show_info_msg "Preset saved as: " + preset_name + ".INI"
                 draw_output  ' Refresh display to show new preset status
             END IF
         CASE "e", "E":
@@ -966,11 +1006,11 @@ DO
                         cur_preset = preset_idx
                         load_preset preset_files_sorted$(cur_preset)
                         draw_output
-                        _MESSAGEBOX "IMG2PAL", "Loaded existing preset: " + _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1)), "info"
+                        show_info_msg "Loaded existing preset: " + _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1))
                     END IF
                 END IF
             ELSE
-                _MESSAGEBOX "IMG2PAL", "No presets found in resources/presets/", "info"
+                show_info_msg "No presets found in resources/presets/"
             END IF
         CASE "q", "Q":
             ' Jump to a specific palette
@@ -1042,6 +1082,8 @@ DO
     END SELECT
     
 continue_loop:
+    ' Clear any lingering keyboard state to prevent stuck keys after dialogs
+    _DELAY 0.01
 LOOP
 
 IF img_orig <> 0 THEN _FREEIMAGE img_orig
@@ -1542,9 +1584,14 @@ END SUB
 '
 SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGER)
     IF show_dither_details THEN
-        ' Dithering mode status
-        PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
-        PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
+        ' Dithering mode status - check actual dithering state
+        IF dithering_enabled THEN
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
+            PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
+        ELSE
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
+            PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
+        END IF
     ELSE
         ' Standard mode status
         IF dithering_enabled THEN
@@ -1646,6 +1693,9 @@ SUB draw_output
         _ASSERT 1, "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
     END IF
     _ASSERT 1, "ZOOM=" + _TRIM$(STR$(zoom))
+    
+    ' Display info messages on top of everything
+    display_info_messages
 END SUB
 
 ''
@@ -1931,13 +1981,10 @@ SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
             b = _BLUE32(c) + berr1(x)
             
             ' Clamp values
-            IF r < 0 THEN r = 0
-            IF r > 255 THEN r = 255
-            IF g < 0 THEN g = 0
-            IF g > 255 THEN g = 255
-            IF b < 0 THEN b = 0
-            IF b > 255 THEN b = 255
-            
+            r = _CLAMP(r, 0, 255)
+            g = _CLAMP(g, 0, 255)
+            b = _CLAMP(b, 0, 255)
+
             idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
             
             ' Get the actual palette color from cache (this is faster than _PALETTECOLOR)
@@ -3196,11 +3243,11 @@ SUB load_gpl_palette (gpl_file AS STRING, dst AS LONG)
 
         ' load the default palette if no color was loaded
         IF c < 1 THEN
-            _MESSAGEBOX "IMG2PAL", "Corrupt GIMP Palette!", "warning"
+            show_info_msg "Corrupt GIMP Palette!"
             load_default_ega_palette dst
         END IF
     ELSE
-        _MESSAGEBOX "IMG2PAL", "Not a GIMP Palette!", "warning"
+        show_info_msg "Not a GIMP Palette!"
     END IF
     
     ' Invalidate palette cache since we changed the palette
@@ -3263,7 +3310,7 @@ END SUB
 ' Sets the scaler to the previous scaler
 ' 
 SUB prev_scaler
-    cur_scaler% = clamp%(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% - 1)
+    cur_scaler% = _CLAMP(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% - 1)
     _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
 END SUB
 
@@ -3272,7 +3319,7 @@ END SUB
 ' Sets the scaler to the next scaler
 ' 
 SUB next_scaler
-    cur_scaler% = clamp%(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% + 1)
+    cur_scaler% = _CLAMP(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% + 1)
     _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
 END SUB
 
@@ -3326,22 +3373,117 @@ END SUB
 
 
 ''
-' Clamps an integer between min and max
-' @param INTEGER min Minimum value allowed
-' @param INTEGER max Maximum value allowed
-' @param INTEGER value Value passed in to check
-' @return INTEGER value clamped
+' Show an information message as a toast notification
+' @param STRING msg$ The message to display
 '
-FUNCTION clamp%(min%, max%, value%)
-    _ECHO "min%=" + _TRIM$(STR$(min%)) + _
-        ", max%=" + _TRIM$(STR$(max%)) + _
-        ", value%=" + _TRIM$(STR$(value%))
-    IF value% > max% THEN value% = max%
-    IF value% < min% THEN value% = min%
-    _ECHO "return value%=" + _TRIM$(STR$(value%))
-    clamp% = value%
-END FUNCTION
+SUB show_info_msg(msg AS STRING)
+    DIM msg_idx AS INTEGER
+    
+    ' Shift existing messages up to make room for new one
+    FOR msg_idx = INFO_MSG_MAX - 1 TO 1 STEP -1
+        info_messages(msg_idx) = info_messages(msg_idx - 1)
+        info_message_times(msg_idx) = info_message_times(msg_idx - 1)
+    NEXT msg_idx
+    
+    ' Add new message at the bottom
+    info_messages(0) = msg
+    info_message_times(0) = TIMER
+    
+    ' Update count but don't exceed maximum
+    IF info_message_count < INFO_MSG_MAX THEN
+        info_message_count = info_message_count + 1
+    END IF
+    
+    ' Force screen refresh to show new message
+    ' draw_output
+END SUB
 
+''
+' Clear expired messages based on timeout
+'
+SUB clear_expired_messages
+    DIM msg_idx AS INTEGER
+    DIM current_time AS DOUBLE
+    DIM shift_needed AS INTEGER
+    
+    current_time = TIMER
+    
+    ' Check each message for expiration
+    FOR msg_idx = 0 TO info_message_count - 1
+        IF LEN(info_messages(msg_idx)) > 0 THEN
+            DIM time_elapsed AS DOUBLE
+            time_elapsed = current_time - info_message_times(msg_idx)
+            
+            ' Handle TIMER rollover at midnight (86400 seconds in a day)
+            IF time_elapsed < 0 THEN time_elapsed = time_elapsed + 86400
+            
+            IF time_elapsed >= INFO_MSG_TIMEOUT THEN
+                ' Mark this message for removal
+                info_messages(msg_idx) = ""
+                info_message_times(msg_idx) = 0
+                shift_needed = 1
+            END IF
+        END IF
+    NEXT msg_idx
+    
+    ' Compact the array by removing empty slots
+    IF shift_needed THEN
+        DIM new_count AS INTEGER
+        new_count = 0
+        
+        ' Shift all non-empty messages down
+        FOR msg_idx = 0 TO INFO_MSG_MAX - 1
+            IF LEN(info_messages(msg_idx)) > 0 THEN
+                IF new_count <> msg_idx THEN
+                    info_messages(new_count) = info_messages(msg_idx)
+                    info_message_times(new_count) = info_message_times(msg_idx)
+                    info_messages(msg_idx) = ""
+                    info_message_times(msg_idx) = 0
+                END IF
+                new_count = new_count + 1
+            END IF
+        NEXT msg_idx
+        
+        info_message_count = new_count        
+    END IF
+    display_info_messages
+END SUB
+
+''
+' Display all active info messages at the bottom of the screen
+'
+SUB display_info_messages
+    DIM msg_idx AS INTEGER, msg_y AS INTEGER
+    DIM old_dest AS LONG, old_color AS LONG
+
+    old_dest = _DEST
+    old_color = _DEFAULTCOLOR
+
+    _DEST CANVAS
+    
+    DIM AS INTEGER msg_y_start, msg_y_end, msg_x_start, msg_x_end
+    msg_y_start = _HEIGHT(CANVAS) - ((INFO_MSG_Y_OFFSET + INFO_MSG_MAX) * _FONTHEIGHT(FONTFACE&)) - 50
+    msg_y_end = _HEIGHT(CANVAS)
+    msg_x_start = 0
+    msg_x_end = _WIDTH(CANVAS)
+    LINE (msg_x_start, msg_y_start)-(msg_x_end, msg_y_end), _RGB32(&H00, &H00, &H00), BF
+
+    IF info_message_count = 0 THEN EXIT SUB
+    
+    ' Calculate starting Y position (from bottom up) - make more visible
+    msg_y = _HEIGHT(CANVAS) - (INFO_MSG_Y_OFFSET * _FONTHEIGHT(FONTFACE&)) - 50
+    
+    ' Display messages from bottom to top
+    COLOR INFO_MSG_COLOR
+    FOR msg_idx = 0 TO info_message_count - 1
+        IF LEN(info_messages(msg_idx)) > 0 THEN
+            _PRINTSTRING (10, msg_y - (msg_idx * _FONTHEIGHT(FONTFACE&))), info_messages(msg_idx)
+        END IF
+    NEXT msg_idx
+    
+    COLOR old_color
+    _DEST old_dest
+END SUB
 
 
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BM'
