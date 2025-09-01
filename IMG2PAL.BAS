@@ -54,6 +54,16 @@ DIM SHARED AS INTEGER adj_threshold      ' 0 to 255
 DIM SHARED AS INTEGER adj_posterize      ' 2 to 32 levels
 DIM SHARED AS SINGLE adj_colorize_hue    ' 0 to 360 degrees
 DIM SHARED AS SINGLE adj_colorize_sat    ' 0.0 to 1.0
+DIM SHARED AS INTEGER adj_gamma          ' -100 to +100
+DIM SHARED AS INTEGER adj_film_grain     ' 0 to 100
+DIM SHARED AS _BYTE adj_invert           ' 0 = off, 1 = on
+DIM SHARED AS INTEGER adj_levels_in_min  ' 0 to 255
+DIM SHARED AS INTEGER adj_levels_in_max  ' 0 to 255  
+DIM SHARED AS INTEGER adj_levels_out_min ' 0 to 255
+DIM SHARED AS INTEGER adj_levels_out_max ' 0 to 255
+DIM SHARED AS INTEGER adj_color_bal_r    ' -100 to +100
+DIM SHARED AS INTEGER adj_color_bal_g    ' -100 to +100
+DIM SHARED AS INTEGER adj_color_bal_b    ' -100 to +100
 DIM SHARED AS _BYTE adj_needs_update     ' Flag to rebuild adjusted image
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
@@ -92,6 +102,16 @@ adj_threshold = 128
 adj_posterize = 16
 adj_colorize_hue = 0
 adj_colorize_sat = 0
+adj_gamma = 0
+adj_film_grain = 0
+adj_invert = 0
+adj_levels_in_min = 0
+adj_levels_in_max = 255
+adj_levels_out_min = 0
+adj_levels_out_max = 255
+adj_color_bal_r = 0
+adj_color_bal_g = 0
+adj_color_bal_b = 0
 adj_needs_update = _TRUE  ' Start with update needed
 
 ' Initialize the IMGADJ library
@@ -424,6 +444,108 @@ DO
                     draw_output
                 END IF
             END IF
+        CASE "g", "G":
+            ' Adjust gamma
+            DIM gamma_input AS STRING
+            gamma_input = _INPUTBOX$("IMG2PAL", "Gamma (-100 to +100)", _TRIM$(STR$(adj_gamma)))
+            IF LEN(gamma_input) <> 0 THEN
+                DIM new_gamma AS INTEGER
+                new_gamma = VAL(gamma_input)
+                IF new_gamma >= -100 AND new_gamma <= 100 THEN
+                    adj_gamma = new_gamma
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
+        CASE "f", "F":
+            ' Adjust film grain
+            DIM grain_input AS STRING
+            grain_input = _INPUTBOX$("IMG2PAL", "Film Grain (0 to 100)", _TRIM$(STR$(adj_film_grain)))
+            IF LEN(grain_input) <> 0 THEN
+                DIM new_grain AS INTEGER
+                new_grain = VAL(grain_input)
+                IF new_grain >= 0 AND new_grain <= 100 THEN
+                    adj_film_grain = new_grain
+                    adj_needs_update = _TRUE
+                    draw_output
+                END IF
+            END IF
+        CASE "i", "I":
+            ' Toggle invert
+            adj_invert = NOT adj_invert
+            adj_needs_update = _TRUE
+            draw_output
+        CASE "v", "V":
+            ' Adjust levels
+            DIM levels_input AS STRING
+            levels_input = _INPUTBOX$("IMG2PAL", "Levels Input Min (0 to 255)", _TRIM$(STR$(adj_levels_in_min)))
+            IF LEN(levels_input) <> 0 THEN
+                DIM new_levels_in_min AS INTEGER
+                new_levels_in_min = VAL(levels_input)
+                IF new_levels_in_min >= 0 AND new_levels_in_min <= 255 THEN
+                    adj_levels_in_min = new_levels_in_min
+                    ' Ask for input max
+                    levels_input = _INPUTBOX$("IMG2PAL", "Levels Input Max (0 to 255)", _TRIM$(STR$(adj_levels_in_max)))
+                    IF LEN(levels_input) <> 0 THEN
+                        DIM new_levels_in_max AS INTEGER
+                        new_levels_in_max = VAL(levels_input)
+                        IF new_levels_in_max >= 0 AND new_levels_in_max <= 255 THEN
+                            adj_levels_in_max = new_levels_in_max
+                            ' Ask for output min
+                            levels_input = _INPUTBOX$("IMG2PAL", "Levels Output Min (0 to 255)", _TRIM$(STR$(adj_levels_out_min)))
+                            IF LEN(levels_input) <> 0 THEN
+                                DIM new_levels_out_min AS INTEGER
+                                new_levels_out_min = VAL(levels_input)
+                                IF new_levels_out_min >= 0 AND new_levels_out_min <= 255 THEN
+                                    adj_levels_out_min = new_levels_out_min
+                                    ' Ask for output max
+                                    levels_input = _INPUTBOX$("IMG2PAL", "Levels Output Max (0 to 255)", _TRIM$(STR$(adj_levels_out_max)))
+                                    IF LEN(levels_input) <> 0 THEN
+                                        DIM new_levels_out_max AS INTEGER
+                                        new_levels_out_max = VAL(levels_input)
+                                        IF new_levels_out_max >= 0 AND new_levels_out_max <= 255 THEN
+                                            adj_levels_out_max = new_levels_out_max
+                                            adj_needs_update = _TRUE
+                                            draw_output
+                                        END IF
+                                    END IF
+                                END IF
+                            END IF
+                        END IF
+                    END IF
+                END IF
+            END IF
+        CASE "n", "N":
+            ' Adjust color balance
+            DIM balance_input AS STRING
+            balance_input = _INPUTBOX$("IMG2PAL", "Color Balance Red (-100 to +100)", _TRIM$(STR$(adj_color_bal_r)))
+            IF LEN(balance_input) <> 0 THEN
+                DIM new_bal_r AS INTEGER
+                new_bal_r = VAL(balance_input)
+                IF new_bal_r >= -100 AND new_bal_r <= 100 THEN
+                    adj_color_bal_r = new_bal_r
+                    ' Ask for green
+                    balance_input = _INPUTBOX$("IMG2PAL", "Color Balance Green (-100 to +100)", _TRIM$(STR$(adj_color_bal_g)))
+                    IF LEN(balance_input) <> 0 THEN
+                        DIM new_bal_g AS INTEGER
+                        new_bal_g = VAL(balance_input)
+                        IF new_bal_g >= -100 AND new_bal_g <= 100 THEN
+                            adj_color_bal_g = new_bal_g
+                            ' Ask for blue
+                            balance_input = _INPUTBOX$("IMG2PAL", "Color Balance Blue (-100 to +100)", _TRIM$(STR$(adj_color_bal_b)))
+                            IF LEN(balance_input) <> 0 THEN
+                                DIM new_bal_b AS INTEGER
+                                new_bal_b = VAL(balance_input)
+                                IF new_bal_b >= -100 AND new_bal_b <= 100 THEN
+                                    adj_color_bal_b = new_bal_b
+                                    adj_needs_update = _TRUE
+                                    draw_output
+                                END IF
+                            END IF
+                        END IF
+                    END IF
+                END IF
+            END IF
         CASE "l", "L":
             ' Choose an image file with dialog
             img_file$ = _OPENFILEDIALOG$( _
@@ -545,7 +667,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE,R=RESET ADJ,ESC=QUIT", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -589,6 +711,16 @@ SUB reset_adjustments
     adj_posterize = 16
     adj_colorize_hue = 0
     adj_colorize_sat = 0
+    adj_gamma = 0
+    adj_film_grain = 0
+    adj_invert = 0
+    adj_levels_in_min = 0
+    adj_levels_in_max = 255
+    adj_levels_out_min = 0
+    adj_levels_out_max = 255
+    adj_color_bal_r = 0
+    adj_color_bal_g = 0
+    adj_color_bal_b = 0
     adj_needs_update = _TRUE
 END SUB
 
@@ -678,7 +810,61 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 7. Pixelate (only if > 1)
+        ' 7. Gamma
+        IF adj_gamma <> 0 THEN
+            DIM temp_gamma AS LONG
+            IF adj_gamma > 0 THEN
+                temp_gamma = GJ_IMGADJ_Gamma(img_adjusted, "+", adj_gamma)
+            ELSE
+                temp_gamma = GJ_IMGADJ_Gamma(img_adjusted, "-", ABS(adj_gamma))
+            END IF
+            IF temp_gamma <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_gamma
+            END IF
+        END IF
+        
+        ' 8. Film Grain
+        IF adj_film_grain > 0 THEN
+            DIM temp_grain AS LONG
+            temp_grain = GJ_IMGADJ_FilmGrain(img_adjusted, adj_film_grain)
+            IF temp_grain <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_grain
+            END IF
+        END IF
+        
+        ' 9. Invert
+        IF adj_invert THEN
+            DIM temp_invert AS LONG
+            temp_invert = GJ_IMGADJ_Invert(img_adjusted)
+            IF temp_invert <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_invert
+            END IF
+        END IF
+        
+        ' 10. Levels
+        IF adj_levels_in_min <> 0 OR adj_levels_in_max <> 255 OR adj_levels_out_min <> 0 OR adj_levels_out_max <> 255 THEN
+            DIM temp_levels AS LONG
+            temp_levels = GJ_IMGADJ_Levels(img_adjusted, adj_levels_in_min, adj_levels_in_max, adj_levels_out_min, adj_levels_out_max)
+            IF temp_levels <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_levels
+            END IF
+        END IF
+        
+        ' 11. Color Balance
+        IF adj_color_bal_r <> 0 OR adj_color_bal_g <> 0 OR adj_color_bal_b <> 0 THEN
+            DIM temp_balance AS LONG
+            temp_balance = GJ_IMGADJ_ColorBalance(img_adjusted, adj_color_bal_r, adj_color_bal_g, adj_color_bal_b)
+            IF temp_balance <> 0 THEN
+                ' _FREEIMAGE img_adjusted
+                img_adjusted = temp_balance
+            END IF
+        END IF
+        
+        ' 12. Pixelate (only if > 1)
         IF adj_pixelate > 1 THEN
             DIM temp_pixelate AS LONG
             temp_pixelate = GJ_IMGADJ_Pixelate(img_adjusted, adj_pixelate)
@@ -709,15 +895,15 @@ SUB update_status
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
-        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
-        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
+        PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert))
     ELSE
         PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
-        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
-        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
+        PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert))
     END IF
 END SUB
 
@@ -730,14 +916,14 @@ SUB draw_output
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
-        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
+        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
         PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
     ELSE
         PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,R=RESET ADJ,ESC=QUIT";
         PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
         PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")" 
-        PRINT "ADJ: [R]ESET  [B]RIGHTNESS  [C]ONTRAST  PI[X]ELATE  H[U]E SHIFT  COLORI[Z]E  [T]HRESHOLD  P[O]STERIZE"        
+        PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"        
         PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
     END IF
 
