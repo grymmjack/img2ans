@@ -22,7 +22,7 @@ OPTION _EXPLICIT
 '$DYNAMIC
 
 ' Set this to FALSE to enable debugging output to the console
-$LET NDEBUG = FALS
+$LET NDEBUG = FALSE
 
 $IF NDEBUG = FALSE THEN
     ' $DEBUG
