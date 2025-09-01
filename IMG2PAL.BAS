@@ -202,14 +202,14 @@ $IF MAC THEN
     CONST CANVAS_H&  = 960
 $ELSEIF LINUX THEN
     FONT_DIR$ = ENVIRON$("HOME") + "/.fonts"
-    CONST FONT_SIZE& = 24
+    CONST FONT_SIZE& = 16
     CONST CANVAS_W&  = 1920
     CONST CANVAS_H&  = 1080
 $ELSEIF WIN THEN
     FONT_DIR$ = ENVIRON$("HOMEPATH") + "\AppData\Local\Microsoft\Windows\Fonts"
-    CONST FONT_SIZE& = 24
+    CONST FONT_SIZE& = 16
     CONST CANVAS_W&  = 2400
-    CONST CANVAS_H&  = 1200
+    CONST CANVAS_H&  = 1400
 $END IF
 ' FONT_FILE$ = FONT_DIR$ + "/MorePerfectDOSVGANF-4.ttf"
 FONT_FILE$ = FONT_DIR$ + "/BerkeleyMonoNerdFont-Regular.ttf"
@@ -1586,19 +1586,19 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
     IF show_dither_details THEN
         ' Dithering mode status - check actual dithering state
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT";
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     ELSE
         ' Standard mode status
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- ";
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- ";
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     END IF
@@ -1646,7 +1646,7 @@ SUB draw_output
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = _FONTHEIGHT(FONTFACE&)*10  ' Make room for the extra line
+        dy1_orig = _FONTHEIGHT(FONTFACE&)*8  ' Make room for the extra line
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -1675,7 +1675,7 @@ SUB draw_output
             
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
-            dy1_pal = _FONTHEIGHT(FONTFACE&)*10  ' Make room for the extra line
+            dy1_pal = _FONTHEIGHT(FONTFACE&)*8  ' Make room for the extra line
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
