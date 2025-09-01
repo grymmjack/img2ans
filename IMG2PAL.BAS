@@ -41,6 +41,7 @@ CONST KEY_DOWN&        = 20480
 CONST KEY_LEFT&        = 19200
 CONST KEY_RIGHT&       = 19712
 CONST KEY_S&           = 83
+CONST KEY_B&           = 66
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
 CONST FONT_STYLE$      = "MONOSPACE"
@@ -80,6 +81,7 @@ DIM SHARED AS INTEGER adj_color_bal_r    ' -100 to +100
 DIM SHARED AS INTEGER adj_color_bal_g    ' -100 to +100
 DIM SHARED AS INTEGER adj_color_bal_b    ' -100 to +100
 DIM SHARED AS _BYTE adj_needs_update     ' Flag to rebuild adjusted image
+DIM SHARED AS _BYTE adj_use_nonblack_bc  ' 0 = regular brightness/contrast, 1 = non-black version
 
 ' Scanline effect parameters
 DIM SHARED AS _BYTE scanline_enabled     ' 0 = off, 1 = on
@@ -151,6 +153,7 @@ adj_color_bal_r = 0
 adj_color_bal_g = 0
 adj_color_bal_b = 0
 adj_needs_update = _TRUE  ' Start with update needed
+adj_use_nonblack_bc = 0   ' Default to regular brightness/contrast
 
 ' Key repeat rate limiting
 DIM SHARED AS DOUBLE last_key_time        ' Timer for key repeat limiting
@@ -348,6 +351,27 @@ DO
         GOTO continue_loop
     END IF
     
+    ' CTRL + B: Toggle between regular and non-black brightness/contrast
+    IF _KEYDOWN(KEY_B&) AND ((_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            adj_use_nonblack_bc = NOT adj_use_nonblack_bc
+            DIM toggle_message AS STRING
+            IF adj_use_nonblack_bc THEN
+                toggle_message = "Switched to Non-Black Brightness/Contrast mode"
+            ELSE
+                toggle_message = "Switched to Regular Brightness/Contrast mode"
+            END IF
+            _MESSAGEBOX "IMG2PAL", toggle_message, "info"
+            ' If we have any brightness or contrast adjustments, re-apply them
+            IF adj_brightness <> 0 OR adj_contrast <> 0 THEN
+                adj_needs_update = _TRUE
+                draw_output
+            END IF
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
     ' Plain UP: Zoom in (only if no modifiers are pressed)
     IF _KEYDOWN(KEY_UP&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
         IF TIMER - last_key_time >= key_repeat_delay THEN
@@ -492,16 +516,19 @@ DO
             reset_adjustments
             draw_output
         CASE "b", "B":
-            ' Adjust brightness
-            DIM brightness_input AS STRING
-            brightness_input = _INPUTBOX$("IMG2PAL", "Brightness (-100 to +100)", _TRIM$(STR$(adj_brightness)))
-            IF LEN(brightness_input) <> 0 THEN
-                DIM new_brightness AS INTEGER
-                new_brightness = VAL(brightness_input)
-                IF new_brightness >= -100 AND new_brightness <= 100 THEN
-                    adj_brightness = new_brightness
-                    adj_needs_update = _TRUE
-                    draw_output
+            ' Skip if CTRL is held down (CTRL+B is handled separately)
+            IF NOT (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&)) THEN
+                ' Adjust brightness
+                DIM brightness_input AS STRING
+                brightness_input = _INPUTBOX$("IMG2PAL", "Brightness (-100 to +100)", _TRIM$(STR$(adj_brightness)))
+                IF LEN(brightness_input) <> 0 THEN
+                    DIM new_brightness AS INTEGER
+                    new_brightness = VAL(brightness_input)
+                    IF new_brightness >= -100 AND new_brightness <= 100 THEN
+                        adj_brightness = new_brightness
+                        adj_needs_update = _TRUE
+                        draw_output
+                    END IF
                 END IF
             END IF
         CASE "c", "C":
@@ -895,7 +922,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -1049,6 +1076,7 @@ SUB reset_adjustments
     adj_color_bal_g = 0
     adj_color_bal_b = 0
     adj_needs_update = _TRUE
+    adj_use_nonblack_bc = 0  ' Default to regular brightness/contrast
     
     ' Initialize scanline parameters
     scanline_enabled = 0
@@ -1163,6 +1191,7 @@ SUB save_preset(preset_name AS STRING)
     content = content + "COLOR_BAL_R=" + _TRIM$(STR$(adj_color_bal_r)) + CHR$(13) + CHR$(10)
     content = content + "COLOR_BAL_G=" + _TRIM$(STR$(adj_color_bal_g)) + CHR$(13) + CHR$(10)
     content = content + "COLOR_BAL_B=" + _TRIM$(STR$(adj_color_bal_b)) + CHR$(13) + CHR$(10)
+    content = content + "USE_NONBLACK_BC=" + _TRIM$(STR$(adj_use_nonblack_bc)) + CHR$(13) + CHR$(10)
     
     ' Scanlines
     content = content + "[SCANLINES]" + CHR$(13) + CHR$(10)
@@ -1257,6 +1286,7 @@ SUB load_preset(preset_file AS STRING)
                         CASE "COLOR_BAL_R": adj_color_bal_r = VAL(value)
                         CASE "COLOR_BAL_G": adj_color_bal_g = VAL(value)
                         CASE "COLOR_BAL_B": adj_color_bal_b = VAL(value)
+                        CASE "USE_NONBLACK_BC": adj_use_nonblack_bc = VAL(value)
                     END SELECT
                 CASE "SCANLINES"
                     SELECT CASE UCASE$(ini_key)
@@ -1354,35 +1384,48 @@ SUB apply_adjustments
         
         ' Apply adjustments in order (each one modifies the result of the previous)
         
-        ' 1. Brightness
-        IF adj_brightness <> 0 THEN
-            DIM temp_bright AS LONG
-            IF adj_brightness > 0 THEN
-                temp_bright = GJ_IMGADJ_Brightness(img_adjusted, "+", adj_brightness)
+        ' 1. Brightness and Contrast (choose between regular and non-black versions)
+        IF adj_brightness <> 0 OR adj_contrast <> 0 THEN
+            DIM temp_bc AS LONG
+            IF adj_use_nonblack_bc THEN
+                ' Use combined non-black brightness/contrast function
+                DIM brightness_dir AS STRING, contrast_dir AS STRING
+                IF adj_brightness > 0 THEN brightness_dir = "+" ELSE brightness_dir = "-"
+                IF adj_contrast > 0 THEN contrast_dir = "+" ELSE contrast_dir = "-"
+                temp_bc = GJ_IMGADJ_BrightnessContrastNonBlack(img_adjusted, brightness_dir, ABS(adj_brightness), contrast_dir, ABS(adj_contrast))
             ELSE
-                temp_bright = GJ_IMGADJ_Brightness(img_adjusted, "-", ABS(adj_brightness))
+                ' Use separate regular brightness and contrast functions
+                DIM temp_bright AS LONG, temp_contrast AS LONG
+                ' Apply brightness first
+                IF adj_brightness <> 0 THEN
+                    IF adj_brightness > 0 THEN
+                        temp_bright = GJ_IMGADJ_Brightness(img_adjusted, "+", adj_brightness)
+                    ELSE
+                        temp_bright = GJ_IMGADJ_Brightness(img_adjusted, "-", ABS(adj_brightness))
+                    END IF
+                    IF temp_bright <> 0 THEN
+                        img_adjusted = temp_bright
+                    END IF
+                END IF
+                ' Apply contrast second
+                IF adj_contrast <> 0 THEN
+                    IF adj_contrast > 0 THEN
+                        temp_contrast = GJ_IMGADJ_Contrast(img_adjusted, "+", adj_contrast)
+                    ELSE
+                        temp_contrast = GJ_IMGADJ_Contrast(img_adjusted, "-", ABS(adj_contrast))
+                    END IF
+                    IF temp_contrast <> 0 THEN
+                        img_adjusted = temp_contrast
+                    END IF
+                END IF
             END IF
-            IF temp_bright <> 0 THEN
-                ' _FREEIMAGE img_adjusted
-                img_adjusted = temp_bright
+            ' Handle combined function result
+            IF adj_use_nonblack_bc AND temp_bc <> 0 THEN
+                img_adjusted = temp_bc
             END IF
         END IF
         
-        ' 2. Contrast  
-        IF adj_contrast <> 0 THEN
-            DIM temp_contrast AS LONG
-            IF adj_contrast > 0 THEN
-                temp_contrast = GJ_IMGADJ_Contrast(img_adjusted, "+", adj_contrast)
-            ELSE
-                temp_contrast = GJ_IMGADJ_Contrast(img_adjusted, "-", ABS(adj_contrast))
-            END IF
-            IF temp_contrast <> 0 THEN
-                ' _FREEIMAGE img_adjusted
-                img_adjusted = temp_contrast
-            END IF
-        END IF
-        
-        ' 3. Hue shift
+        ' 2. Hue shift
         IF adj_hue <> 0 THEN
             DIM temp_hue AS LONG
             IF adj_hue > 0 THEN
@@ -1396,7 +1439,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 4. Colorize (only if saturation > 0)
+        ' 3. Colorize (only if saturation > 0)
         IF adj_colorize_sat > 0 THEN
             DIM temp_colorize AS LONG
             temp_colorize = GJ_IMGADJ_Colorize(img_adjusted, adj_colorize_hue, adj_colorize_sat)
@@ -1406,7 +1449,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 5. Threshold (only if not default value of 128)
+        ' 4. Threshold (only if not default value of 128)
         IF adj_threshold <> 128 THEN
             DIM temp_threshold AS LONG
             temp_threshold = GJ_IMGADJ_Threshold(img_adjusted, adj_threshold, GJ_IMGADJ_THRESHOLD_BINARY)
@@ -1416,7 +1459,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 6. Posterize (only if not default value of 16)
+        ' 5. Posterize (only if not default value of 16)
         IF adj_posterize <> 16 THEN
             DIM temp_posterize AS LONG
             temp_posterize = GJ_IMGADJ_Posterize(img_adjusted, adj_posterize)
@@ -1426,7 +1469,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 7. Gamma
+        ' 6. Gamma
         IF adj_gamma <> 0 THEN
             DIM temp_gamma AS LONG
             IF adj_gamma > 0 THEN
@@ -1440,7 +1483,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 8. Film Grain
+        ' 7. Film Grain
         IF adj_film_grain > 0 THEN
             DIM temp_grain AS LONG
             temp_grain = GJ_IMGADJ_FilmGrain(img_adjusted, adj_film_grain)
@@ -1450,7 +1493,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 9. Invert
+        ' 8. Invert
         IF adj_invert THEN
             DIM temp_invert AS LONG
             temp_invert = GJ_IMGADJ_Invert(img_adjusted)
@@ -1460,7 +1503,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 10. Levels
+        ' 9. Levels
         IF adj_levels_in_min <> 0 OR adj_levels_in_max <> 255 OR adj_levels_out_min <> 0 OR adj_levels_out_max <> 255 THEN
             DIM temp_levels AS LONG
             temp_levels = GJ_IMGADJ_Levels(img_adjusted, adj_levels_in_min, adj_levels_in_max, adj_levels_out_min, adj_levels_out_max)
@@ -1470,7 +1513,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 11. Color Balance
+        ' 10. Color Balance
         IF adj_color_bal_r <> 0 OR adj_color_bal_g <> 0 OR adj_color_bal_b <> 0 THEN
             DIM temp_balance AS LONG
             temp_balance = GJ_IMGADJ_ColorBalance(img_adjusted, adj_color_bal_r, adj_color_bal_g, adj_color_bal_b)
@@ -1480,7 +1523,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 12. Pixelate (only if > 1)
+        ' 11. Pixelate (only if > 1)
         IF adj_pixelate > 1 THEN
             DIM temp_pixelate AS LONG
             temp_pixelate = GJ_IMGADJ_Pixelate(img_adjusted, adj_pixelate)
@@ -1519,10 +1562,14 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
     PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"
     
     IF show_dither_details THEN
-        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat))
+        DIM bc_mode_detailed AS STRING
+        bc_mode_detailed = _IIF(adj_use_nonblack_bc, "NB", "REG")
+        PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat)) + " BC_MODE=" + bc_mode_detailed
         PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
     ELSE
-        PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert))
+        DIM bc_mode_standard AS STRING
+        bc_mode_standard = _IIF(adj_use_nonblack_bc, "NB", "REG")
+        PRINT "VAL: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " G=" + _TRIM$(STR$(adj_gamma)) + " F=" + _TRIM$(STR$(adj_film_grain)) + " I=" + _TRIM$(STR$(adj_invert)) + " BC=" + bc_mode_standard
     END IF
     
     PRINT get_preset_status$(include_debug)
