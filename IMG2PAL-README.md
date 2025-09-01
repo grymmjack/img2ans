@@ -26,7 +26,8 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 2. **Load an Image** - Press `L` to browse for an image file
 3. **Load a Palette** - Press `P` to browse for a .GPL palette file  
 4. **Apply Adjustments** - Use letter keys to modify the image (see controls below)
-5. **Save Result** - Press `S` to save the palette-converted image
+5. **Explore Variations** - Use `` ` `` (random image), `~` (random palette), or `?` (random everything)
+6. **Save Result** - Press `S` to save the palette-converted image
 
 ---
 
@@ -38,6 +39,8 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 | `L` | Load Image | Open file dialog to select an image |
 | `P` | Load Palette | Open file dialog to select a .GPL palette |
 | `S` | Save Image | Save the current palette-converted result |
+| `H` | Help | Display keyboard shortcuts and controls |
+| `A` | About | Show version information |
 | `ESC` | Exit | Quit the application |
 
 ### Navigation
@@ -49,6 +52,13 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 | `Right Arrow` | Next Palette | Switch to next palette in folder |
 | `J` | Jump to Image | Enter specific image number |
 | `Q` | Jump to Palette | Enter specific palette number |
+
+### Randomization
+| Key | Action | Description |
+|-----|--------|-------------|
+| `` ` `` | Random Image | Randomly select new image (keeps all settings) |
+| `~` | Random Palette | Randomly select new palette (keeps all settings) |
+| `?` | Random Everything | Randomly select image, palette, and dither settings |
 
 ### View Controls
 | Key | Action | Description |
@@ -69,6 +79,84 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 | `>` | Next Dither Method | Cycle through dithering algorithms |
 | `,` | Previous Scaler | Change scaling algorithm |
 | `.` | Next Scaler | Change scaling algorithm |
+
+---
+
+## 🎲 Randomization Features
+
+IMG2PAL includes powerful randomization tools for creative exploration and discovering unexpected combinations:
+
+### Random Functions
+| Key | Function | What Changes | What's Preserved |
+|-----|----------|--------------|------------------|
+| `` ` `` | **Random Image Only** | Current image file | Palette, dither settings, adjustments, zoom |
+| `~` | **Random Palette Only** | Current palette file | Image, dither settings, adjustments, zoom |
+| `?` | **Random Everything** | Image, palette, dither method, dither amount | Zoom level (adjustments reset) |
+
+### Randomization Details
+
+#### Random Image Only (`` ` `` - Backtick)
+- **Purpose**: Explore how different images look with your current settings
+- **Preserves**: All adjustments, palette, dithering configuration, zoom level
+- **Changes**: Only the source image file
+- **Use Case**: Perfect when you've found great settings and want to see how they work on other images
+- **Message**: "RANDOM IMAGE: [filename] (settings preserved)"
+
+#### Random Palette Only (`~` - Tilde)  
+- **Purpose**: See how the same image looks with different color schemes
+- **Preserves**: Current image, all adjustments, dithering configuration, zoom level
+- **Changes**: Only the palette file (.GPL)
+- **Use Case**: Ideal for exploring color variations while keeping everything else consistent
+- **Message**: "RANDOM PALETTE: [filename] (settings preserved)"
+
+#### Random Everything (`?` - Question Mark)
+- **Purpose**: Complete creative chaos for discovering unexpected combinations
+- **Changes**: Image file, palette file, dither method, dither amount, dithering on/off (70% chance)
+- **Resets**: All image adjustments to defaults
+- **Preserves**: Only zoom level
+- **Use Case**: Great for inspiration, happy accidents, and breaking creative blocks
+- **Message**: Full details of all randomized settings
+
+### Creative Workflows
+
+#### The "Settings Explorer" Workflow
+1. Load an image you like (`L`)
+2. Apply your favorite adjustments (`B`, `C`, `G`, etc.)
+3. Set up dithering preferences (`D`, `+/-`, `<>`)
+4. Use **Random Image** (`` ` ``) to see how these settings work on other images
+5. Save interesting results (`S`)
+
+#### The "Palette Explorer" Workflow  
+1. Find an interesting image (`L`)
+2. Apply desired adjustments and effects
+3. Use **Random Palette** (`~`) to explore different color schemes
+4. Compare how the same processing looks with various palettes
+5. Save your favorites (`S`)
+
+#### The "Discovery" Workflow
+1. Use **Random Everything** (`?`) for complete surprise combinations
+2. If you like what you see, fine-tune with individual adjustments
+3. Use specific random functions to explore variations
+4. Build a collection of interesting results
+
+### Tips for Effective Randomization
+
+#### Getting the Most from Random Functions
+- **Start with intention**: Set up base settings before using `` ` `` or `~`
+- **Use in sequence**: Try `?` first, then refine with `` ` `` and `~`
+- **Save frequently**: Capture interesting combinations before they're lost
+- **Combine with manual**: Use random functions to find starting points, then manually adjust
+
+#### Understanding Random Behavior
+- **Image/Palette selection**: Chooses from currently loaded folder contents
+- **Dither method**: Cycles through all 15 available algorithms
+- **Dither amount**: Biased toward practical ranges (0.2 to 1.5)
+- **Dithering toggle**: 70% chance to enable dithering in full random mode
+
+#### Performance Considerations
+- **Large image collections**: Random selection works faster with organized folders
+- **Complex adjustments**: Random functions preserve expensive adjustment chains
+- **Memory management**: Random functions properly handle image loading/unloading
 
 ---
 
@@ -239,6 +327,8 @@ When dithering is disabled, these scaling algorithms are available:
 - ✅ GPL palette support
 - ✅ Batch navigation features
 - ✅ Interactive keyboard controls
+- ✅ **Randomization system** (Random Image, Random Palette, Random Everything)
+- ✅ **Creative exploration tools** for discovering unexpected combinations
 
 ### Planned Features
 - **Additional palette formats** (ACO, PAL, etc.)
