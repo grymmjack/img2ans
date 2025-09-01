@@ -45,6 +45,12 @@ DIM SHARED AS INTEGER dither_method
 DIM SHARED AS SINGLE zoom, zoom_adj, zoom_min, zoom_max
 DIM SHARED AS SINGLE dither_amount
 
+' Pattern dithering variables
+DIM SHARED pattern_img AS LONG
+DIM SHARED current_pattern AS INTEGER
+DIM SHARED pattern_names(0 TO 5) AS STRING
+DIM SHARED custom_pattern_file AS STRING
+
 ' Image adjustment parameters - these chain together
 DIM SHARED AS INTEGER adj_brightness     ' -100 to +100
 DIM SHARED AS INTEGER adj_contrast       ' -100 to +100  
@@ -92,6 +98,17 @@ cur_scaler% = 0
 dithering_enabled = 0 ' 0 = OFF, 1 = ON
 dither_method = 4     ' Default to Floyd-Steinberg (method 4)
 dither_amount = 0.5   ' 0.0 = no dither, 1.0 = full dither, 0.5 = 50%
+
+' Initialize pattern dithering
+current_pattern = 0
+pattern_names(0) = "Crosshatch"
+pattern_names(1) = "Dots"
+pattern_names(2) = "Lines"
+pattern_names(3) = "Mesh"
+pattern_names(4) = "Custom"
+pattern_names(5) = "From File"
+pattern_img = 0
+custom_pattern_file = ""
 
 ' Initialize image adjustments to default (no change) values
 adj_brightness = 0
@@ -667,7 +684,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,ESC=QUIT", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -686,6 +703,32 @@ DO
                 IF cur_pal% < 0 THEN cur_pal% = 0
                 IF cur_pal% > UBOUND(pal_files_sorted$) THEN cur_pal% = UBOUND(pal_files_sorted$)
                 draw_output
+            END IF
+        CASE "k", "K":
+            ' Cycle through pattern dithering patterns
+            IF dither_method = 23 THEN ' Only when pattern dithering is active
+                current_pattern = current_pattern + 1
+                IF current_pattern > 5 THEN current_pattern = 0
+                CALL LoadDitherPattern(current_pattern)
+                draw_output
+            END IF
+        CASE "m", "M":
+            ' Load custom bitmap pattern file
+            IF dither_method = 23 THEN ' Only when pattern dithering is active
+                DIM pattern_file AS STRING
+                pattern_file = _OPENFILEDIALOG$( _
+                    "Choose a pattern bitmap file", _
+                    _STARTDIR$ + SLASH$ + "resources" + SLASH$, _
+                    "*.bmp|*.png|*.gif|*.tga|*.BMP|*.PNG|*.GIF|*.TGA", _
+                    "Pattern Files", _
+                    0 _
+                )
+                IF LEN(pattern_file) <> 0 THEN
+                    custom_pattern_file = pattern_file
+                    current_pattern = 5 ' Set to "From File" pattern
+                    CALL LoadDitherPattern(current_pattern)
+                    draw_output
+                END IF
             END IF
     END SELECT
 LOOP
@@ -986,7 +1029,7 @@ END SUB
 ' Get the number of available dithering methods
 '
 FUNCTION GetDitherMethodCount%
-    GetDitherMethodCount% = 15
+    GetDitherMethodCount% = 24
 END FUNCTION
 
 ''
@@ -1024,6 +1067,37 @@ FUNCTION GetDitherMethodName$(method AS INTEGER)
             GetDitherMethodName$ = "Clustered Dot 4x4"
         CASE 14
             GetDitherMethodName$ = "Classic Halftone"
+        CASE 15
+            GetDitherMethodName$ = "False Floyd-Steinberg"
+        CASE 16
+            GetDitherMethodName$ = "Fan Error Diffusion"
+        CASE 17
+            GetDitherMethodName$ = "Stevenson-Arce"
+        CASE 18
+            GetDitherMethodName$ = "Two-Row Sierra"
+        CASE 19
+            GetDitherMethodName$ = "Shiau-Fan"
+        CASE 20
+            GetDitherMethodName$ = "Ordered 16x16 Bayer"
+        CASE 21
+            GetDitherMethodName$ = "Interleaved Gradient Noise"
+        CASE 22
+            GetDitherMethodName$ = "Spiral Dithering"
+        CASE 23
+            DIM display_name AS STRING
+            IF current_pattern = 5 AND LEN(custom_pattern_file) > 0 THEN
+                ' Show just the filename without path
+                DIM last_slash AS INTEGER
+                last_slash = _INSTRREV(custom_pattern_file, SLASH$)
+                IF last_slash > 0 THEN
+                    display_name = MID$(custom_pattern_file, last_slash + 1)
+                ELSE
+                    display_name = custom_pattern_file
+                END IF
+                GetDitherMethodName$ = "Pattern Dithering (" + display_name + ")"
+            ELSE
+                GetDitherMethodName$ = "Pattern Dithering (" + pattern_names(current_pattern) + ")"
+            END IF
         CASE ELSE
             GetDitherMethodName$ = "Unknown Method"
     END SELECT
@@ -1297,6 +1371,316 @@ SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
                         berr2(x) = berr2(x) + eb * 0.146
                     END IF
                     
+                CASE 2 ' Stucki
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.1905 ' 8/42
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.1905
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.1905
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.0952 ' 4/42
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.0952
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.0952
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0476 ' 2/42
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0476
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0476
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.0952 ' 4/42
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.0952
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.0952
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.1905 ' 8/42
+                        gerr2(x) = gerr2(x) + eg * 0.1905
+                        berr2(x) = berr2(x) + eb * 0.1905
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.0952 ' 4/42
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.0952
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.0952
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0476 ' 2/42
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0476
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0476
+                        END IF
+                    END IF
+                    
+                CASE 3 ' Burkes
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.25 ' 8/32
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.25
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.25
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.125 ' 4/32
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.125
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.125
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 2/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 4/32
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 8/32
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 4/32
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 2/32
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
+                CASE 4 ' Sierra
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.15625 ' 5/32
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.15625
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.15625
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.09375 ' 3/32
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.09375
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.09375
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 2/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 4/32
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.15625 ' 5/32
+                        gerr2(x) = gerr2(x) + eg * 0.15625
+                        berr2(x) = berr2(x) + eb * 0.15625
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 4/32
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 2/32
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
+                CASE 5 ' Sierra Lite
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.5 ' 2/4
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.5
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.5
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.25 ' 1/4
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.25
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.25
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 1/4
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                    END IF
+                    
+                CASE 6 ' Atkinson
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.125 ' 1/8
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.125
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.125
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.125 ' 1/8
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.125
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.125
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 1/8
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.125 ' 1/8
+                        gerr2(x) = gerr2(x) + eg * 0.125
+                        berr2(x) = berr2(x) + eb * 0.125
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 1/8
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                    END IF
+                    
+                CASE 7 ' False Floyd-Steinberg (simplified)
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.5 ' 1/2
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.5
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.5
+                    END IF
+                    IF y < h - 1 THEN
+                        rerr2(x) = rerr2(x) + er * 0.5 ' 1/2
+                        gerr2(x) = gerr2(x) + eg * 0.5
+                        berr2(x) = berr2(x) + eb * 0.5
+                    END IF
+                    
+                CASE 8 ' Fan Error Diffusion (high quality)
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.4375 ' 7/16
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.4375
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.4375
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.0625 ' 1/16
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.0625
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.0625
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 1/16
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 2/16
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 4/16
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 2/16
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                    END IF
+                    
+                CASE 9 ' Stevenson-Arce
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.203125 ' 32/157
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.203125
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.203125
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.127389 ' 20/157
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.127389
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.127389
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.063694 ' 10/157
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.063694
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.063694
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.152866 ' 24/157
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.152866
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.152866
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.203125 ' 32/157
+                        gerr2(x) = gerr2(x) + eg * 0.203125
+                        berr2(x) = berr2(x) + eb * 0.203125
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.152866 ' 24/157
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.152866
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.152866
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.063694 ' 10/157
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.063694
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.063694
+                        END IF
+                    END IF
+                    
+                CASE 10 ' Two-Row Sierra
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.15625 ' 5/32
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.15625
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.15625
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.09375 ' 3/32
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.09375
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.09375
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.0625 ' 2/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.0625
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.0625
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 4/32
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.15625 ' 5/32
+                        gerr2(x) = gerr2(x) + eg * 0.15625
+                        berr2(x) = berr2(x) + eb * 0.15625
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 4/32
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 2/32
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
+                CASE 11 ' Shiau-Fan
+                    IF x < w - 1 THEN
+                        rerr1(x + 1) = rerr1(x + 1) + er * 0.125 ' 1/8
+                        gerr1(x + 1) = gerr1(x + 1) + eg * 0.125
+                        berr1(x + 1) = berr1(x + 1) + eb * 0.125
+                    END IF
+                    IF x < w - 2 THEN
+                        rerr1(x + 2) = rerr1(x + 2) + er * 0.0625 ' 1/16
+                        gerr1(x + 2) = gerr1(x + 2) + eg * 0.0625
+                        berr1(x + 2) = berr1(x + 2) + eb * 0.0625
+                    END IF
+                    IF y < h - 1 THEN
+                        IF x > 1 THEN
+                            rerr2(x - 2) = rerr2(x - 2) + er * 0.03125 ' 1/32
+                            gerr2(x - 2) = gerr2(x - 2) + eg * 0.03125
+                            berr2(x - 2) = berr2(x - 2) + eb * 0.03125
+                        END IF
+                        IF x > 0 THEN
+                            rerr2(x - 1) = rerr2(x - 1) + er * 0.125 ' 1/8
+                            gerr2(x - 1) = gerr2(x - 1) + eg * 0.125
+                            berr2(x - 1) = berr2(x - 1) + eb * 0.125
+                        END IF
+                        rerr2(x) = rerr2(x) + er * 0.25 ' 1/4
+                        gerr2(x) = gerr2(x) + eg * 0.25
+                        berr2(x) = berr2(x) + eb * 0.25
+                        IF x < w - 1 THEN
+                            rerr2(x + 1) = rerr2(x + 1) + er * 0.125 ' 1/8
+                            gerr2(x + 1) = gerr2(x + 1) + eg * 0.125
+                            berr2(x + 1) = berr2(x + 1) + eb * 0.125
+                        END IF
+                        IF x < w - 2 THEN
+                            rerr2(x + 2) = rerr2(x + 2) + er * 0.0625 ' 1/16
+                            gerr2(x + 2) = gerr2(x + 2) + eg * 0.0625
+                            berr2(x + 2) = berr2(x + 2) + eb * 0.0625
+                        END IF
+                    END IF
+                    
                 CASE ELSE ' Default to Floyd-Steinberg
                     IF x < w - 1 THEN
                         rerr1(x + 1) = rerr1(x + 1) + er * 0.5
@@ -1566,6 +1950,356 @@ SUB ApplyHalftoneClassic(img AS LONG, dst AS LONG)
 END SUB
 
 ''
+' Apply 16x16 Bayer ordered dithering
+'
+SUB ApplyOrderedDither16x16(img AS LONG, dst AS LONG)
+    DIM bayer(0 TO 15, 0 TO 15) AS INTEGER
+    ' 16x16 Bayer matrix (generated pattern)
+    DIM i AS INTEGER, j AS INTEGER
+    FOR i = 0 TO 15
+        FOR j = 0 TO 15
+            bayer(i, j) = ((i * 17) XOR (j * 17)) MOD 256
+        NEXT
+    NEXT
+    
+    CALL ApplyOrderedDitherMatrix(img, dst, bayer(), 16, 16, 256)
+END SUB
+
+''
+' Apply interleaved gradient noise dithering
+'
+SUB ApplyInterleavedGradientNoise(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM noise AS SINGLE
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ShowProgress "IGN dithering...", 0
+    
+    FOR y = 0 TO h - 1
+        IF (y MOD 10) = 0 THEN
+            ShowProgress "IGN dithering...", (y / h) * 100
+        END IF
+        
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Interleaved gradient noise formula
+            noise = ((52.9829189 * (0.06711056 * x + 0.00583715 * y)) MOD 1) - 0.5
+            noise = noise * 64 * dither_amount
+            
+            r = r + noise
+            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + noise
+            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + noise
+            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    ClearProgress
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Apply spiral dithering (unique pattern)
+'
+SUB ApplySpiralDither(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM threshold AS SINGLE, angle AS SINGLE, radius AS SINGLE
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ShowProgress "Spiral dithering...", 0
+    
+    FOR y = 0 TO h - 1
+        IF (y MOD 10) = 0 THEN
+            ShowProgress "Spiral dithering...", (y / h) * 100
+        END IF
+        
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Create spiral pattern
+            radius = SQR((x - w/2)^2 + (y - h/2)^2)
+            angle = _ATAN2(y - h/2, x - w/2)
+            threshold = (SIN(radius * 0.1 + angle * 3) + 1) * 32 * dither_amount
+            
+            r = r + threshold - 32
+            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + threshold - 32
+            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + threshold - 32
+            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(r, g, b, dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    ClearProgress
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
+' Load a dithering pattern (built-in patterns or custom)
+'
+SUB LoadDitherPattern(pattern_num AS INTEGER)
+    ' Free existing pattern if any
+    IF pattern_img <> 0 THEN _FREEIMAGE pattern_img
+    
+    ' Create a 32x32 pattern image
+    pattern_img = _NEWIMAGE(32, 32, 32)
+    DIM oldDest AS LONG: oldDest = _DEST
+    _DEST pattern_img
+    
+    DIM x AS INTEGER, y AS INTEGER, value AS INTEGER
+    
+    SELECT CASE pattern_num
+        CASE 0 ' Crosshatch
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    IF (x MOD 8 = 0) OR (y MOD 8 = 0) THEN
+                        value = 64  ' Dark lines
+                    ELSE
+                        value = 192 ' Light areas
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 1 ' Dots
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    DIM dist AS SINGLE
+                    dist = SQR(((x MOD 8) - 4)^2 + ((y MOD 8) - 4)^2)
+                    IF dist < 2 THEN
+                        value = 64  ' Dark dots
+                    ELSE
+                        value = 192 ' Light background
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 2 ' Lines
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    IF y MOD 4 < 2 THEN
+                        value = 64  ' Dark lines
+                    ELSE
+                        value = 192 ' Light lines
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 3 ' Mesh
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    IF (x + y) MOD 8 < 4 THEN
+                        value = 64
+                    ELSE
+                        value = 192
+                    END IF
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 4 ' Custom (procedural)
+            ' Mathematical pattern using sine/cosine waves
+            FOR y = 0 TO 31
+                FOR x = 0 TO 31
+                    value = 128 + 64 * SIN(x * 0.2) * COS(y * 0.2)
+                    PSET (x, y), _RGB32(value, value, value)
+                NEXT
+            NEXT
+            
+        CASE 5 ' From File (bitmap pattern)
+            IF LEN(custom_pattern_file) > 0 AND _FILEEXISTS(custom_pattern_file) THEN
+                CALL LoadBitmapPattern(custom_pattern_file)
+            ELSE
+                ' Default pattern if no file is loaded
+                FOR y = 0 TO 31
+                    FOR x = 0 TO 31
+                        ' Create a checkerboard pattern as default
+                        IF ((x \ 4) + (y \ 4)) MOD 2 = 0 THEN
+                            value = 64
+                        ELSE
+                            value = 192
+                        END IF
+                        PSET (x, y), _RGB32(value, value, value)
+                    NEXT
+                NEXT
+            END IF
+    END SELECT
+    
+    _DEST oldDest
+END SUB
+
+''
+' Load a bitmap pattern from file and convert to dithering pattern
+'
+SUB LoadBitmapPattern(filename AS STRING)
+    DIM temp_img AS LONG, x AS INTEGER, y AS INTEGER
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER
+    DIM gray AS INTEGER, threshold AS INTEGER
+    
+    ' Load the bitmap file
+    temp_img = _LOADIMAGE(filename, 32)
+    IF temp_img = 0 THEN EXIT SUB
+    
+    DIM oldDest AS LONG: oldDest = _DEST
+    DIM oldSrc AS LONG: oldSrc = _SOURCE
+    _SOURCE temp_img
+    _DEST pattern_img
+    
+    ' Get source image dimensions
+    DIM src_w AS INTEGER, src_h AS INTEGER
+    src_w = _WIDTH(temp_img)
+    src_h = _HEIGHT(temp_img)
+    
+    ' Extract pattern and convert to 32x32 threshold pattern
+    FOR y = 0 TO 31
+        FOR x = 0 TO 31
+            ' Sample from source image (tile if necessary)
+            DIM src_x AS INTEGER, src_y AS INTEGER
+            src_x = (x * src_w) \ 32
+            src_y = (y * src_h) \ 32
+            IF src_x >= src_w THEN src_x = x MOD src_w
+            IF src_y >= src_h THEN src_y = y MOD src_h
+            
+            ' Get pixel color
+            c = POINT(src_x, src_y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Convert to grayscale
+            gray = (r + g + b) \ 3
+            
+            ' Convert to binary threshold (1-bit style)
+            ' Dark pixels (< 128) become low threshold (64)
+            ' Light pixels (>= 128) become high threshold (192)
+            IF gray < 128 THEN
+                threshold = 64  ' Dark = low threshold
+            ELSE
+                threshold = 192 ' Light = high threshold
+            END IF
+            
+            PSET (x, y), _RGB32(threshold, threshold, threshold)
+        NEXT
+    NEXT
+    
+    _SOURCE oldSrc
+    _DEST oldDest
+    _FREEIMAGE temp_img
+END SUB
+
+''
+' Apply pattern dithering using a custom black and white pattern
+'
+SUB ApplyPatternDither(img AS LONG, dst AS LONG)
+    DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
+    DIM c AS _UNSIGNED LONG, r AS INTEGER, g AS INTEGER, b AS INTEGER, idx AS INTEGER
+    DIM pattern_x AS INTEGER, pattern_y AS INTEGER, pattern_value AS _UNSIGNED LONG
+    DIM threshold AS SINGLE
+    
+    ' Load pattern if not already loaded
+    IF pattern_img = 0 THEN CALL LoadDitherPattern(current_pattern)
+    
+    w = _WIDTH(img)
+    h = _HEIGHT(img)
+    DIM oldS AS LONG: oldS = _SOURCE
+    _SOURCE img
+    DIM oldD AS LONG: oldD = _DEST
+    _DEST dst
+    
+    ' Update palette cache if needed
+    IF NOT palette_cache_valid OR palette_cache_dst <> dst THEN
+        UpdatePaletteCache dst
+    END IF
+    
+    ShowProgress "Pattern dithering...", 0
+    
+    FOR y = 0 TO h - 1
+        IF (y MOD 10) = 0 THEN
+            ShowProgress "Pattern dithering...", (y / h) * 100
+        END IF
+        
+        FOR x = 0 TO w - 1
+            c = POINT(x, y)
+            r = _RED32(c)
+            g = _GREEN32(c)
+            b = _BLUE32(c)
+            
+            ' Get pattern threshold value (tile the pattern)
+            pattern_x = x MOD _WIDTH(pattern_img)
+            pattern_y = y MOD _HEIGHT(pattern_img)
+            
+            ' Get pattern pixel value
+            DIM oldS2 AS LONG: oldS2 = _SOURCE
+            _SOURCE pattern_img
+            pattern_value = POINT(pattern_x, pattern_y)
+            _SOURCE oldS2
+            
+            ' Use pattern as threshold (convert to 0-255 range)
+            threshold = (_RED32(pattern_value) - 128) * dither_amount
+            
+            r = r + threshold
+            IF r < 0 THEN r = 0 ELSE IF r > 255 THEN r = 255
+            g = g + threshold
+            IF g < 0 THEN g = 0 ELSE IF g > 255 THEN g = 255
+            b = b + threshold
+            IF b < 0 THEN b = 0 ELSE IF b > 255 THEN b = 255
+            
+            idx = NearestPaletteIndex%(CINT(r), CINT(g), CINT(b), dst)
+            PSET (x, y), idx
+        NEXT
+    NEXT
+    
+    ClearProgress
+    
+    _SOURCE oldS
+    _DEST oldD
+END SUB
+
+''
 ' Multi-algorithm dithering palettize with controllable intensity
 ' @param LONG dst The destination image. This must be an 8bpp image with the palette already loaded
 ' @param LONG src The source image. This must be 32bpp or 8bpp
@@ -1593,15 +2327,15 @@ SUB dither_palettize (dst AS LONG, src AS LONG)
         CASE 5
             CALL ApplyErrorDiffusion(src, dst, 1) ' Jarvis-Judice-Ninke
         CASE 6
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Stucki (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 2) ' Stucki
         CASE 7
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Burkes (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 3) ' Burkes
         CASE 8
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Sierra (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 4) ' Sierra
         CASE 9
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Sierra Lite (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 5) ' Sierra Lite
         CASE 10
-            CALL ApplyErrorDiffusion(src, dst, 0) ' Atkinson (using Floyd-Steinberg for now)
+            CALL ApplyErrorDiffusion(src, dst, 6) ' Atkinson
         CASE 11
             CALL ApplyRandomDither(src, dst)
         CASE 12
@@ -1610,6 +2344,24 @@ SUB dither_palettize (dst AS LONG, src AS LONG)
             CALL ApplyClusteredDot4x4(src, dst)
         CASE 14
             CALL ApplyHalftoneClassic(src, dst)
+        CASE 15
+            CALL ApplyErrorDiffusion(src, dst, 7) ' False Floyd-Steinberg
+        CASE 16
+            CALL ApplyErrorDiffusion(src, dst, 8) ' Fan Error Diffusion
+        CASE 17
+            CALL ApplyErrorDiffusion(src, dst, 9) ' Stevenson-Arce
+        CASE 18
+            CALL ApplyErrorDiffusion(src, dst, 10) ' Two-Row Sierra
+        CASE 19
+            CALL ApplyErrorDiffusion(src, dst, 11) ' Shiau-Fan
+        CASE 20
+            CALL ApplyOrderedDither16x16(src, dst)
+        CASE 21
+            CALL ApplyInterleavedGradientNoise(src, dst)
+        CASE 22
+            CALL ApplySpiralDither(src, dst)
+        CASE 23
+            CALL ApplyPatternDither(src, dst)
         CASE ELSE
             CALL ApplyErrorDiffusion(src, dst, 0) ' Default to Floyd-Steinberg
     END SELECT
