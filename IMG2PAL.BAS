@@ -40,6 +40,7 @@ CONST KEY_UP&          = 18432
 CONST KEY_DOWN&        = 20480
 CONST KEY_LEFT&        = 19200
 CONST KEY_RIGHT&       = 19712
+CONST KEY_S&           = 83
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
 CONST FONT_STYLE$      = "MONOSPACE"
@@ -151,6 +152,11 @@ adj_color_bal_g = 0
 adj_color_bal_b = 0
 adj_needs_update = _TRUE  ' Start with update needed
 
+' Key repeat rate limiting
+DIM SHARED AS DOUBLE last_key_time        ' Timer for key repeat limiting
+DIM SHARED AS DOUBLE key_repeat_delay     ' Minimum delay between key repeats (in seconds)
+key_repeat_delay = 0.15                   ' 150ms delay = ~6.7 keys per second
+
 ' Initialize the IMGADJ library
 GJ_IMGADJ_Init
 
@@ -211,13 +217,13 @@ zoom_max = 10.0
 
 ' Load the default image and palette
 CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$, "*", img_files$())
-CALL ARR_STR.sort(img_files$(), img_files_sorted$())
+IF UBOUND(img_files$) >= 0 THEN CALL ARR_STR.sort(img_files$(), img_files_sorted$())
 CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$, "*.GPL", pal_files$())
-CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
+IF UBOUND(pal_files$) >= 0 THEN CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
 
 ' Load presets
 CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$, "*.INI", preset_files$())
-CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
+IF UBOUND(preset_files$) >= 0 THEN CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
 ' Initialize cur_preset - will be set to 0 later if presets exist
 cur_preset = -1
 
@@ -245,7 +251,7 @@ IF UBOUND(img_files_sorted$) >= 0 AND _FILEEXISTS(img_files_sorted$(cur_img%)) T
         load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
     ELSE
         load_default_ega_palette img_pal
-    END IF
+    END IF 
 END IF
 
 ' Initialize all adjustments and scanline settings to defaults
@@ -255,6 +261,21 @@ reset_adjustments
 IF UBOUND(preset_files_sorted$) >= 0 THEN
     cur_preset = 0
     load_preset preset_files_sorted$(cur_preset)
+ELSE
+    ' Ensure cur_preset is properly set when no presets exist
+    cur_preset = -1
+END IF
+
+' Additional safety check before calling draw_output
+IF UBOUND(img_files_sorted$) < 0 OR UBOUND(pal_files_sorted$) < 0 THEN
+    PRINT "ERROR: Required image or palette files not found!"
+    PRINT "Please ensure the following directories exist and contain files:"
+    PRINT "  " + _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$ + "tests-external" + SLASH$
+    PRINT "  " + _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$
+    PRINT "Press any key to exit..."
+    _KEYCLEAR
+    DO: LOOP UNTIL LEN(INKEY$) > 0
+    SYSTEM
 END IF
 
 draw_output
@@ -272,43 +293,79 @@ DO
     ' Handle modifier + arrow key combinations with _KEYDOWN (more reliable)
     ' ALT/CTRL + UP: Previous preset
     IF _KEYDOWN(KEY_UP&) AND ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
-        IF UBOUND(preset_files_sorted$) >= 0 THEN
-            cur_preset = cur_preset - 1
-            IF cur_preset < 0 THEN cur_preset = UBOUND(preset_files_sorted$)
-            load_preset preset_files_sorted$(cur_preset)
-            draw_output
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            IF UBOUND(preset_files_sorted$) >= 0 THEN
+                ' Ensure cur_preset is valid before cycling
+                IF cur_preset < 0 THEN cur_preset = 0
+                cur_preset = cur_preset - 1
+                IF cur_preset < 0 THEN cur_preset = UBOUND(preset_files_sorted$)
+                load_preset preset_files_sorted$(cur_preset)
+                draw_output
+            END IF
+            last_key_time = TIMER
         END IF
-        _KEYCLEAR ' Clear the key buffer to prevent repeat
         GOTO continue_loop
     END IF
     
     ' ALT/CTRL + DOWN: Next preset  
     IF _KEYDOWN(KEY_DOWN&) AND ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
-        IF UBOUND(preset_files_sorted$) >= 0 THEN
-            cur_preset = cur_preset + 1
-            IF cur_preset > UBOUND(preset_files_sorted$) THEN cur_preset = 0
-            load_preset preset_files_sorted$(cur_preset)
-            draw_output
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            IF UBOUND(preset_files_sorted$) >= 0 THEN
+                ' Ensure cur_preset is valid before cycling
+                IF cur_preset < 0 THEN cur_preset = -1  ' Will become 0 after increment
+                cur_preset = cur_preset + 1
+                IF cur_preset > UBOUND(preset_files_sorted$) THEN cur_preset = 0
+                load_preset preset_files_sorted$(cur_preset)
+                draw_output
+            END IF
+            last_key_time = TIMER
         END IF
-        _KEYCLEAR ' Clear the key buffer to prevent repeat
+        GOTO continue_loop
+    END IF
+    
+    ' CTRL + S: Overwrite current preset (quick save)
+    IF _KEYDOWN(KEY_S&) AND ((_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            IF UBOUND(preset_files_sorted$) >= 0 AND cur_preset >= 0 AND cur_preset <= UBOUND(preset_files_sorted$) THEN
+                ' Extract preset name from current preset file
+                DIM AS STRING current_preset_path, preset_name_to_save
+                current_preset_path = preset_files_sorted$(cur_preset)
+                preset_name_to_save = _TRIM$(MID$(current_preset_path, _INSTRREV(current_preset_path, SLASH$) + 1))
+                ' Remove .INI extension
+                IF _INSTRREV(preset_name_to_save, ".") > 0 THEN
+                    preset_name_to_save = LEFT$(preset_name_to_save, _INSTRREV(preset_name_to_save, ".") - 1)
+                END IF
+                ' Save over the existing preset
+                save_preset preset_name_to_save
+                _MESSAGEBOX "IMG2PAL", "Preset updated: " + preset_name_to_save + ".INI", "info"
+                draw_output
+            ELSE
+                _MESSAGEBOX "IMG2PAL", "No preset selected to overwrite. Use W to save a new preset first.", "info"
+            END IF
+            last_key_time = TIMER
+        END IF
         GOTO continue_loop
     END IF
     
     ' Plain UP: Zoom in (only if no modifiers are pressed)
     IF _KEYDOWN(KEY_UP&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
-        zoom = zoom + zoom_adj
-        IF (zoom > zoom_max) THEN zoom = zoom_max
-        draw_output
-        _KEYCLEAR ' Clear the key buffer to prevent repeat
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            zoom = zoom + zoom_adj
+            IF (zoom > zoom_max) THEN zoom = zoom_max
+            draw_output
+            last_key_time = TIMER
+        END IF
         GOTO continue_loop
     END IF
     
     ' Plain DOWN: Zoom out (only if no modifiers are pressed)  
     IF _KEYDOWN(KEY_DOWN&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
-        zoom = zoom - zoom_adj
-        IF (zoom < zoom_min) THEN zoom = zoom_min
-        draw_output
-        _KEYCLEAR ' Clear the key buffer to prevent repeat
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            zoom = zoom - zoom_adj
+            IF (zoom < zoom_min) THEN zoom = zoom_min
+            draw_output
+            last_key_time = TIMER
+        END IF
         GOTO continue_loop
     END IF
     
@@ -675,7 +732,7 @@ DO
                 REDIM img_files(0) AS STRING
                 REDIM img_files_sorted(0) AS STRING
                 CALL files_to_array(LEFT$(img_file$, _INSTRREV(img_file$, SLASH$)), "*", img_files$())
-                CALL ARR_STR.sort(img_files$(), img_files_sorted$())
+                IF UBOUND(img_files$) >= 0 THEN CALL ARR_STR.sort(img_files$(), img_files_sorted$())
                 cur_img% = ARR_STR.find%(img_files_sorted$(), img_file$)
                 _ECHO _TRIM$(STR$(cur_img%))
                 draw_output
@@ -697,7 +754,7 @@ DO
                     REDIM pal_files(0) AS STRING
                     REDIM pal_files_sorted(0) AS STRING
                     CALL files_to_array(LEFT$(pal_file$, _INSTRREV(pal_file$, SLASH$)), "*.GPL", pal_files$())
-                    CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
+                    IF UBOUND(pal_files$) >= 0 THEN CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
                     cur_pal% = ARR_STR.find%(pal_files_sorted$(), pal_file$)
                     _ECHO _TRIM$(STR$(cur_pal%))
                 END IF
@@ -837,7 +894,7 @@ DO
             _MESSAGEBOX "IMG2PAL", "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT", "info"
+            _MESSAGEBOX "IMG2PAL", "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT", "info"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -864,7 +921,7 @@ DO
                 draw_output  ' Refresh display to show new preset status
             END IF
         CASE "e", "E":
-            ' Load preset
+            ' Load existing preset (does not create or modify presets)
             IF UBOUND(preset_files_sorted$) >= 0 THEN
                 DIM AS STRING preset_list, selected_preset
                 preset_list = ""
@@ -872,15 +929,16 @@ DO
                 FOR i = 0 TO UBOUND(preset_files_sorted$)
                     preset_list = preset_list + _TRIM$(STR$(i)) + ": " + _TRIM$(MID$(preset_files_sorted$(i), _INSTRREV(preset_files_sorted$(i), SLASH$) + 1)) + CHR$(13) + CHR$(10)
                 NEXT i
-                selected_preset = _INPUTBOX$("IMG2PAL", "Available presets:" + CHR$(13) + CHR$(10) + preset_list + "Enter preset number:", "0")
+                selected_preset = _INPUTBOX$("IMG2PAL", "Select existing preset:" + CHR$(13) + CHR$(10) + preset_list + "Enter preset number:", "0")
                 IF LEN(selected_preset) > 0 THEN
                     DIM AS INTEGER preset_idx
                     preset_idx = VAL(selected_preset)
                     IF preset_idx >= 0 AND preset_idx <= UBOUND(preset_files_sorted$) THEN
+                        ' Only reference and select existing preset - do not modify preset list
                         cur_preset = preset_idx
                         load_preset preset_files_sorted$(cur_preset)
                         draw_output
-                        _MESSAGEBOX "IMG2PAL", "Loaded preset: " + _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1)), "info"
+                        _MESSAGEBOX "IMG2PAL", "Loaded existing preset: " + _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1)), "info"
                     END IF
                 END IF
             ELSE
@@ -1077,6 +1135,10 @@ SUB save_preset(preset_name AS STRING)
     content = content + "IMAGE_FILE=" + img_files_sorted$(cur_img%) + CHR$(13) + CHR$(10)
     content = content + "PALETTE_FILE=" + pal_files_sorted$(cur_pal%) + CHR$(13) + CHR$(10)
     content = content + "DITHERING_ENABLED=" + _TRIM$(STR$(dithering_enabled)) + CHR$(13) + CHR$(10)
+    content = content + "DITHER_METHOD=" + _TRIM$(STR$(dither_method)) + CHR$(13) + CHR$(10)
+    content = content + "DITHER_AMOUNT=" + _TRIM$(STR$(dither_amount)) + CHR$(13) + CHR$(10)
+    content = content + "CURRENT_PATTERN=" + _TRIM$(STR$(current_pattern)) + CHR$(13) + CHR$(10)
+    content = content + "CUSTOM_PATTERN_FILE=" + custom_pattern_file + CHR$(13) + CHR$(10)
     content = content + "ZOOM=" + _TRIM$(STR$(zoom)) + CHR$(13) + CHR$(10)
     content = content + "SCALER=" + _TRIM$(STR$(cur_scaler%)) + CHR$(13) + CHR$(10)
     
@@ -1161,6 +1223,14 @@ SUB load_preset(preset_file AS STRING)
                             IF pal_index >= 0 THEN cur_pal% = pal_index
                         CASE "DITHERING_ENABLED"
                             dithering_enabled = VAL(value)
+                        CASE "DITHER_METHOD"
+                            dither_method = VAL(value)
+                        CASE "DITHER_AMOUNT"
+                            dither_amount = VAL(value)
+                        CASE "CURRENT_PATTERN"
+                            current_pattern = VAL(value)
+                        CASE "CUSTOM_PATTERN_FILE"
+                            custom_pattern_file = value
                         CASE "ZOOM"
                             zoom = VAL(value)
                         CASE "SCALER"
@@ -1222,6 +1292,11 @@ next_line:
             load_default_ega_palette img_pal
         END IF
     END IF
+    
+    ' Reload pattern if pattern dithering is enabled
+    IF dither_method = 23 THEN
+        CALL LoadDitherPattern(current_pattern)
+    END IF
 END SUB
 
 ''
@@ -1229,7 +1304,7 @@ END SUB
 '
 SUB refresh_presets
     CALL files_to_array(_STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$, "*.INI", preset_files$())
-    CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
+    IF UBOUND(preset_files$) >= 0 THEN CALL ARR_STR.sort(preset_files$(), preset_files_sorted$())
 END SUB
 
 ''
@@ -1237,29 +1312,30 @@ END SUB
 '
 FUNCTION get_preset_status$ (include_debug AS INTEGER)
     DIM AS STRING preset_status
-    IF UBOUND(preset_files_sorted$) >= 0 THEN
-        IF cur_preset >= 0 AND cur_preset <= UBOUND(preset_files_sorted$) THEN
-            DIM AS STRING current_preset_name
-            IF cur_preset <= UBOUND(preset_files_sorted$) THEN
-                current_preset_name = _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1))
-                ' Handle the case where there's no extension or the file path is malformed
-                IF _INSTRREV(current_preset_name, ".") > 0 THEN
-                    current_preset_name = LEFT$(current_preset_name, _INSTRREV(current_preset_name, ".") - 1) ' Remove .INI extension
-                END IF
-                IF LEN(current_preset_name) = 0 THEN current_preset_name = "UNKNOWN"
-            ELSE
-                current_preset_name = "OUT_OF_BOUNDS"
-            END IF
-            preset_status = "PRESETS: [W]RITE [E]NVOKE ALT/CTRL+UP/DN=PREV/NEXT - CURRENT: " + current_preset_name + " (" + _TRIM$(STR$(cur_preset + 1)) + "/" + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + ")"
-            IF include_debug THEN preset_status = preset_status + " PATH:" + preset_files_sorted$(cur_preset)
-        ELSE
-            preset_status = "PRESETS: [W]RITE [E]NVOKE ALT/CTRL+UP/DN=PREV/NEXT - AVAILABLE: " + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + " (NONE LOADED)"
-            IF include_debug THEN preset_status = preset_status + " CUR_PRESET=" + _TRIM$(STR$(cur_preset))
+    
+    ' Defensive check: ensure arrays are properly initialized
+    IF UBOUND(preset_files_sorted$) >= 0 AND cur_preset >= 0 AND cur_preset <= UBOUND(preset_files_sorted$) THEN
+        ' Valid preset is selected
+        DIM AS STRING current_preset_name
+        current_preset_name = _TRIM$(MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1))
+        ' Handle the case where there's no extension or the file path is malformed
+        IF _INSTRREV(current_preset_name, ".") > 0 THEN
+            current_preset_name = LEFT$(current_preset_name, _INSTRREV(current_preset_name, ".") - 1) ' Remove .INI extension
         END IF
+        IF LEN(current_preset_name) = 0 THEN current_preset_name = "UNKNOWN"
+        
+        preset_status = "PRESETS: [W]RITE / LOAD [E]XISTING PRESET  ALT/CTRL+UP/DN=PREV/NEXT - CURRENT: " + current_preset_name + " (" + _TRIM$(STR$(cur_preset + 1)) + "/" + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + ")"
+        IF include_debug THEN preset_status = preset_status + " PATH:" + preset_files_sorted$(cur_preset)
+    ELSEIF UBOUND(preset_files_sorted$) >= 0 THEN
+        ' Presets exist but none selected
+        preset_status = "PRESETS: [W]RITE / LOAD [E]XISTING PRESET   ALT/CTRL+UP/DN=PREV/NEXT - AVAILABLE: " + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + " (NONE LOADED)"
+        IF include_debug THEN preset_status = preset_status + " CUR_PRESET=" + _TRIM$(STR$(cur_preset))
     ELSE
-        preset_status = "PRESETS: [W]RITE [E]NVOKE ALT/CTRL+UP/DN=PREV/NEXT - NO PRESETS FOUND"
+        ' No presets exist
+        preset_status = "PRESETS: [W]RITE / LOAD [E]XISTING PRESET  ALT/CTRL+UP/DN=PREV/NEXT - NO PRESETS FOUND"
         IF include_debug THEN preset_status = preset_status + " UBOUND=" + _TRIM$(STR$(UBOUND(preset_files_sorted$)))
     END IF
+    
     get_preset_status$ = preset_status
 END FUNCTION
 
@@ -3095,8 +3171,13 @@ END SUB
 SUB files_to_array(filepath$, mask$, arr$())
     DIM AS STRING f, fn
     DIM AS LONG lb, ub
+    
+    ' Clear the array first to prevent accumulation of old entries
+    REDIM arr(0) AS STRING
+    lb& = 0
+    ub& = 0
+    
     f$ = _FILES$(filepath$ + mask$)
-    lb& = LBOUND(arr$)
     DO WHILE LEN(f$) > 0
         fn$ = _TRIM$(f$)
         ' Filter out directories and system files
@@ -3105,20 +3186,28 @@ SUB files_to_array(filepath$, mask$, arr$())
             DIM ext AS STRING
             ext = UCASE$(RIGHT$(fn$, 4))
             IF INSTR(ext, ".JPG") OR INSTR(ext, ".PNG") OR INSTR(ext, ".GIF") OR INSTR(ext, ".BMP") OR INSTR(ext, ".TGA") OR INSTR(ext, ".PSD") OR INSTR(ext, ".PCX") OR INSTR(ext, ".SVG") OR INSTR(ext, ".QOI") OR INSTR(UCASE$(RIGHT$(fn$, 5)), ".JPEG") OR INSTR(ext, ".GPL") OR INSTR(ext, ".INI") THEN
-                ub& = UBOUND(arr$)
-                arr$(ub&) = filepath$ + f$
-                REDIM _PRESERVE arr(lb& TO ub& + 1) AS STRING
+                ' Add the file to the array
+                IF ub& = 0 AND LEN(arr$(0)) = 0 THEN
+                    ' First entry
+                    arr$(0) = filepath$ + f$
+                ELSE
+                    ' Additional entries
+                    ub& = UBOUND(arr$)
+                    REDIM _PRESERVE arr(0 TO ub& + 1) AS STRING
+                    arr$(ub& + 1) = filepath$ + f$
+                END IF
             END IF
         END IF
         f$ = _FILES$
     LOOP
-    REDIM _PRESERVE arr(lb& TO ub&) AS STRING
+    
+    ' Clean up empty array if no files were found
+    IF UBOUND(arr$) = 0 AND LEN(arr$(0)) = 0 THEN
+        REDIM arr(-1) AS STRING  ' Empty array
+    END IF
+    
     DIM old_dest AS LONG
-    old_dest& = _DEST
-    _DEST _CONSOLE
-    PRINT DUMP.string$(filepath$, "filepath")
-    PRINT DUMP.string_array$(arr$(), "files_to_array")
-    _DEST old_dest&
+    ' Debug output removed to prevent crashes with empty arrays
 END SUB
 
 
