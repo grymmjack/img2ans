@@ -1324,15 +1324,15 @@ FUNCTION get_preset_status$ (include_debug AS INTEGER)
         END IF
         IF LEN(current_preset_name) = 0 THEN current_preset_name = "UNKNOWN"
         
-        preset_status = "PRESETS: [W]RITE / LOAD [E]XISTING PRESET  ALT/CTRL+UP/DN=PREV/NEXT - CURRENT: " + current_preset_name + " (" + _TRIM$(STR$(cur_preset + 1)) + "/" + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + ")"
+        preset_status = "PRESETS: [W]RITE / CTRL+[S]AVE (OVER) / LOAD [E]XISTING  ALT/CTRL+UP/DN=PREV/NEXT - CURRENT: " + current_preset_name + " (" + _TRIM$(STR$(cur_preset + 1)) + "/" + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + ")"
         IF include_debug THEN preset_status = preset_status + " PATH:" + preset_files_sorted$(cur_preset)
     ELSEIF UBOUND(preset_files_sorted$) >= 0 THEN
         ' Presets exist but none selected
-        preset_status = "PRESETS: [W]RITE / LOAD [E]XISTING PRESET   ALT/CTRL+UP/DN=PREV/NEXT - AVAILABLE: " + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + " (NONE LOADED)"
+        preset_status = "PRESETS: [W]RITE / CTRL+[S]AVE (OVER) / LOAD [E]XISTING  ALT/CTRL+UP/DN=PREV/NEXT - AVAILABLE: " + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + " (NONE LOADED)"
         IF include_debug THEN preset_status = preset_status + " CUR_PRESET=" + _TRIM$(STR$(cur_preset))
     ELSE
         ' No presets exist
-        preset_status = "PRESETS: [W]RITE / LOAD [E]XISTING PRESET  ALT/CTRL+UP/DN=PREV/NEXT - NO PRESETS FOUND"
+        preset_status = "PRESETS: [W]RITE / CTRL+[S]AVE (OVER) / LOAD [E]XISTING  ALT/CTRL+UP/DN=PREV/NEXT - NO PRESETS FOUND"
         IF include_debug THEN preset_status = preset_status + " UBOUND=" + _TRIM$(STR$(UBOUND(preset_files_sorted$)))
     END IF
     
