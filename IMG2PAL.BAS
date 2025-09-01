@@ -351,27 +351,6 @@ DO
         GOTO continue_loop
     END IF
     
-    ' CTRL + B: Toggle between regular and non-black brightness/contrast
-    IF _KEYDOWN(KEY_B&) AND ((_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
-        IF TIMER - last_key_time >= key_repeat_delay THEN
-            adj_use_nonblack_bc = NOT adj_use_nonblack_bc
-            DIM toggle_message AS STRING
-            IF adj_use_nonblack_bc THEN
-                toggle_message = "Switched to Non-Black Brightness/Contrast mode"
-            ELSE
-                toggle_message = "Switched to Regular Brightness/Contrast mode"
-            END IF
-            _MESSAGEBOX "IMG2PAL", toggle_message, "info"
-            ' If we have any brightness or contrast adjustments, re-apply them
-            IF adj_brightness <> 0 OR adj_contrast <> 0 THEN
-                adj_needs_update = _TRUE
-                draw_output
-            END IF
-            last_key_time = TIMER
-        END IF
-        GOTO continue_loop
-    END IF
-    
     ' Plain UP: Zoom in (only if no modifiers are pressed)
     IF _KEYDOWN(KEY_UP&) AND NOT ((_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&)) OR (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
         IF TIMER - last_key_time >= key_repeat_delay THEN
@@ -394,8 +373,15 @@ DO
         GOTO continue_loop
     END IF
     
-    ' Get regular key input using INKEY$
+    ' Handle special key combinations first using _KEYDOWN
+    ' CTRL + B: Toggle between regular and non-black brightness/contrast
+    DIM ctrl_b_result AS INTEGER
+    ctrl_b_result = handle_ctrl_b_toggle%
+    IF ctrl_b_result THEN GOTO continue_loop
+    
+    ' Handle regular key input using INKEY$
     k$ = INKEY$
+    IF LEN(k$) = 0 THEN GOTO continue_loop
     
     SELECT CASE k$
         CASE CHR$(27)
@@ -516,19 +502,16 @@ DO
             reset_adjustments
             draw_output
         CASE "b", "B":
-            ' Skip if CTRL is held down (CTRL+B is handled separately)
-            IF NOT (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&)) THEN
-                ' Adjust brightness
-                DIM brightness_input AS STRING
-                brightness_input = _INPUTBOX$("IMG2PAL", "Brightness (-100 to +100)", _TRIM$(STR$(adj_brightness)))
-                IF LEN(brightness_input) <> 0 THEN
-                    DIM new_brightness AS INTEGER
-                    new_brightness = VAL(brightness_input)
-                    IF new_brightness >= -100 AND new_brightness <= 100 THEN
-                        adj_brightness = new_brightness
-                        adj_needs_update = _TRUE
-                        draw_output
-                    END IF
+            ' Adjust brightness
+            DIM brightness_input AS STRING
+            brightness_input = _INPUTBOX$("IMG2PAL", "Brightness (-100 to +100)", _TRIM$(STR$(adj_brightness)))
+            IF LEN(brightness_input) <> 0 THEN
+                DIM new_brightness AS INTEGER
+                new_brightness = VAL(brightness_input)
+                IF new_brightness >= -100 AND new_brightness <= 100 THEN
+                    adj_brightness = new_brightness
+                    adj_needs_update = _TRUE
+                    draw_output
                 END IF
             END IF
         CASE "c", "C":
@@ -1371,6 +1354,58 @@ FUNCTION get_preset_status$ (include_debug AS INTEGER)
 END FUNCTION
 
 ''
+' Handle CTRL+B toggle with proper key state management
+' Returns TRUE if CTRL+B was detected and handled, FALSE otherwise
+'
+FUNCTION handle_ctrl_b_toggle%
+    STATIC ctrl_b_was_pressed AS INTEGER
+    STATIC last_ctrl_b_time AS SINGLE
+    
+    ' Check if CTRL+B is currently pressed (and no other modifiers)
+    DIM ctrl_b_pressed AS INTEGER
+    ctrl_b_pressed = _KEYDOWN(KEY_B&) AND (_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&)) AND NOT (_KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&)) AND NOT (_KEYDOWN(KEY_LALT&) OR _KEYDOWN(KEY_RALT&))
+    
+    ' Debug: Only show when CTRL+B is pressed WITHOUT any other modifiers
+    IF ctrl_b_pressed THEN
+        DIM debug_msg AS STRING
+        debug_msg = "B=" + _TRIM$(STR$(_KEYDOWN(KEY_B&))) + " LCTRL=" + _TRIM$(STR$(_KEYDOWN(KEY_LCTRL&))) + " RCTRL=" + _TRIM$(STR$(_KEYDOWN(KEY_RCTRL&))) + " Result=" + _TRIM$(STR$(ctrl_b_pressed))
+        _MESSAGEBOX "DEBUG", debug_msg, "info"
+    END IF
+    
+    ' Only trigger on the press (not while held)
+    IF ctrl_b_pressed AND NOT ctrl_b_was_pressed THEN
+        ' Add timing delay to prevent rapid toggles
+        IF TIMER - last_ctrl_b_time >= 0.3 THEN
+            _MESSAGEBOX "DEBUG", "Toggling mode", "info"
+            adj_use_nonblack_bc = NOT adj_use_nonblack_bc
+            DIM toggle_message AS STRING
+            IF adj_use_nonblack_bc THEN
+                toggle_message = "Switched to Non-Black Brightness/Contrast mode (CTRL+B)"
+            ELSE
+                toggle_message = "Switched to Regular Brightness/Contrast mode (CTRL+B)"
+            END IF
+            _MESSAGEBOX "IMG2PAL", toggle_message, "info"
+            
+            ' If we have any brightness or contrast adjustments, re-apply them
+            IF adj_brightness <> 0 OR adj_contrast <> 0 THEN
+                adj_needs_update = _TRUE
+                draw_output
+            END IF
+            last_ctrl_b_time = TIMER
+        ELSE
+            _MESSAGEBOX "DEBUG", "Too soon for toggle", "info"
+        END IF
+        ctrl_b_was_pressed = _TRUE
+        handle_ctrl_b_toggle% = _TRUE
+    ELSEIF NOT ctrl_b_pressed THEN
+        ctrl_b_was_pressed = _FALSE
+        handle_ctrl_b_toggle% = _FALSE
+    ELSE
+        handle_ctrl_b_toggle% = _FALSE
+    END IF
+END FUNCTION
+
+''
 ' Apply all chained adjustments to create the adjusted image
 ' This rebuilds img_adjusted from img_orig with all current adjustment values
 '
@@ -1559,7 +1594,7 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
     ' Common status lines
     PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
     PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
-    PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"
+    PRINT "ADJ: [R]ESET [B]RIGHTNESS (^SH+B:PRESERVE BLACK) [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"
     
     IF show_dither_details THEN
         DIM bc_mode_detailed AS STRING
