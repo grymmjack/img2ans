@@ -962,7 +962,7 @@ DO
             show_info_msg "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            show_info_msg "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,?=RANDOM ALL" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,?=RANDOMIZE,ESC=QUIT"
+            show_info_msg "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,`=RANDOM IMG,~=RANDOM PAL,?=RANDOM ALL" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -1047,7 +1047,7 @@ DO
                     draw_output
                 END IF
             END IF
-        CASE "~":
+        CASE "#":
             ' Toggle scanline effect
             scanline_enabled = NOT scanline_enabled
             draw_output
@@ -1078,6 +1078,14 @@ DO
             ' Increase scanline opacity
             scanline_opacity = scanline_opacity + 0.05
             IF scanline_opacity > 1.0 THEN scanline_opacity = 1.0
+            draw_output
+        CASE "`":
+            ' Random image only (keep all other settings)
+            CALL random_image_only
+            draw_output
+        CASE "~":
+            ' Random palette only (keep all other settings)
+            CALL random_palette_only
             draw_output
         CASE "?":
             ' Random everything: image, palette, dither mode, and dither amount
@@ -1590,19 +1598,19 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
     IF show_dither_details THEN
         ' Dithering mode status - check actual dithering state
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,ESC=QUIT"
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,ESC=QUIT"
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     ELSE
         ' Standard mode status
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,?=RANDOMIZE,ESC=QUIT- "
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,?=RANDOMIZE,`=RANDIMG,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,?=RANDOMIZE,ESC=QUIT- "
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,?=RANDOMIZE,`=RANDIMG,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     END IF
@@ -1616,7 +1624,7 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
         DIM bc_mode_detailed AS STRING
         bc_mode_detailed = _IIF(adj_use_nonblack_bc, "NB", "REG")
         PRINT "ADJ: B=" + _TRIM$(STR$(adj_brightness)) + " C=" + _TRIM$(STR$(adj_contrast)) + " H=" + _TRIM$(STR$(adj_hue)) + " P=" + _TRIM$(STR$(adj_pixelate)) + " T=" + _TRIM$(STR$(adj_threshold)) + " POST=" + _TRIM$(STR$(adj_posterize)) + " COL=" + _TRIM$(STR$(adj_colorize_hue)) + "/" + _TRIM$(STR$(adj_colorize_sat)) + " BC_MODE=" + bc_mode_detailed
-        PRINT "SCANLINE: ~=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
+        PRINT "SCANLINE: #=TOGGLE [=SIZE- ]=SIZE+ |=VERT _=HORIZ {=OPACITY- }=OPACITY+ STATUS=" + _IIF(scanline_enabled, "ON", "OFF") + " SIZE=" + _TRIM$(STR$(scanline_size)) + " DIR=" + _IIF(scanline_horizontal, "HORIZ", "VERT") + " OP=" + _TRIM$(STR$(INT(scanline_opacity * 100))) + "%"
     ELSE
         DIM bc_mode_standard AS STRING
         bc_mode_standard = _IIF(adj_use_nonblack_bc, "NB", "REG")
@@ -3590,6 +3598,115 @@ SUB random_everything
         END IF
     ELSE
         show_info_msg "No images or palettes available for randomization!"
+    END IF
+END SUB
+
+
+''
+' Randomize only the image, keeping all other settings (palette, dither, etc.)
+'
+SUB random_image_only
+    DIM AS INTEGER random_img
+    DIM AS STRING msg, img_name
+    
+    ' Seed the random number generator with current timer
+    RANDOMIZE TIMER + _FREETIMER
+    
+    ' Only randomize if we have images available
+    IF UBOUND(img_files_sorted$) >= 0 THEN
+        ' Pick random image
+        random_img = INT(RND * (UBOUND(img_files_sorted$) + 1))
+        IF random_img > UBOUND(img_files_sorted$) THEN random_img = UBOUND(img_files_sorted$)
+        
+        ' Apply the random image selection
+        cur_img% = random_img
+        
+        ' Free and reload the image with current settings preserved
+        IF img_orig <> 0 THEN _FREEIMAGE img_orig: img_orig = 0
+        IF img_pal <> 0 THEN _FREEIMAGE img_pal: img_pal = 0  
+        IF img_adjusted <> 0 THEN img_adjusted = 0
+        
+        ' Preserve all current settings (don't reset adjustments)
+        ' Load the randomly selected image with current dithering/scaler settings
+        IF _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
+            IF dithering_enabled THEN
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+            ELSE
+                img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+            END IF
+            
+            IF img_orig <> 0 THEN
+                img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+                
+                ' Keep the current palette (don't randomize it)
+                IF UBOUND(pal_files_sorted$) >= 0 AND _FILEEXISTS(pal_files_sorted$(cur_pal%)) THEN
+                    load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+                ELSE
+                    load_default_ega_palette img_pal
+                END IF
+                
+                ' Keep current pattern if pattern dithering is active
+                IF dither_method = 23 THEN
+                    CALL LoadDitherPattern(current_pattern)
+                END IF
+                
+                ' Create info message about what was randomized
+                ' Extract just the filename from the full path
+                img_name = MID$(img_files_sorted$(cur_img%), _INSTRREV(img_files_sorted$(cur_img%), SLASH$) + 1)
+                
+                msg = "RANDOM IMAGE: " + img_name + " (settings preserved)"
+                show_info_msg msg
+            ELSE
+                show_info_msg "Random image load failed!"
+            END IF
+        ELSE
+            show_info_msg "Random image file not found!"
+        END IF
+    ELSE
+        show_info_msg "No images available for randomization!"
+    END IF
+END SUB
+
+
+''
+' Randomize only the palette, keeping all other settings (image, dither, etc.)
+'
+SUB random_palette_only
+    DIM AS INTEGER random_pal
+    DIM AS STRING msg, pal_name
+    
+    ' Seed the random number generator with current timer
+    RANDOMIZE TIMER + _FREETIMER
+    
+    ' Only randomize if we have palettes available
+    IF UBOUND(pal_files_sorted$) >= 0 THEN
+        ' Pick random palette
+        random_pal = INT(RND * (UBOUND(pal_files_sorted$) + 1))
+        IF random_pal > UBOUND(pal_files_sorted$) THEN random_pal = UBOUND(pal_files_sorted$)
+        
+        ' Apply the random palette selection
+        cur_pal% = random_pal
+        
+        ' Only reload the palette if we have an active image
+        IF img_pal <> 0 THEN
+            ' Load the randomly selected palette with current image preserved
+            IF _FILEEXISTS(pal_files_sorted$(cur_pal%)) THEN
+                load_gpl_palette pal_files_sorted$(cur_pal%), img_pal
+                
+                ' Create info message about what was randomized
+                ' Extract just the filename from the full path
+                pal_name = MID$(pal_files_sorted$(cur_pal%), _INSTRREV(pal_files_sorted$(cur_pal%), SLASH$) + 1)
+                
+                msg = "RANDOM PALETTE: " + pal_name + " (settings preserved)"
+                show_info_msg msg
+            ELSE
+                show_info_msg "Random palette file not found!"
+            END IF
+        ELSE
+            show_info_msg "No image loaded - load an image first!"
+        END IF
+    ELSE
+        show_info_msg "No palettes available for randomization!"
     END IF
 END SUB
 
