@@ -642,6 +642,15 @@ DO
             END IF
 
         CASE "d", "D":
+            ' Save current scanline settings before toggling dithering
+            DIM AS _BYTE saved_scanline_enabled, saved_scanline_horizontal
+            DIM AS INTEGER saved_scanline_size
+            DIM AS SINGLE saved_scanline_opacity
+            saved_scanline_enabled = scanline_enabled
+            saved_scanline_size = scanline_size
+            saved_scanline_horizontal = scanline_horizontal
+            saved_scanline_opacity = scanline_opacity
+            
             dithering_enabled = NOT dithering_enabled
             ' Always redraw to update the dither state, and reload image if one exists
             IF img_orig <> 0 AND UBOUND(img_files_sorted$) >= 0 THEN
@@ -658,6 +667,12 @@ DO
                     img_adjusted = 0
                 END IF
                 reset_adjustments
+                
+                ' Restore scanline settings after reset
+                scanline_enabled = saved_scanline_enabled
+                scanline_size = saved_scanline_size
+                scanline_horizontal = saved_scanline_horizontal
+                scanline_opacity = saved_scanline_opacity
                 ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
                 IF _FILEEXISTS(img_files_sorted$(cur_img%)) THEN
                     IF dithering_enabled THEN
