@@ -88,7 +88,7 @@ scalers$(6) = "HQ3XB"
 
 cur_scaler% = 0
 
-' Dithering is enabled by default
+' Dithering is disabled by default
 dithering_enabled = 0 ' 0 = OFF, 1 = ON
 dither_method = 4     ' Default to Floyd-Steinberg (method 4)
 dither_amount = 0.5   ' 0.0 = no dither, 1.0 = full dither, 0.5 = 50%
