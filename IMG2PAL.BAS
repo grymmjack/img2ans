@@ -1149,6 +1149,11 @@ END SUB
 ''
 ' Apply scanline effect as a screen overlay at specified coordinates
 ' Creates a fresh transparent image with ONLY scanlines, then composites it on screen
+' @param LONG img The source image to apply scanlines to
+' @param INTEGER dest_x1 Left X coordinate of destination area
+' @param INTEGER dest_y1 Top Y coordinate of destination area  
+' @param INTEGER dest_x2 Right X coordinate of destination area
+' @param INTEGER dest_y2 Bottom Y coordinate of destination area
 '
 SUB apply_scanlines(img AS LONG, dest_x1 AS INTEGER, dest_y1 AS INTEGER, dest_x2 AS INTEGER, dest_y2 AS INTEGER)
     IF NOT scanline_enabled OR img = 0 THEN EXIT SUB
@@ -1214,6 +1219,7 @@ END SUB
 
 ''
 ' Save current settings as a preset
+' @param STRING preset_name Name of the preset to save (without .INI extension)
 '
 SUB save_preset(preset_name AS STRING)
     DIM AS STRING preset_path, content, image_path, palette_path, pattern_path
@@ -1308,6 +1314,7 @@ END SUB
 
 ''
 ' Load a preset and apply all settings
+' @param STRING preset_file Full path to the preset file to load
 '
 SUB load_preset(preset_file AS STRING)
     IF NOT _FILEEXISTS(preset_file) THEN EXIT SUB
@@ -1475,6 +1482,8 @@ END SUB
 
 ''
 ' Generate preset status string with debug information
+' @param INTEGER include_debug Whether to include debug information (1) or not (0)
+' @return STRING Formatted status string for display
 '
 FUNCTION get_preset_status$ (include_debug AS INTEGER)
     DIM AS STRING preset_status
@@ -1512,6 +1521,8 @@ END FUNCTION
 ' Resolve a file path - handles both absolute and relative paths
 ' Relative paths are resolved relative to the program's starting directory
 ' Cross-platform handling of Windows drive letters
+' @param STRING file_path The file path to resolve (can be absolute or relative)
+' @return STRING The resolved absolute file path
 '
 FUNCTION resolve_file_path$(file_path AS STRING)
     DIM resolved_path AS STRING
@@ -1579,6 +1590,8 @@ END FUNCTION
 ' Convert absolute path to relative path if it's within the project directory
 ' Otherwise return the absolute path unchanged
 ' Handles cross-platform drive letter conversions
+' @param STRING absolute_path The absolute path to make relative
+' @return STRING Relative path if within project, otherwise absolute path
 '
 FUNCTION make_relative_path$(absolute_path AS STRING)
     DIM AS STRING cleaned_path, project_root, relative_path
@@ -1630,6 +1643,8 @@ END FUNCTION
 ''
 ' Check if a file path points to an external resource (outside project directory)
 ' Handles cross-platform drive letter conversions
+' @param STRING file_path The file path to check
+' @return INTEGER Returns -1 if external, 0 if internal to project
 '
 FUNCTION is_external_path%(file_path AS STRING)
     DIM AS STRING cleaned_path, project_root
@@ -1845,6 +1860,8 @@ END SUB
 
 ''
 ' Centralized status display function
+' @param INTEGER show_dither_details Whether to show detailed dithering information
+' @param INTEGER include_debug Whether to include debug information
 '
 SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGER)
     IF show_dither_details THEN
@@ -1888,12 +1905,16 @@ END SUB
 
 ''
 ' Updates the status with command help
-' 
+'
 SUB update_status
     display_status_lines 0, 1  ' Standard mode, with debug
 END SUB
 
 
+''
+' Main output rendering function
+' Draws the original and palettized images side by side with status information
+'
 SUB draw_output
     CLS
     COLOR _RGB32(255, 255, 255)
@@ -1964,6 +1985,7 @@ END SUB
 
 ''
 ' Get the number of available dithering methods
+' @return INTEGER Total number of dithering methods available
 '
 FUNCTION GetDitherMethodCount%
     GetDitherMethodCount% = 24
@@ -1971,6 +1993,8 @@ END FUNCTION
 
 ''
 ' Get the name of a dithering method
+' @param INTEGER method The dithering method number (0-based index)
+' @return STRING Human-readable name of the dithering method
 '
 FUNCTION GetDitherMethodName$(method AS INTEGER)
     SELECT CASE method
@@ -2042,6 +2066,8 @@ END FUNCTION
 
 ''
 ' Display progress at bottom of screen without interfering with images
+' @param STRING message Progress message to display
+' @param SINGLE percent Progress percentage (0-100)
 '
 SUB ShowProgress(message AS STRING, percent AS SINGLE)
     DIM oldDest AS LONG
@@ -2079,6 +2105,11 @@ SUB ClearProgress
     
     _DEST oldDest
 END SUB
+
+''
+' Update palette cache for faster lookups
+' @param LONG dst The destination image containing the palette to cache
+'
 SUB UpdatePaletteCache(dst AS LONG)
     DIM i AS INTEGER
     DIM palColor AS _UNSIGNED LONG
@@ -2100,6 +2131,11 @@ END SUB
 
 ''
 ' Find nearest palette color index (optimized with cache)
+' @param INTEGER r Red component (0-255)
+' @param INTEGER g Green component (0-255)
+' @param INTEGER b Blue component (0-255)
+' @param LONG dst The destination image containing the palette
+' @return INTEGER Index of the nearest palette color
 '
 FUNCTION NearestPaletteIndex%(r AS INTEGER, g AS INTEGER, b AS INTEGER, dst AS LONG)
     DIM i AS INTEGER, bestI AS INTEGER
@@ -2137,6 +2173,12 @@ END FUNCTION
 
 ''
 ' Apply ordered dithering with a given matrix
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
+' @param INTEGER matrix() The dithering matrix
+' @param INTEGER matW Width of the matrix
+' @param INTEGER matH Height of the matrix
+' @param INTEGER maxVal Maximum value in the matrix
 '
 SUB ApplyOrderedDitherMatrix(img AS LONG, dst AS LONG, matrix() AS INTEGER, matW AS INTEGER, matH AS INTEGER, maxVal AS INTEGER)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -2187,6 +2229,8 @@ END SUB
 
 ''
 ' Apply Floyd-Steinberg error diffusion (optimized)
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyFloydSteinberg(img AS LONG, dst AS LONG)
     CALL ApplyErrorDiffusion(img, dst, 0)
@@ -2194,6 +2238,9 @@ END SUB
 
 ''
 ' Apply other error diffusion algorithms (optimized but fixed)
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
+' @param INTEGER algorithm Algorithm type (0=Floyd-Steinberg, 1=Jarvis-Judice-Ninke, etc.)
 '
 SUB ApplyErrorDiffusion(img AS LONG, dst AS LONG, algorithm AS INTEGER)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -2640,6 +2687,8 @@ END SUB
 
 ''
 ' Apply simple quantization (no dithering) - optimized
+' @param LONG img Source image to quantize
+' @param LONG dst Destination image with palette
 '
 SUB ApplyQuantizeOnly(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -2678,6 +2727,8 @@ END SUB
 
 ''
 ' Apply ordered dithering 2x2
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyOrderedDither2x2(img AS LONG, dst AS LONG)
     DIM bayer(0 TO 1, 0 TO 1) AS INTEGER
@@ -2691,6 +2742,8 @@ END SUB
 
 ''
 ' Apply ordered dithering 4x4
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyOrderedDither4x4(img AS LONG, dst AS LONG)
     DIM bayer(0 TO 3, 0 TO 3) AS INTEGER
@@ -2705,6 +2758,8 @@ END SUB
 
 ''
 ' Apply ordered dithering 8x8
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyOrderedDither8x8(img AS LONG, dst AS LONG)
     DIM bayer(0 TO 7, 0 TO 7) AS INTEGER
@@ -2723,6 +2778,8 @@ END SUB
 
 ''
 ' Apply random dithering - optimized
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyRandomDither(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -2782,6 +2839,8 @@ END SUB
 
 ''
 ' Apply blue noise dithering (simplified)
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyBlueNoiseDither(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -2825,6 +2884,8 @@ END SUB
 
 ''
 ' Apply clustered dot dithering
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyClusteredDot4x4(img AS LONG, dst AS LONG)
     ' Clustered dot dithering (newspaper-style halftoning)
@@ -2839,6 +2900,8 @@ END SUB
 
 ''
 ' Apply classic halftone dithering
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyHalftoneClassic(img AS LONG, dst AS LONG)
     ' Classic halftone pattern using distance from center
@@ -2885,6 +2948,8 @@ END SUB
 
 ''
 ' Apply 16x16 Bayer ordered dithering
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyOrderedDither16x16(img AS LONG, dst AS LONG)
     DIM bayer(0 TO 15, 0 TO 15) AS INTEGER
@@ -2901,6 +2966,8 @@ END SUB
 
 ''
 ' Apply interleaved gradient noise dithering
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyInterleavedGradientNoise(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -2956,6 +3023,8 @@ END SUB
 
 ''
 ' Apply spiral dithering (unique pattern)
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplySpiralDither(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -3012,6 +3081,7 @@ END SUB
 
 ''
 ' Load a dithering pattern (built-in patterns or custom)
+' @param INTEGER pattern_num Pattern number (0=Crosshatch, 1=Dots, 2=Lines, 3=Mesh, 4=Custom, 5=From File)
 '
 SUB LoadDitherPattern(pattern_num AS INTEGER)
     ' Free existing pattern if any
@@ -3108,6 +3178,7 @@ END SUB
 
 ''
 ' Load a bitmap pattern from file and convert to dithering pattern
+' @param STRING filename Path to the bitmap file to load as pattern
 '
 SUB LoadBitmapPattern(filename AS STRING)
     DIM temp_img AS LONG, x AS INTEGER, y AS INTEGER
@@ -3167,6 +3238,8 @@ END SUB
 
 ''
 ' Apply pattern dithering using a custom black and white pattern
+' @param LONG img Source image to dither
+' @param LONG dst Destination image with palette
 '
 SUB ApplyPatternDither(img AS LONG, dst AS LONG)
     DIM w AS LONG, h AS LONG, x AS LONG, y AS LONG
@@ -3572,7 +3645,7 @@ END SUB
 
 ''
 ' Sets the scaler to the previous scaler
-' 
+'
 SUB prev_scaler
     cur_scaler% = _CLAMP(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% - 1)
     _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
@@ -3581,7 +3654,7 @@ END SUB
 
 ''
 ' Sets the scaler to the next scaler
-' 
+'
 SUB next_scaler
     cur_scaler% = _CLAMP(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% + 1)
     _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
@@ -3590,7 +3663,7 @@ END SUB
 
 ''
 ' Sets the image file to the previous image file
-' 
+'
 SUB prev_img_file
     IF UBOUND(img_files_sorted$) >= 0 THEN
         cur_img% = cur_img% - 1
@@ -3602,7 +3675,7 @@ END SUB
 
 ''
 ' Sets the image file to the next image file
-' 
+'
 SUB next_img_file
     IF UBOUND(img_files_sorted$) >= 0 THEN
         cur_img% = cur_img% + 1
@@ -3614,7 +3687,7 @@ END SUB
 
 ''
 ' Sets the palette file to the previous palette file
-' 
+'
 SUB prev_pal_file
     IF UBOUND(pal_files_sorted$) >= 0 THEN
         cur_pal% = cur_pal% - 1
@@ -3626,7 +3699,7 @@ END SUB
 
 ''
 ' Sets the palette file to the next palette file
-' 
+'
 SUB next_pal_file
     IF UBOUND(pal_files_sorted$) >= 0 THEN
         cur_pal% = cur_pal% + 1
@@ -3638,7 +3711,7 @@ END SUB
 
 ''
 ' Show an information message as a toast notification
-' @param STRING msg$ The message to display
+' @param STRING msg The message to display
 '
 SUB show_info_msg(msg AS STRING)
     DIM msg_idx AS INTEGER
