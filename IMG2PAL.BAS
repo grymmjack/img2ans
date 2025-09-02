@@ -962,7 +962,7 @@ DO
             show_info_msg "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            show_info_msg "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,`=RANDOM IMG,~=RANDOM PAL,?=RANDOM ALL" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT"
+            show_info_msg "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,`=RANDOM IMG,~=RANDOM PAL,SPACE=RANDOM PRESET,?=RANDOM ALL" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -1086,6 +1086,10 @@ DO
         CASE "~":
             ' Random palette only (keep all other settings)
             CALL random_palette_only
+            draw_output
+        CASE " ":
+            ' Random preset (load a random saved preset)
+            CALL random_preset
             draw_output
         CASE "?":
             ' Random everything: image, palette, dither mode, and dither amount
@@ -1598,19 +1602,19 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
     IF show_dither_details THEN
         ' Dithering mode status - check actual dithering state
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT"
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,SPC=RAND PRESET,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-DITHER=" + _TRIM$(STR$(INT(dither_amount * 100))) + "%-METHOD=" + GetDitherMethodName$(dither_method)
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT"
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,+/-=AMT,<>=METH,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,R=RESET ADJ,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,SPC=RAND PRESET,ESC=QUIT"
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     ELSE
         ' Standard mode status
         IF dithering_enabled THEN
-            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT- "
+            PRINT "L=LOAD,P=PAL,D=DITH:ON,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,SPC=RAND PRESET,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=OFF"
         ELSE
-            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,ESC=QUIT- "
+            PRINT "L=LOAD,P=PAL,D=DITH:OFF,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,?=RANDOMIZE,`=RANDIMG,~=RAND PAL,SPC=RAND PRESET,ESC=QUIT- "
             PRINT "ZOOM=" + _TRIM$(STR$(zoom)) + "-SCALER=" + scalers$(cur_scaler%)
         END IF
     END IF
@@ -3707,6 +3711,48 @@ SUB random_palette_only
         END IF
     ELSE
         show_info_msg "No palettes available for randomization!"
+    END IF
+END SUB
+
+
+''
+' Randomize preset - load a random saved preset with all its settings
+'
+SUB random_preset
+    DIM AS INTEGER random_preset_idx
+    DIM AS STRING msg, preset_name
+    
+    ' Seed the random number generator with current timer
+    RANDOMIZE TIMER + _FREETIMER
+    
+    ' Only randomize if we have presets available
+    IF UBOUND(preset_files_sorted$) >= 0 THEN
+        ' Pick random preset
+        random_preset_idx = INT(RND * (UBOUND(preset_files_sorted$) + 1))
+        IF random_preset_idx > UBOUND(preset_files_sorted$) THEN random_preset_idx = UBOUND(preset_files_sorted$)
+        
+        ' Apply the random preset selection
+        cur_preset = random_preset_idx
+        
+        ' Load the randomly selected preset (this will load image, palette, and all settings)
+        IF _FILEEXISTS(preset_files_sorted$(cur_preset)) THEN
+            load_preset preset_files_sorted$(cur_preset)
+            
+            ' Create info message about what was randomized
+            ' Extract just the filename from the full path
+            preset_name = MID$(preset_files_sorted$(cur_preset), _INSTRREV(preset_files_sorted$(cur_preset), SLASH$) + 1)
+            ' Remove .INI extension if present
+            IF _INSTRREV(preset_name, ".") > 0 THEN
+                preset_name = LEFT$(preset_name, _INSTRREV(preset_name, ".") - 1)
+            END IF
+            
+            msg = "RANDOM PRESET: " + preset_name + " (all settings loaded)"
+            show_info_msg msg
+        ELSE
+            show_info_msg "Random preset file not found!"
+        END IF
+    ELSE
+        show_info_msg "No presets available for randomization! Save some presets first (W key)."
     END IF
 END SUB
 

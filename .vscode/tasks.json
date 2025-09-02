@@ -51,7 +51,7 @@
             }
         },
         {
-            "label": "HELP: OLD QB64 Wiki",
+            "label": "HELP: OLD QB64 Forums",
             "command": "OpenWebPage",
             "type": "shell",
             "linux": {
@@ -92,14 +92,53 @@
                 "focus": false,
                 "panel": "shared",
                 "showReuseMessage": false,
-                "clear": false,
-                "close": true
+                "clear": false
             },
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
         },
+        {
+            "label": "QB64PE: Format",
+            "type": "shell",
+            "windows": {
+                "command": "${config:qb64pe.compilerPath}",
+                "args": [
+                    "-y",
+                    "-f:MaxCompilerProcesses=8",
+                    "${fileDirname}\\${fileBasename}",
+                    "-o",
+                    "${fileDirname}\\${fileBasename}"
+                ]
+            },
+            "osx": {
+                "command": "${config:qb64pe.compilerPath}",
+                "args": [
+                    "-y",
+                    "-f:MaxCompilerProcesses=8",
+                    "${fileDirname}/${fileBasename}",
+                    "-o",
+                    "${fileDirname}/${fileBasename}"
+                ]
+            },
+            "linux": {
+                "command": "${config:qb64pe.compilerPath}",
+                "args": [
+                    "-y",
+                    "-f:MaxCompilerProcesses=8",
+                    "${fileDirname}/${fileBasename}",
+                    "-o",
+                    "${fileDirname}/${fileBasename}"
+                ]
+            },
+            "presentation": {
+                "reveal": "always",
+                "clear": true,
+                "panel": "shared",
+                "focus": false
+            }
+        },        
         {
             "label": "QB64PE: Open Selected in InForm",
             "type": "shell",
@@ -166,13 +205,13 @@
             "label": "EXECUTE: Selected File",
             "type": "shell",
             "windows": {
-                "command": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+                "command": "\"${fileDirname}\\${fileBasenameNoExtension}.exe\"",
             },
             "osx": {
-                "command": "${fileDirname}/${fileBasenameNoExtension}.run",
+                "command": "\"${fileDirname}/${fileBasenameNoExtension}.run\"",
             },
             "linux": {
-                "command": "setsid --fork ${fileDirname}/${fileBasenameNoExtension}.run",
+                "command": "setsid --fork \"${fileDirname}/${fileBasenameNoExtension}.run\"",
             },
             "presentation": {
                 "echo": false,
@@ -511,6 +550,41 @@
                 "panel": "shared",
                 "focus": false
             }
+        },
+        {
+          "label": "Add QB64_GJ_LIB to workspace",
+          "icon": {
+            "id": "add",
+            "color": "terminal.ansiYellow"
+          },
+          "type": "shell",
+          "windows": {
+              "command": "code",
+              "args": [
+                  "--add",
+                  "\"C:\\Users\\grymmjack\\git\\QB64_GJ_LIB\""
+              ]
+          },
+          "osx": {
+              "command": "code",
+              "args": [
+                  "--add",
+                  "\"/Users/grymmjack/git/QB64_GJ_LIB\""
+              ]
+          },
+          "linux": {
+              "command": "code",
+              "args": [
+                  "--add",
+                  "\"/home/grymmjack/git/QB64_GJ_LIB\""
+              ]
+          },
+          "presentation": {
+              "reveal": "never",
+              "panel": "shared",
+              "focus": false,
+          },
+          "problemMatcher": []
         }
     ]
 }

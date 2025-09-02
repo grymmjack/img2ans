@@ -1,31 +1,86 @@
 // Place your key bindings in this file to override the defaultsauto[]
 [
     {
-        "key": "shift+alt+cmd+right",
+        "key": "shift+alt+ctrl+right",
         "command": "workbench.action.toggleAuxiliaryBar"
     },
     {
-        "key": "shift+alt+cmd+down",
+        "key": "shift+alt+ctrl+down",
         "command": "workbench.action.togglePanel"
     },
     {
-        "key": "cmd+j",
+        "key": "ctrl+j",
         "command": "-workbench.action.togglePanel"
     },
     {
-        "key": "shift+alt+cmd+up",
+        "key": "shift+alt+ctrl+up",
         "command": "workbench.action.toggleMaximizedPanel"
     },
     {
-        "key": "shift+alt+cmd+left",
+        "key": "shift+alt+ctrl+left",
         "command": "workbench.action.toggleSidebarVisibility"
     },
     {
-        "key": "cmd+b",
+        "key": "ctrl+b",
         "command": "-workbench.action.toggleSidebarVisibility"
     },
     {
         "key": "F5",
         "command": "workbench.action.tasks.build"
-    }
+    },
+    {
+        "key": "shift+alt+up",
+        "command": "editor.action.copyLinesUpAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+shift+alt+up",
+        "command": "-editor.action.copyLinesUpAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "shift+alt+down",
+        "command": "editor.action.copyLinesDownAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+shift+alt+down",
+        "command": "-editor.action.copyLinesDownAction",
+        "when": "editorTextFocus && !editorReadonly"
+    },
+    {
+        "key": "ctrl+shift+alt+h",
+        "command": "extension.dash.specific",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+h",
+        "command": "-extension.dash.specific",
+        "when": "editorTextFocus"
+    },
+    {
+        "key": "ctrl+shift+s",
+        "command": "-extension.convertSpacesToTab"
+    },
+    {
+        "key": "ctrl+shift+l",
+        "command": "-editor.action.transformToLowercase",
+        "when": "editorTextFocus && editorLangId == 'QB64PE'"
+    },
+    {
+        "key": "ctrl+shift+u",
+        "command": "-editor.action.transformUppercase",
+        "when": "editorTextFocus && editorLangId == 'QB64PE'"
+    },
+    {
+        "key": "ctrl+alt+shift+/",
+        "command": "workbench.action.tasks.runTask",
+        "args": "HELP: QB64PE Wiki"
+    },
+    {
+        "key": "ctrl+alt+shift+g",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Add QB64_GJ_LIB to workspace",
+        "when": "editorTextFocus && editorLangId == 'QB64PE'"
+    }    
 ]
