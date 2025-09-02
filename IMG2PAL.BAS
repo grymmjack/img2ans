@@ -41,12 +41,12 @@ CONST KEY_S&           = 83
 CONST KEY_B&           = 66
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
-CONST FONT_STYLE$      = "MONOSPACE"
+CONST STATUS_HEIGHT    = 9
 
 ' Toast message system constants
-CONST INFO_MSG_TIMEOUT = 3.0       ' Auto-clear delay in seconds
-CONST INFO_MSG_COLOR   = _RGB32(&H00, &HFF, &HFF) ' Cyan color (RGB: 0, 255, 255)
-CONST INFO_MSG_MAX     = 4         ' Maximum number of messages to show
+CONST INFO_MSG_TIMEOUT  = 3.0       ' Auto-clear delay in seconds
+CONST INFO_MSG_COLOR    = _RGB32(&H00, &HFF, &HFF) ' Cyan color (RGB: 0, 255, 255)
+CONST INFO_MSG_MAX      = 4         ' Maximum number of messages to show
 CONST INFO_MSG_Y_OFFSET = 2        ' Lines from bottom to start showing messages
 
 DIM SHARED AS LONG img_orig, img_pal
@@ -194,23 +194,29 @@ pal_files_sorted$(0) = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" +
 cur_pal% = 0
 
 $IF MAC THEN
-    FONT_DIR$ = ENVIRON$("HOME") + "/Library/Fonts"
-    CONST FONT_SIZE& = 16
-    CONST CANVAS_W&  = 1280
-    CONST CANVAS_H&  = 960
+    FONT_DIR$ = "/System/Library/Fonts/"
+    CONST FONT_FNAME  = "SFNSMono.ttf"
+    CONST FONT_STYLE$ = ""
+    CONST FONT_SIZE&  = 16
+    CONST CANVAS_W&   = 2400
+    CONST CANVAS_H&   = 1400
 $ELSEIF LINUX THEN
-    FONT_DIR$ = ENVIRON$("HOME") + "/.fonts"
-    CONST FONT_SIZE& = 16
-    CONST CANVAS_W&  = 1920
-    CONST CANVAS_H&  = 1080
+    FONT_DIR$ = "/usr/share/fonts/truetype/"
+    CONST FONT_FNAME  = "Liberation Mono.ttf"
+    CONST FONT_STYLE$ = "MONOSPACE"
+    CONST FONT_SIZE&  = 16
+    CONST CANVAS_W&   = 2400
+    CONST CANVAS_H&   = 1400
 $ELSEIF WIN THEN
-    FONT_DIR$ = ENVIRON$("HOMEPATH") + "\AppData\Local\Microsoft\Windows\Fonts"
-    CONST FONT_SIZE& = 16
-    CONST CANVAS_W&  = 2400
-    CONST CANVAS_H&  = 1400
+    FONT_DIR$ = "\Windows\Fonts\"
+    CONST FONT_FNAME  = "Consolas.ttf"
+    CONST FONT_STYLE$ = "MONOSPACE"
+    CONST FONT_SIZE&  = 16
+    CONST CANVAS_W&   = 2400
+    CONST CANVAS_H&   = 1400
 $END IF
 ' FONT_FILE$ = FONT_DIR$ + "/MorePerfectDOSVGANF-4.ttf"
-FONT_FILE$ = FONT_DIR$ + "/BerkeleyMonoNerdFont-Regular.ttf"
+FONT_FILE$ = FONT_DIR$ + FONT_FNAME
 
 $VERSIONINFO:CompanyName="grymmjack"
 $VERSIONINFO:FILEVERSION#=1,0,0,0
@@ -1928,7 +1934,7 @@ SUB draw_output
         _ASSERT 1, "bw="+_TRIM$(STR$(_WIDTH(img_orig)))
         DIM AS INTEGER dx1_orig, dy1_orig, dx2_orig, dy2_orig
         dx1_orig = 0
-        dy1_orig = _FONTHEIGHT(FONTFACE&)*8  ' Make room for the extra line
+        dy1_orig = _FONTHEIGHT(FONTFACE&) * STATUS_HEIGHT  ' Make room for the extra line
         dx2_orig = INT((zoom * _WIDTH(img_orig)) + dx1_orig)
         dy2_orig = INT((zoom * _HEIGHT(img_orig)) + dy1_orig)
         _ASSERT 1, "(" _
@@ -1957,7 +1963,7 @@ SUB draw_output
             
             DIM AS INTEGER dx1_pal, dy1_pal, dx2_pal, dy2_pal
             dx1_pal = dx2_orig + IMG_PAL_SPACING&
-            dy1_pal = _FONTHEIGHT(FONTFACE&)*8  ' Make room for the extra line
+            dy1_pal = _FONTHEIGHT(FONTFACE&) * STATUS_HEIGHT  ' Make room for the extra line
             dx2_pal = INT((zoom * _WIDTH(img_orig)) + dx1_pal)
             dy2_pal = INT((zoom * _HEIGHT(img_orig)) + dy1_pal)
         _ASSERT 1, "(" _
