@@ -29,3 +29,9 @@ qb64pe-logs/
 # QB64PE temporary files
 internal/temp/
 internal/c/parts/core/temp/
+
+# External resource files (user-specific external files)
+resources/presets/external-*
+resources/images/external-*
+resources/palettes/external-*
+resources/patterns/external-*

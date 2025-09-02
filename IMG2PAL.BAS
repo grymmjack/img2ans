@@ -1350,13 +1350,41 @@ SUB load_preset(preset_file AS STRING)
                             DIM resolved_img_path AS STRING
                             resolved_img_path = resolve_file_path$(value)
                             img_index = ARR_STR.find%(img_files_sorted$(), resolved_img_path)
-                            IF img_index >= 0 THEN cur_img% = img_index
+                            IF img_index >= 0 THEN 
+                                cur_img% = img_index
+                            ELSE
+                                ' External file not in array - check if it exists and add it
+                                IF _FILEEXISTS(resolved_img_path) THEN
+                                    ' Add external file to the arrays
+                                    DIM old_ub AS INTEGER
+                                    old_ub = UBOUND(img_files_sorted$)
+                                    REDIM _PRESERVE img_files_sorted(0 TO old_ub + 1) AS STRING
+                                    REDIM _PRESERVE img_files(0 TO old_ub + 1) AS STRING
+                                    img_files_sorted$(old_ub + 1) = resolved_img_path
+                                    img_files$(old_ub + 1) = resolved_img_path
+                                    cur_img% = old_ub + 1
+                                END IF
+                            END IF
                         CASE "PALETTE_FILE"
                             ' Resolve the path (could be relative or absolute)
                             DIM resolved_pal_path AS STRING
                             resolved_pal_path = resolve_file_path$(value)
                             pal_index = ARR_STR.find%(pal_files_sorted$(), resolved_pal_path)
-                            IF pal_index >= 0 THEN cur_pal% = pal_index
+                            IF pal_index >= 0 THEN 
+                                cur_pal% = pal_index
+                            ELSE
+                                ' External file not in array - check if it exists and add it
+                                IF _FILEEXISTS(resolved_pal_path) THEN
+                                    ' Add external file to the arrays
+                                    DIM old_ub_pal AS INTEGER
+                                    old_ub_pal = UBOUND(pal_files_sorted$)
+                                    REDIM _PRESERVE pal_files_sorted(0 TO old_ub_pal + 1) AS STRING
+                                    REDIM _PRESERVE pal_files(0 TO old_ub_pal + 1) AS STRING
+                                    pal_files_sorted$(old_ub_pal + 1) = resolved_pal_path
+                                    pal_files$(old_ub_pal + 1) = resolved_pal_path
+                                    cur_pal% = old_ub_pal + 1
+                                END IF
+                            END IF
                         CASE "DITHERING_ENABLED"
                             dithering_enabled = VAL(value)
                         CASE "DITHER_METHOD"
@@ -1483,6 +1511,7 @@ END FUNCTION
 ''
 ' Resolve a file path - handles both absolute and relative paths
 ' Relative paths are resolved relative to the program's starting directory
+' Cross-platform handling of Windows drive letters
 '
 FUNCTION resolve_file_path$(file_path AS STRING)
     DIM resolved_path AS STRING
@@ -1496,11 +1525,46 @@ FUNCTION resolve_file_path$(file_path AS STRING)
         EXIT FUNCTION
     END IF
     
-    ' Check if this is already an absolute path
-    ' Windows: starts with drive letter (C:) or UNC path (\\)
-    ' Unix/Linux: starts with /
-    IF (LEN(resolved_path) >= 3 AND MID$(resolved_path, 2, 1) = ":") OR _
-       (LEN(resolved_path) >= 2 AND LEFT$(resolved_path, 2) = "\\") OR _
+    ' Check if this is a Windows-style drive letter path (C:\, D:\, etc.)
+    IF LEN(resolved_path) >= 3 AND MID$(resolved_path, 2, 1) = ":" THEN
+        $IF WIN THEN
+            ' On Windows, keep drive letters as-is
+            resolve_file_path$ = resolved_path
+        $ELSEIF MAC THEN
+            ' On Mac, convert drive letters to absolute paths
+            ' B:\Backup2020\... becomes /B/Backup2020/...
+            DIM drive_letter AS STRING
+            drive_letter = LEFT$(resolved_path, 1)
+            resolved_path = "/" + drive_letter + MID$(resolved_path, 3)
+            ' Convert backslashes to forward slashes for Unix systems
+            DIM i AS INTEGER
+            FOR i = 1 TO LEN(resolved_path)
+                IF MID$(resolved_path, i, 1) = "\" THEN
+                    MID$(resolved_path, i, 1) = "/"
+                END IF
+            NEXT i
+            resolve_file_path$ = resolved_path
+        $ELSEIF LINUX THEN
+            ' On Linux, convert drive letters to absolute paths
+            ' B:\Backup2020\... becomes /B/Backup2020/...
+            DIM drive_letter AS STRING
+            drive_letter = LEFT$(resolved_path, 1)
+            resolved_path = "/" + drive_letter + MID$(resolved_path, 3)
+            ' Convert backslashes to forward slashes for Unix systems
+            DIM i AS INTEGER
+            FOR i = 1 TO LEN(resolved_path)
+                IF MID$(resolved_path, i, 1) = "\" THEN
+                    MID$(resolved_path, i, 1) = "/"
+                END IF
+            NEXT i
+            resolve_file_path$ = resolved_path
+        $END IF
+        EXIT FUNCTION
+    END IF
+    
+    ' Check for other types of absolute paths
+    ' UNC paths (\\server\share) or Unix absolute paths (/)
+    IF (LEN(resolved_path) >= 2 AND LEFT$(resolved_path, 2) = "\\") OR _
        (LEN(resolved_path) >= 1 AND LEFT$(resolved_path, 1) = "/") THEN
         ' Already absolute path - return as-is
         resolve_file_path$ = resolved_path
@@ -1514,6 +1578,7 @@ END FUNCTION
 ''
 ' Convert absolute path to relative path if it's within the project directory
 ' Otherwise return the absolute path unchanged
+' Handles cross-platform drive letter conversions
 '
 FUNCTION make_relative_path$(absolute_path AS STRING)
     DIM AS STRING cleaned_path, project_root, relative_path
@@ -1538,13 +1603,33 @@ FUNCTION make_relative_path$(absolute_path AS STRING)
         relative_path = MID$(cleaned_path, LEN(project_root) + 1)
         make_relative_path$ = relative_path
     ELSE
-        ' Path is outside project - keep absolute
+        ' Path is outside project - keep absolute, but handle cross-platform formatting
+        $IF WIN THEN
+            ' On Windows, check if this is a converted Unix-style drive path that needs reconversion
+            ' This would happen if we're loading a preset that was created on Linux/Mac
+            IF LEN(cleaned_path) >= 3 AND LEFT$(cleaned_path, 1) = "/" AND _
+               MID$(cleaned_path, 3, 1) = "/" AND _
+               ASC(MID$(cleaned_path, 2, 1)) >= 65 AND ASC(MID$(cleaned_path, 2, 1)) <= 90 THEN
+                ' Convert /B/... back to B:\...
+                DIM drive_letter AS STRING
+                drive_letter = MID$(cleaned_path, 2, 1)
+                cleaned_path = drive_letter + ":" + MID$(cleaned_path, 3)
+                ' Convert forward slashes back to backslashes
+                DIM i AS INTEGER
+                FOR i = 1 TO LEN(cleaned_path)
+                    IF MID$(cleaned_path, i, 1) = "/" THEN
+                        MID$(cleaned_path, i, 1) = "\"
+                    END IF
+                NEXT i
+            END IF
+        $END IF
         make_relative_path$ = cleaned_path
     END IF
 END FUNCTION
 
 ''
 ' Check if a file path points to an external resource (outside project directory)
+' Handles cross-platform drive letter conversions
 '
 FUNCTION is_external_path%(file_path AS STRING)
     DIM AS STRING cleaned_path, project_root
@@ -1562,6 +1647,27 @@ FUNCTION is_external_path%(file_path AS STRING)
     DIM resolved AS STRING
     resolved = resolve_file_path$(cleaned_path)
     
+    ' Special handling for cross-platform drive letter detection
+    ' On Linux/Mac, paths starting with /[A-Z]/ are considered external (converted drive letters)
+    $IF MAC THEN
+        IF LEN(resolved) >= 3 AND LEFT$(resolved, 1) = "/" AND _
+           MID$(resolved, 3, 1) = "/" AND _
+           ASC(MID$(resolved, 2, 1)) >= 65 AND ASC(MID$(resolved, 2, 1)) <= 90 THEN
+            ' This is a converted drive letter path (like /B/...), consider it external
+            is_external_path% = -1
+            EXIT FUNCTION
+        END IF
+    $ELSEIF LINUX THEN
+        IF LEN(resolved) >= 3 AND LEFT$(resolved, 1) = "/" AND _
+           MID$(resolved, 3, 1) = "/" AND _
+           ASC(MID$(resolved, 2, 1)) >= 65 AND ASC(MID$(resolved, 2, 1)) <= 90 THEN
+            ' This is a converted drive letter path (like /B/...), consider it external
+            is_external_path% = -1
+            EXIT FUNCTION
+        END IF
+    $END IF
+    
+    ' Standard check: if resolved path doesn't start with project root, it's external
     IF LEN(resolved) > LEN(project_root) AND _
        UCASE$(LEFT$(resolved, LEN(project_root))) = UCASE$(project_root) THEN
         is_external_path% = 0  ' Internal to project
