@@ -15,9 +15,6 @@
 '$INCLUDE:'include/QB64_GJ_LIB/_GJ_LIB.BI'
 '$INCLUDE:'include/QB64_GJ_LIB/IMGADJ/IMGADJ.BI'
 
-$CONSOLE
-_CONSOLE ON
-
 OPTION _EXPLICIT
 '$DYNAMIC
 
@@ -805,7 +802,7 @@ DO
                 CALL files_to_array(LEFT$(img_file$, _INSTRREV(img_file$, SLASH$)), "*", img_files$())
                 IF UBOUND(img_files$) >= 0 THEN CALL ARR_STR.sort(img_files$(), img_files_sorted$())
                 cur_img% = ARR_STR.find%(img_files_sorted$(), img_file$)
-                _ECHO _TRIM$(STR$(cur_img%))
+                _ASSERT 1, _TRIM$(STR$(cur_img%))
                 draw_output
             END IF
 
@@ -827,7 +824,7 @@ DO
                     CALL files_to_array(LEFT$(pal_file$, _INSTRREV(pal_file$, SLASH$)), "*.GPL", pal_files$())
                     IF UBOUND(pal_files$) >= 0 THEN CALL ARR_STR.sort(pal_files$(), pal_files_sorted$())
                     cur_pal% = ARR_STR.find%(pal_files_sorted$(), pal_file$)
-                    _ECHO _TRIM$(STR$(cur_pal%))
+                    _ASSERT 1, _TRIM$(STR$(cur_pal%))
                 END IF
                 draw_output
             END IF
@@ -3648,7 +3645,7 @@ END SUB
 '
 SUB prev_scaler
     cur_scaler% = _CLAMP(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% - 1)
-    _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
+    _ASSERT 1, "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
 END SUB
 
 
@@ -3657,7 +3654,7 @@ END SUB
 '
 SUB next_scaler
     cur_scaler% = _CLAMP(LBOUND(scalers$), UBOUND(scalers$), cur_scaler% + 1)
-    _ECHO "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
+    _ASSERT 1, "cur_scaler%=" + _TRIM$(STR$(cur_scaler%))
 END SUB
 
 
@@ -3668,7 +3665,7 @@ SUB prev_img_file
     IF UBOUND(img_files_sorted$) >= 0 THEN
         cur_img% = cur_img% - 1
         IF cur_img% < 0 THEN cur_img% = UBOUND(img_files_sorted$)
-        _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+        _ASSERT 1, "cur_img%=" + _TRIM$(STR$(cur_img%))
     END IF
 END SUB
 
@@ -3680,7 +3677,7 @@ SUB next_img_file
     IF UBOUND(img_files_sorted$) >= 0 THEN
         cur_img% = cur_img% + 1
         IF cur_img% > UBOUND(img_files_sorted$) THEN cur_img% = 0
-        _ECHO "cur_img%=" + _TRIM$(STR$(cur_img%))
+        _ASSERT 1, "cur_img%=" + _TRIM$(STR$(cur_img%))
     END IF
 END SUB
 
@@ -3692,7 +3689,7 @@ SUB prev_pal_file
     IF UBOUND(pal_files_sorted$) >= 0 THEN
         cur_pal% = cur_pal% - 1
         IF cur_pal% < 0 THEN cur_pal% = UBOUND(pal_files_sorted$)
-        _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+        _ASSERT 1, "cur_pal%=" + _TRIM$(STR$(cur_pal%))
     END IF
 END SUB
 
@@ -3704,7 +3701,7 @@ SUB next_pal_file
     IF UBOUND(pal_files_sorted$) >= 0 THEN
         cur_pal% = cur_pal% + 1
         IF cur_pal% > UBOUND(pal_files_sorted$) THEN cur_pal% = 0
-        _ECHO "cur_pal%=" + _TRIM$(STR$(cur_pal%))
+        _ASSERT 1, "cur_pal%=" + _TRIM$(STR$(cur_pal%))
     END IF
 END SUB
 
