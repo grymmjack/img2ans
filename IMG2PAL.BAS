@@ -99,6 +99,7 @@ DIM SHARED AS SINGLE scanline_opacity    ' 0.0 to 1.0 (0% to 100%)
 DIM SHARED preset_files(0) AS STRING
 DIM SHARED preset_files_sorted(0) AS STRING
 DIM SHARED AS INTEGER cur_preset
+DIM SHARED AS INTEGER preset_includes_external  ' Whether current preset uses external resources
 
 DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
@@ -287,10 +288,12 @@ reset_adjustments
 ' Load first preset if any exist (presets were already loaded during startup)
 IF UBOUND(preset_files_sorted$) >= 0 THEN
     cur_preset = 0
+    preset_includes_external = 0  ' Initialize external flag
     load_preset preset_files_sorted$(cur_preset)
 ELSE
     ' Ensure cur_preset is properly set when no presets exist
     cur_preset = -1
+    preset_includes_external = 0  ' Initialize external flag
 END IF
 
 ' Additional safety check before calling draw_output
@@ -1213,19 +1216,56 @@ END SUB
 ' Save current settings as a preset
 '
 SUB save_preset(preset_name AS STRING)
-    DIM AS STRING preset_path, content
+    DIM AS STRING preset_path, content, image_path, palette_path, pattern_path
+    DIM AS INTEGER includes_external, should_prefix_external
+    
+    ' Determine if we should add external prefix to filename  
+    includes_external = 0
+    should_prefix_external = 0
+    
+    ' Check if any resources are external
+    IF UBOUND(img_files_sorted$) >= 0 AND cur_img% >= 0 AND cur_img% <= UBOUND(img_files_sorted$) THEN
+        IF is_external_path%(img_files_sorted$(cur_img%)) THEN includes_external = -1
+    END IF
+    IF UBOUND(pal_files_sorted$) >= 0 AND cur_pal% >= 0 AND cur_pal% <= UBOUND(pal_files_sorted$) THEN
+        IF is_external_path%(pal_files_sorted$(cur_pal%)) THEN includes_external = -1
+    END IF
+    IF LEN(custom_pattern_file) > 0 AND is_external_path%(custom_pattern_file) THEN includes_external = -1
+    
+    ' Determine final preset filename
+    IF includes_external AND LEFT$(preset_name, 9) <> "external-" THEN
+        preset_name = "external-" + preset_name
+        should_prefix_external = -1
+    END IF
+    
     preset_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "presets" + SLASH$ + preset_name + ".INI"
+    
+    ' Prepare file paths (use relative paths when possible)
+    IF UBOUND(img_files_sorted$) >= 0 AND cur_img% >= 0 AND cur_img% <= UBOUND(img_files_sorted$) THEN
+        image_path = make_relative_path$(img_files_sorted$(cur_img%))
+    ELSE
+        image_path = ""
+    END IF
+    
+    IF UBOUND(pal_files_sorted$) >= 0 AND cur_pal% >= 0 AND cur_pal% <= UBOUND(pal_files_sorted$) THEN
+        palette_path = make_relative_path$(pal_files_sorted$(cur_pal%))
+    ELSE
+        palette_path = ""
+    END IF
+    
+    pattern_path = make_relative_path$(custom_pattern_file)
     
     ' Build INI content with all current settings
     content = "[IMG2PAL_PRESET]" + CHR$(13) + CHR$(10)
     content = content + "VERSION=1.0" + CHR$(13) + CHR$(10)
-    content = content + "IMAGE_FILE=" + img_files_sorted$(cur_img%) + CHR$(13) + CHR$(10)
-    content = content + "PALETTE_FILE=" + pal_files_sorted$(cur_pal%) + CHR$(13) + CHR$(10)
+    content = content + "INCLUDES_EXTERNAL=" + _TRIM$(STR$(includes_external)) + CHR$(13) + CHR$(10)
+    content = content + "IMAGE_FILE=" + image_path + CHR$(13) + CHR$(10)
+    content = content + "PALETTE_FILE=" + palette_path + CHR$(13) + CHR$(10)
     content = content + "DITHERING_ENABLED=" + _TRIM$(STR$(dithering_enabled)) + CHR$(13) + CHR$(10)
     content = content + "DITHER_METHOD=" + _TRIM$(STR$(dither_method)) + CHR$(13) + CHR$(10)
     content = content + "DITHER_AMOUNT=" + _TRIM$(STR$(dither_amount)) + CHR$(13) + CHR$(10)
     content = content + "CURRENT_PATTERN=" + _TRIM$(STR$(current_pattern)) + CHR$(13) + CHR$(10)
-    content = content + "CUSTOM_PATTERN_FILE=" + custom_pattern_file + CHR$(13) + CHR$(10)
+    content = content + "CUSTOM_PATTERN_FILE=" + pattern_path + CHR$(13) + CHR$(10)
     content = content + "ZOOM=" + _TRIM$(STR$(zoom)) + CHR$(13) + CHR$(10)
     content = content + "SCALER=" + _TRIM$(STR$(cur_scaler%)) + CHR$(13) + CHR$(10)
     
@@ -1303,12 +1343,48 @@ SUB load_preset(preset_file AS STRING)
             SELECT CASE UCASE$(section)
                 CASE "IMG2PAL_PRESET"
                     SELECT CASE UCASE$(ini_key)
+                        CASE "INCLUDES_EXTERNAL"
+                            preset_includes_external = VAL(value)
                         CASE "IMAGE_FILE"
-                            img_index = ARR_STR.find%(img_files_sorted$(), value)
-                            IF img_index >= 0 THEN cur_img% = img_index
+                            ' Resolve the path (could be relative or absolute)
+                            DIM resolved_img_path AS STRING
+                            resolved_img_path = resolve_file_path$(value)
+                            img_index = ARR_STR.find%(img_files_sorted$(), resolved_img_path)
+                            IF img_index >= 0 THEN 
+                                cur_img% = img_index
+                            ELSE
+                                ' External file not in array - check if it exists and add it
+                                IF _FILEEXISTS(resolved_img_path) THEN
+                                    ' Add external file to the arrays
+                                    DIM old_ub AS INTEGER
+                                    old_ub = UBOUND(img_files_sorted$)
+                                    REDIM _PRESERVE img_files_sorted(0 TO old_ub + 1) AS STRING
+                                    REDIM _PRESERVE img_files(0 TO old_ub + 1) AS STRING
+                                    img_files_sorted$(old_ub + 1) = resolved_img_path
+                                    img_files$(old_ub + 1) = resolved_img_path
+                                    cur_img% = old_ub + 1
+                                END IF
+                            END IF
                         CASE "PALETTE_FILE"
-                            pal_index = ARR_STR.find%(pal_files_sorted$(), value)
-                            IF pal_index >= 0 THEN cur_pal% = pal_index
+                            ' Resolve the path (could be relative or absolute)
+                            DIM resolved_pal_path AS STRING
+                            resolved_pal_path = resolve_file_path$(value)
+                            pal_index = ARR_STR.find%(pal_files_sorted$(), resolved_pal_path)
+                            IF pal_index >= 0 THEN 
+                                cur_pal% = pal_index
+                            ELSE
+                                ' External file not in array - check if it exists and add it
+                                IF _FILEEXISTS(resolved_pal_path) THEN
+                                    ' Add external file to the arrays
+                                    DIM old_ub_pal AS INTEGER
+                                    old_ub_pal = UBOUND(pal_files_sorted$)
+                                    REDIM _PRESERVE pal_files_sorted(0 TO old_ub_pal + 1) AS STRING
+                                    REDIM _PRESERVE pal_files(0 TO old_ub_pal + 1) AS STRING
+                                    pal_files_sorted$(old_ub_pal + 1) = resolved_pal_path
+                                    pal_files$(old_ub_pal + 1) = resolved_pal_path
+                                    cur_pal% = old_ub_pal + 1
+                                END IF
+                            END IF
                         CASE "DITHERING_ENABLED"
                             dithering_enabled = VAL(value)
                         CASE "DITHER_METHOD"
@@ -1318,7 +1394,8 @@ SUB load_preset(preset_file AS STRING)
                         CASE "CURRENT_PATTERN"
                             current_pattern = VAL(value)
                         CASE "CUSTOM_PATTERN_FILE"
-                            custom_pattern_file = value
+                            ' Resolve the path (could be relative or absolute)
+                            custom_pattern_file = resolve_file_path$(value)
                         CASE "ZOOM"
                             zoom = VAL(value)
                         CASE "SCALER"
@@ -1413,6 +1490,9 @@ FUNCTION get_preset_status$ (include_debug AS INTEGER)
         END IF
         IF LEN(current_preset_name) = 0 THEN current_preset_name = "UNKNOWN"
         
+        ' Add external marker if preset includes external resources
+        IF preset_includes_external THEN current_preset_name = current_preset_name + "*"
+        
         preset_status = "PRESETS: [W]RITE / CTRL+[S]AVE (OVER) / LOAD [E]XISTING  ALT/CTRL+UP/DN=PREV/NEXT - CURRENT: " + current_preset_name + " (" + _TRIM$(STR$(cur_preset + 1)) + "/" + _TRIM$(STR$(UBOUND(preset_files_sorted$) + 1)) + ")"
         IF include_debug THEN preset_status = preset_status + " PATH:" + preset_files_sorted$(cur_preset)
     ELSEIF UBOUND(preset_files_sorted$) >= 0 THEN
@@ -1426,6 +1506,174 @@ FUNCTION get_preset_status$ (include_debug AS INTEGER)
     END IF
     
     get_preset_status$ = preset_status
+END FUNCTION
+
+''
+' Resolve a file path - handles both absolute and relative paths
+' Relative paths are resolved relative to the program's starting directory
+' Cross-platform handling of Windows drive letters
+'
+FUNCTION resolve_file_path$(file_path AS STRING)
+    DIM resolved_path AS STRING
+    
+    ' Remove any leading/trailing whitespace
+    resolved_path = _TRIM$(file_path)
+    
+    ' If empty path, return empty
+    IF LEN(resolved_path) = 0 THEN
+        resolve_file_path$ = ""
+        EXIT FUNCTION
+    END IF
+    
+    ' Check if this is a Windows-style drive letter path (C:\, D:\, etc.)
+    IF LEN(resolved_path) >= 3 AND MID$(resolved_path, 2, 1) = ":" THEN
+        $IF WIN THEN
+            ' On Windows, keep drive letters as-is
+            resolve_file_path$ = resolved_path
+        $ELSEIF MAC THEN
+            ' On Mac, convert drive letters to absolute paths
+            ' B:\Backup2020\... becomes /B/Backup2020/...
+            DIM drive_letter AS STRING
+            drive_letter = LEFT$(resolved_path, 1)
+            resolved_path = "/" + drive_letter + MID$(resolved_path, 3)
+            ' Convert backslashes to forward slashes for Unix systems
+            DIM i AS INTEGER
+            FOR i = 1 TO LEN(resolved_path)
+                IF MID$(resolved_path, i, 1) = "\" THEN
+                    MID$(resolved_path, i, 1) = "/"
+                END IF
+            NEXT i
+            resolve_file_path$ = resolved_path
+        $ELSEIF LINUX THEN
+            ' On Linux, convert drive letters to absolute paths
+            ' B:\Backup2020\... becomes /B/Backup2020/...
+            DIM drive_letter AS STRING
+            drive_letter = LEFT$(resolved_path, 1)
+            resolved_path = "/" + drive_letter + MID$(resolved_path, 3)
+            ' Convert backslashes to forward slashes for Unix systems
+            DIM i AS INTEGER
+            FOR i = 1 TO LEN(resolved_path)
+                IF MID$(resolved_path, i, 1) = "\" THEN
+                    MID$(resolved_path, i, 1) = "/"
+                END IF
+            NEXT i
+            resolve_file_path$ = resolved_path
+        $END IF
+        EXIT FUNCTION
+    END IF
+    
+    ' Check for other types of absolute paths
+    ' UNC paths (\\server\share) or Unix absolute paths (/)
+    IF (LEN(resolved_path) >= 2 AND LEFT$(resolved_path, 2) = "\\") OR _
+       (LEN(resolved_path) >= 1 AND LEFT$(resolved_path, 1) = "/") THEN
+        ' Already absolute path - return as-is
+        resolve_file_path$ = resolved_path
+    ELSE
+        ' Relative path - prepend starting directory
+        resolved_path = _STARTDIR$ + SLASH$ + resolved_path
+        resolve_file_path$ = resolved_path
+    END IF
+END FUNCTION
+
+''
+' Convert absolute path to relative path if it's within the project directory
+' Otherwise return the absolute path unchanged
+' Handles cross-platform drive letter conversions
+'
+FUNCTION make_relative_path$(absolute_path AS STRING)
+    DIM AS STRING cleaned_path, project_root, relative_path
+    
+    ' Clean up the input path
+    cleaned_path = _TRIM$(absolute_path)
+    IF LEN(cleaned_path) = 0 THEN
+        make_relative_path$ = ""
+        EXIT FUNCTION
+    END IF
+    
+    ' Get the project root (same as _STARTDIR$)
+    project_root = _STARTDIR$
+    
+    ' Normalize path separators and ensure project root ends with separator
+    IF RIGHT$(project_root, 1) <> SLASH$ THEN project_root = project_root + SLASH$
+    
+    ' Check if the absolute path starts with the project root
+    IF LEN(cleaned_path) > LEN(project_root) AND _
+       UCASE$(LEFT$(cleaned_path, LEN(project_root))) = UCASE$(project_root) THEN
+        ' Path is within project - extract relative portion
+        relative_path = MID$(cleaned_path, LEN(project_root) + 1)
+        make_relative_path$ = relative_path
+    ELSE
+        ' Path is outside project - keep absolute, but handle cross-platform formatting
+        $IF WIN THEN
+            ' On Windows, check if this is a converted Unix-style drive path that needs reconversion
+            ' This would happen if we're loading a preset that was created on Linux/Mac
+            IF LEN(cleaned_path) >= 3 AND LEFT$(cleaned_path, 1) = "/" AND _
+               MID$(cleaned_path, 3, 1) = "/" AND _
+               ASC(MID$(cleaned_path, 2, 1)) >= 65 AND ASC(MID$(cleaned_path, 2, 1)) <= 90 THEN
+                ' Convert /B/... back to B:\...
+                DIM drive_letter AS STRING
+                drive_letter = MID$(cleaned_path, 2, 1)
+                cleaned_path = drive_letter + ":" + MID$(cleaned_path, 3)
+                ' Convert forward slashes back to backslashes
+                DIM i AS INTEGER
+                FOR i = 1 TO LEN(cleaned_path)
+                    IF MID$(cleaned_path, i, 1) = "/" THEN
+                        MID$(cleaned_path, i, 1) = "\"
+                    END IF
+                NEXT i
+            END IF
+        $END IF
+        make_relative_path$ = cleaned_path
+    END IF
+END FUNCTION
+
+''
+' Check if a file path points to an external resource (outside project directory)
+' Handles cross-platform drive letter conversions
+'
+FUNCTION is_external_path%(file_path AS STRING)
+    DIM AS STRING cleaned_path, project_root
+    
+    cleaned_path = _TRIM$(file_path)
+    IF LEN(cleaned_path) = 0 THEN
+        is_external_path% = 0  ' Empty path is not external
+        EXIT FUNCTION
+    END IF
+    
+    project_root = _STARTDIR$
+    IF RIGHT$(project_root, 1) <> SLASH$ THEN project_root = project_root + SLASH$
+    
+    ' If the resolved path is outside the project directory, it's external
+    DIM resolved AS STRING
+    resolved = resolve_file_path$(cleaned_path)
+    
+    ' Special handling for cross-platform drive letter detection
+    ' On Linux/Mac, paths starting with /[A-Z]/ are considered external (converted drive letters)
+    $IF MAC THEN
+        IF LEN(resolved) >= 3 AND LEFT$(resolved, 1) = "/" AND _
+           MID$(resolved, 3, 1) = "/" AND _
+           ASC(MID$(resolved, 2, 1)) >= 65 AND ASC(MID$(resolved, 2, 1)) <= 90 THEN
+            ' This is a converted drive letter path (like /B/...), consider it external
+            is_external_path% = -1
+            EXIT FUNCTION
+        END IF
+    $ELSEIF LINUX THEN
+        IF LEN(resolved) >= 3 AND LEFT$(resolved, 1) = "/" AND _
+           MID$(resolved, 3, 1) = "/" AND _
+           ASC(MID$(resolved, 2, 1)) >= 65 AND ASC(MID$(resolved, 2, 1)) <= 90 THEN
+            ' This is a converted drive letter path (like /B/...), consider it external
+            is_external_path% = -1
+            EXIT FUNCTION
+        END IF
+    $END IF
+    
+    ' Standard check: if resolved path doesn't start with project root, it's external
+    IF LEN(resolved) > LEN(project_root) AND _
+       UCASE$(LEFT$(resolved, LEN(project_root))) = UCASE$(project_root) THEN
+        is_external_path% = 0  ' Internal to project
+    ELSE
+        is_external_path% = -1  ' External to project
+    END IF
 END FUNCTION
 
 ''
