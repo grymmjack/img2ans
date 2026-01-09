@@ -39,6 +39,7 @@ CONST KEY_LEFT&        = 19200
 CONST KEY_RIGHT&       = 19712
 CONST KEY_S&           = 83
 CONST KEY_B&           = 66
+CONST KEY_W&           = 87
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
 CONST STATUS_HEIGHT    = 9
@@ -102,6 +103,9 @@ DIM SHARED pal_files(0) AS STRING
 DIM SHARED img_files(0) AS STRING
 DIM SHARED pal_files_sorted(0) AS STRING
 DIM SHARED img_files_sorted(0) AS STRING
+
+' Last save directory tracking
+DIM SHARED last_save_directory AS STRING
 
 ' Toast message system variables
 DIM SHARED info_messages(INFO_MSG_MAX - 1) AS STRING
@@ -181,6 +185,9 @@ FOR init_idx = 0 TO INFO_MSG_MAX - 1
     info_message_times(init_idx) = 0
 NEXT init_idx
 
+' Initialize last save directory to default images folder
+last_save_directory = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "images" + SLASH$
+
 ' Initialize the IMGADJ library
 GJ_IMGADJ_Init
 
@@ -201,8 +208,8 @@ $IF MAC THEN
     CONST CANVAS_W&   = 2400
     CONST CANVAS_H&   = 1400
 $ELSEIF LINUX THEN
-    FONT_DIR$ = "/usr/share/fonts/truetype/"
-    CONST FONT_FNAME  = "Liberation Mono.ttf"
+    FONT_DIR$ = "/usr/share/fonts/truetype/liberation/"
+    CONST FONT_FNAME  = "LiberationMono-Regular.ttf"
     CONST FONT_STYLE$ = "MONOSPACE"
     CONST FONT_SIZE&  = 16
     CONST CANVAS_W&   = 2400
@@ -230,10 +237,10 @@ DIM SHARED CANVAS AS LONG
 DIM SHARED FONTFACE AS LONG
 CANVAS = _NEWIMAGE(CANVAS_W&, CANVAS_H&, 32)
 SCREEN CANVAS
-_SCREENMOVE 0, 0
+_DELAY 0.1  ' Small delay to allow screen to initialize
+_FULLSCREEN _SQUAREPIXELS
 FONTFACE& = _LOADFONT(FONT_FILE$, FONT_SIZE&, FONT_STYLE$)
 _FONT FONTFACE&
-' _FULLSCREEN _SQUAREPIXELS
 
 cur_img% = 0
 cur_pal% = 0
@@ -466,12 +473,16 @@ DO
             ' Previous dithering method (using < key, but , key for compatibility)
             IF k$ = "," THEN
                 prev_scaler
-                ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-                IF dithering_enabled THEN
-                    img_orig = _LOADIMAGE(img_file$, 32)
-                ELSE
-                    img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
-                END IF            
+                ' Reload image with new scaler
+                IF UBOUND(img_files_sorted$) >= 0 AND cur_img% >= 0 AND cur_img% <= UBOUND(img_files_sorted$) THEN
+                    IF img_orig <> 0 THEN _FREEIMAGE img_orig
+                    IF dithering_enabled THEN
+                        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+                    ELSE
+                        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+                    END IF
+                    adj_needs_update = TRUE
+                END IF
                 draw_output
             ELSE
                 dither_method = dither_method - 1
@@ -482,12 +493,16 @@ DO
             ' Next dithering method (using > key, but . key for compatibility)
             IF k$ = "." THEN
                 next_scaler
-                ' Convert the image to 8bpp with an adaptive palette using QB64-PE's native conversion features
-                IF dithering_enabled THEN
-                    img_orig = _LOADIMAGE(img_file$, 32)
-                ELSE
-                    img_orig = _LOADIMAGE(img_file$, 256, scalers$(cur_scaler%))
-                END IF            
+                ' Reload image with new scaler
+                IF UBOUND(img_files_sorted$) >= 0 AND cur_img% >= 0 AND cur_img% <= UBOUND(img_files_sorted$) THEN
+                    IF img_orig <> 0 THEN _FREEIMAGE img_orig
+                    IF dithering_enabled THEN
+                        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 32)
+                    ELSE
+                        img_orig = _LOADIMAGE(img_files_sorted$(cur_img%), 256, scalers$(cur_scaler%))
+                    END IF
+                    adj_needs_update = TRUE
+                END IF
                 draw_output
             ELSE
                 dither_method = dither_method + 1
@@ -547,6 +562,179 @@ DO
                 END IF
             END IF
             draw_output
+        CASE CHR$(0) + CHR$(63) 'F5 - Save source
+            IF img_adjusted <> 0 OR img_orig <> 0 THEN
+                DIM AS STRING save_source_file, base_filename, default_filename
+                
+                ' Extract base filename from current image
+                IF UBOUND(img_files_sorted$) >= 0 AND cur_img% >= 0 AND cur_img% <= UBOUND(img_files_sorted$) THEN
+                    base_filename = img_files_sorted$(cur_img%)
+                    ' Find the last slash (either / or \) to get just the filename
+                    DIM last_slash_pos AS INTEGER
+                    DIM fwd_slash_pos AS INTEGER
+                    DIM back_slash_pos AS INTEGER
+                    fwd_slash_pos = _INSTRREV(base_filename, "/")
+                    back_slash_pos = _INSTRREV(base_filename, "\")
+                    last_slash_pos = fwd_slash_pos
+                    IF back_slash_pos > last_slash_pos THEN last_slash_pos = back_slash_pos
+                    IF last_slash_pos > 0 THEN
+                        base_filename = MID$(base_filename, last_slash_pos + 1)
+                    END IF
+                    ' Remove extension
+                    IF _INSTRREV(base_filename, ".") > 0 THEN
+                        base_filename = LEFT$(base_filename, _INSTRREV(base_filename, ".") - 1)
+                    END IF
+                    default_filename = base_filename + "-SOURCE.png"
+                ELSE
+                    default_filename = "output-SOURCE.png"
+                END IF
+                
+                save_source_file$ = _SAVEFILEDIALOG$( _
+                    "Save Source (Adjusted) Image", _
+                    default_filename, _
+                    "*.png|*.PNG", _
+                    "PNG Image" _
+                )
+                IF LEN(save_source_file$) <> 0 THEN
+                    ' Update last save directory
+                    IF _INSTRREV(save_source_file$, SLASH$) > 0 THEN
+                        last_save_directory = LEFT$(save_source_file$, _INSTRREV(save_source_file$, SLASH$))
+                    END IF
+                    
+                    DIM AS LONG save_source_img
+                    DIM AS INTEGER save_source_width, save_source_height
+                    DIM AS LONG source_to_save
+                    
+                    ' Use adjusted image if available, otherwise original
+                    IF img_adjusted <> 0 THEN
+                        source_to_save = img_adjusted
+                    ELSE
+                        source_to_save = img_orig
+                    END IF
+                    
+                    ' Calculate zoomed dimensions
+                    save_source_width = INT(zoom * _WIDTH(source_to_save))
+                    save_source_height = INT(zoom * _HEIGHT(source_to_save))
+                    
+                    ' Create and scale the image
+                    save_source_img = _NEWIMAGE(save_source_width, save_source_height, 32)
+                    _PUTIMAGE (0, 0)-(save_source_width - 1, save_source_height - 1), source_to_save, save_source_img
+                    _SAVEIMAGE save_source_file$, save_source_img
+                    _FREEIMAGE save_source_img
+                    
+                    show_info_msg "Source image saved as " + save_source_file$ + " (zoom: " + _TRIM$(STR$(INT(zoom * 100))) + "%)"
+                END IF
+            END IF
+        CASE CHR$(0) + CHR$(64) 'F6 - Save destination
+            IF img_pal <> 0 THEN
+                DIM AS STRING save_dest_file, dest_base_filename, dest_default_filename
+                
+                ' Extract base filename from current image
+                IF UBOUND(img_files_sorted$) >= 0 AND cur_img% >= 0 AND cur_img% <= UBOUND(img_files_sorted$) THEN
+                    dest_base_filename = img_files_sorted$(cur_img%)
+                    ' Find the last slash (either / or \) to get just the filename
+                    DIM dest_last_slash_pos AS INTEGER
+                    DIM dest_fwd_slash_pos AS INTEGER
+                    DIM dest_back_slash_pos AS INTEGER
+                    dest_fwd_slash_pos = _INSTRREV(dest_base_filename, "/")
+                    dest_back_slash_pos = _INSTRREV(dest_base_filename, "\")
+                    dest_last_slash_pos = dest_fwd_slash_pos
+                    IF dest_back_slash_pos > dest_last_slash_pos THEN dest_last_slash_pos = dest_back_slash_pos
+                    IF dest_last_slash_pos > 0 THEN
+                        dest_base_filename = MID$(dest_base_filename, dest_last_slash_pos + 1)
+                    END IF
+                    ' Remove extension
+                    IF _INSTRREV(dest_base_filename, ".") > 0 THEN
+                        dest_base_filename = LEFT$(dest_base_filename, _INSTRREV(dest_base_filename, ".") - 1)
+                    END IF
+                    dest_default_filename = dest_base_filename + "-DEST.png"
+                ELSE
+                    dest_default_filename = "output-DEST.png"
+                END IF
+                
+                save_dest_file$ = _SAVEFILEDIALOG$( _
+                    "Save Destination (Palettized) Image", _
+                    dest_default_filename, _
+                    "*.png|*.PNG", _
+                    "PNG Image" _
+                )
+                IF LEN(save_dest_file$) <> 0 THEN
+                    ' Update last save directory
+                    IF _INSTRREV(save_dest_file$, SLASH$) > 0 THEN
+                        last_save_directory = LEFT$(save_dest_file$, _INSTRREV(save_dest_file$, SLASH$))
+                    END IF
+                    
+                    DIM AS LONG save_dest_img, temp_dest_32bit, temp_dest_pixelated
+                    DIM AS INTEGER save_dest_width, save_dest_height
+                    
+                    ' Calculate zoomed dimensions
+                    save_dest_width = INT(zoom * _WIDTH(img_pal))
+                    save_dest_height = INT(zoom * _HEIGHT(img_pal))
+                    
+                    ' Create 32-bit image for the final output
+                    save_dest_img = _NEWIMAGE(save_dest_width, save_dest_height, 32)
+                    
+                    ' Apply pixelation if enabled
+                    IF adj_pixelate > 1 THEN
+                        ' Convert to 32-bit and pixelate
+                        temp_dest_32bit = _NEWIMAGE(_WIDTH(img_pal), _HEIGHT(img_pal), 32)
+                        _PUTIMAGE (0, 0), img_pal, temp_dest_32bit
+                        temp_dest_pixelated = GJ_IMGADJ_Pixelate(temp_dest_32bit, adj_pixelate)
+                        IF temp_dest_pixelated <> 0 THEN
+                            _PUTIMAGE (0, 0)-(save_dest_width - 1, save_dest_height - 1), temp_dest_pixelated, save_dest_img
+                            _FREEIMAGE temp_dest_pixelated
+                        ELSE
+                            _PUTIMAGE (0, 0)-(save_dest_width - 1, save_dest_height - 1), img_pal, save_dest_img
+                        END IF
+                        _FREEIMAGE temp_dest_32bit
+                    ELSE
+                        ' No pixelation, just scale
+                        _PUTIMAGE (0, 0)-(save_dest_width - 1, save_dest_height - 1), img_pal, save_dest_img
+                    END IF
+                    
+                    ' Apply scanlines if enabled
+                    IF scanline_enabled THEN
+                        DIM AS LONG scanline_save_overlay
+                        DIM AS INTEGER scanline_save_alpha, sx, sy, sline_idx, scol_idx
+                        
+                        scanline_save_overlay = _NEWIMAGE(save_dest_width, save_dest_height, 32)
+                        _DEST scanline_save_overlay
+                        CLS , _RGBA32(0, 0, 0, 0)
+                        scanline_save_alpha = INT(scanline_opacity * 255)
+                        
+                        IF scanline_horizontal THEN
+                            sy = 0
+                            WHILE sy < save_dest_height
+                                FOR sline_idx = 0 TO scanline_size - 1
+                                    IF sy + sline_idx < save_dest_height THEN
+                                        LINE (0, sy + sline_idx)-(save_dest_width - 1, sy + sline_idx), _RGBA32(0, 0, 0, scanline_save_alpha)
+                                    END IF
+                                NEXT sline_idx
+                                sy = sy + (scanline_size * 2)
+                            WEND
+                        ELSE
+                            sx = 0
+                            WHILE sx < save_dest_width
+                                FOR scol_idx = 0 TO scanline_size - 1
+                                    IF sx + scol_idx < save_dest_width THEN
+                                        LINE (sx + scol_idx, 0)-(sx + scol_idx, save_dest_height - 1), _RGBA32(0, 0, 0, scanline_save_alpha)
+                                    END IF
+                                NEXT scol_idx
+                                sx = sx + (scanline_size * 2)
+                            WEND
+                        END IF
+                        
+                        _DEST save_dest_img
+                        _PUTIMAGE (0, 0), scanline_save_overlay
+                        _FREEIMAGE scanline_save_overlay
+                    END IF
+                    
+                    _SAVEIMAGE save_dest_file$, save_dest_img
+                    _FREEIMAGE save_dest_img
+                    
+                    show_info_msg "Destination image saved as " + save_dest_file$ + " (zoom: " + _TRIM$(STR$(INT(zoom * 100))) + "%, pixelation: " + _IIF(adj_pixelate > 1, "ON", "OFF") + ", scanlines: " + _IIF(scanline_enabled, "ON", "OFF") + ")"
+                END IF
+            END IF
         CASE "r", "R":
             ' Reset all adjustments
             reset_adjustments
@@ -968,7 +1156,7 @@ DO
             show_info_msg "IMG2PAL v" + PROG_VERSION$
         CASE "h":
             ' Help
-            show_info_msg "L=LOAD,P=PAL,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,`=RANDOM IMG,~=RANDOM PAL,SPACE=RANDOM PRESET,?=RANDOM ALL" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT"
+            show_info_msg "L=LOAD,P=PAL,S=SAVE,D=DITH:ON/OFF,+/-=DITH AMT,<>=DITH METH,K=PATTERN,M=LOAD BITMAP PATTERN,UP/DN=ZOOM(+SHIFT=MORE,0=MIN,1,2,3,4=1|2|3|400%,9=MAX),PGUP|DN=-/+IMG,L|R=-/+PAL,./,=-/+SCALER" + CHR$(13) + CHR$(10) + "ADJUSTMENTS: B=BRIGHTNESS,C=CONTRAST,CTRL+B=TOGGLE B/C MODE,X=PIXELATE,U=HUE,Z=COLORIZE,T=THRESHOLD,O=POSTERIZE" + CHR$(13) + CHR$(10) + "MORE ADJ: G=GAMMA,F=FILM GRAIN,I=INVERT,V=LEVELS,N=COLOR BALANCE,R=RESET ADJ,`=RANDOM IMG,~=RANDOM PAL,SPACE=RANDOM PRESET,?=RANDOM ALL" + CHR$(13) + CHR$(10) + "SAVE: F5=SAVE SOURCE,F6=SAVE DEST" + CHR$(13) + CHR$(10) + "PRESETS: W=SAVE PRESET,E=LOAD PRESET,CTRL+S=OVERWRITE PRESET,ALT/CTRL+UP/DOWN=CYCLE PRESETS,ESC=QUIT"
         CASE "j":
             ' Jump to a specific image
             DIM AS STRING jump_to
@@ -1161,15 +1349,19 @@ END SUB
 SUB apply_scanlines(img AS LONG, dest_x1 AS INTEGER, dest_y1 AS INTEGER, dest_x2 AS INTEGER, dest_y2 AS INTEGER)
     IF NOT scanline_enabled OR img = 0 THEN EXIT SUB
     
-    DIM AS INTEGER img_width, img_height, x, y, line_pos
+    DIM AS INTEGER x, y
     DIM AS LONG old_dest, scanline_overlay
     DIM AS INTEGER scanline_alpha
     DIM AS INTEGER display_width, display_height
+    DIM AS INTEGER scaled_spacing
     
-    img_width = _WIDTH(img)
-    img_height = _HEIGHT(img)
     display_width = dest_x2 - dest_x1
     display_height = dest_y2 - dest_y1
+    
+    ' Calculate scanline spacing scaled by zoom factor
+    ' Each scanline is 1 pixel thick, spacing controls the gap between them
+    scaled_spacing = INT((scanline_size + 1) * zoom)
+    IF scaled_spacing < 2 THEN scaled_spacing = 2  ' Minimum spacing of 2 pixels
     
     ' Create a fresh 32-bit image for the scanline overlay (sized to display area)
     scanline_overlay = _NEWIMAGE(display_width, display_height, 32)
@@ -1184,27 +1376,36 @@ SUB apply_scanlines(img AS LONG, dest_x1 AS INTEGER, dest_y1 AS INTEGER, dest_x2
     ' Calculate alpha value for scanlines based on opacity (0-255)
     scanline_alpha = INT(scanline_opacity * 255)
     
-    ' Draw ONLY the scanlines on the transparent overlay
+    ' Draw scanlines - draw scanline_size lines, then skip scanline_size lines, repeat
+    ' This creates proportional pattern: size=1: line/no-line, size=2: line/line/no/no, etc.
     IF scanline_horizontal THEN
-        ' Horizontal scanlines - scale to display size
-        FOR y = 0 TO display_height - 1
-            ' Create scanlines every (scanline_size + 1) pixels
-            line_pos = y MOD (scanline_size + 1)
-            IF line_pos < scanline_size THEN
-                ' Draw a horizontal line across the entire width
-                LINE (0, y)-(display_width - 1, y), _RGBA32(0, 0, 0, scanline_alpha)
-            END IF
-        NEXT y
+        ' Horizontal scanlines
+        y = 0
+        WHILE y < display_height
+            ' Draw scanline_size consecutive lines
+            DIM line_idx AS INTEGER
+            FOR line_idx = 0 TO scanline_size - 1
+                IF y + line_idx < display_height THEN
+                    LINE (0, y + line_idx)-(display_width - 1, y + line_idx), _RGBA32(0, 0, 0, scanline_alpha)
+                END IF
+            NEXT line_idx
+            ' Skip to next group (scanline_size lines drawn + scanline_size gap)
+            y = y + (scanline_size * 2)
+        WEND
     ELSE
-        ' Vertical scanlines - scale to display size
-        FOR x = 0 TO display_width - 1
-            ' Create scanlines every (scanline_size + 1) pixels
-            line_pos = x MOD (scanline_size + 1)
-            IF line_pos < scanline_size THEN
-                ' Draw a vertical line across the entire height
-                LINE (x, 0)-(x, display_height - 1), _RGBA32(0, 0, 0, scanline_alpha)
-            END IF
-        NEXT x
+        ' Vertical scanlines
+        x = 0
+        WHILE x < display_width
+            ' Draw scanline_size consecutive lines
+            DIM col_idx AS INTEGER
+            FOR col_idx = 0 TO scanline_size - 1
+                IF x + col_idx < display_width THEN
+                    LINE (x + col_idx, 0)-(x + col_idx, display_height - 1), _RGBA32(0, 0, 0, scanline_alpha)
+                END IF
+            NEXT col_idx
+            ' Skip to next group (scanline_size lines drawn + scanline_size gap)
+            x = x + (scanline_size * 2)
+        WEND
     END IF
     
     ' Switch to CANVAS for screen rendering
@@ -1847,15 +2048,7 @@ SUB apply_adjustments
             END IF
         END IF
         
-        ' 11. Pixelate (only if > 1)
-        IF adj_pixelate > 1 THEN
-            DIM temp_pixelate AS LONG
-            temp_pixelate = GJ_IMGADJ_Pixelate(img_adjusted, adj_pixelate)
-            IF temp_pixelate <> 0 THEN
-                ' _FREEIMAGE img_adjusted
-                img_adjusted = temp_pixelate
-            END IF
-        END IF
+        ' NOTE: Pixelation is applied AFTER palettization in draw_output as the final visual effect
         
         adj_needs_update = 0  ' Mark as up to date
     END IF
@@ -1971,12 +2164,36 @@ SUB draw_output
             + _TRIM$(STR$(dy1_pal)) + ")-(" _
             + _TRIM$(STR$(dx2_pal)) + "," _ 
             + _TRIM$(STR$(dy2_pal)) + ")"
-            ' Display the palettized image first
-            _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), img_pal
             
-            ' Apply scanline effect as a last pass screen overlay at display coordinates
+            ' Apply pixelation as the FINAL visual effect (after dithering/palettization)
+            ' by creating a 32-bit copy, pixelating it, and displaying that
+            IF adj_pixelate > 1 THEN
+                DIM temp_pal_32bit AS LONG
+                DIM temp_pixelated AS LONG
+                ' Convert palettized image to 32-bit
+                temp_pal_32bit = _NEWIMAGE(_WIDTH(img_pal), _HEIGHT(img_pal), 32)
+                _PUTIMAGE (0, 0), img_pal, temp_pal_32bit
+                ' Apply pixelation to the 32-bit copy
+                temp_pixelated = GJ_IMGADJ_Pixelate(temp_pal_32bit, adj_pixelate)
+                IF temp_pixelated <> 0 THEN
+                    ' Display the pixelated version
+                    _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), temp_pixelated
+                    _FREEIMAGE temp_pixelated
+                ELSE
+                    ' Fallback to non-pixelated if pixelation failed
+                    _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), img_pal
+                END IF
+                IF temp_pal_32bit <> 0 THEN _FREEIMAGE temp_pal_32bit
+            ELSE
+                ' Display the palettized image without pixelation
+                _PUTIMAGE (dx1_pal, dy1_pal)-(dx2_pal, dy2_pal), img_pal
+            END IF
+            
+            ' Apply scanlines as the ABSOLUTE FINAL visual effect (after pixelation and scaling)
+            ' Scanlines are drawn directly on CANVAS at screen coordinates as solid lines
             apply_scanlines img_pal, dx1_pal, dy1_pal, dx2_pal, dy2_pal
         END IF
+        
         _ASSERT 1, "ah="+_TRIM$(STR$(_HEIGHT(img_orig)))
         _ASSERT 1, "aw="+_TRIM$(STR$(_WIDTH(img_orig)))
     END IF

@@ -39,6 +39,8 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 | `L` | Load Image | Open file dialog to select an image |
 | `P` | Load Palette | Open file dialog to select a .GPL palette |
 | `S` | Save Image | Save the current palette-converted result |
+| `Ctrl+Shift+W` | Save Destination | Save destination image (with all effects applied) |
+| `Ctrl+Alt+Shift+W` | Save Source | Save source image (with adjustments but no palette) |
 | `H` | Help | Display keyboard shortcuts and controls |
 | `A` | About | Show version information |
 | `ESC` | Exit | Quit the application |
@@ -68,6 +70,14 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 | `0` | Minimum Zoom | Set zoom to minimum (0.1x) |
 | `1-4` | Set Zoom | Set zoom to 1x, 2x, 3x, or 4x |
 | `9` | Maximum Zoom | Set zoom to maximum (10x) |
+| `F11` | Toggle Fullscreen | Toggle fullscreen display mode |
+
+### Visual Effects
+| Key | Action | Description |
+|-----|--------|-------------|
+| `Ctrl+S` | Toggle Scanlines | Enable/disable CRT scanline effect |
+| `Ctrl+Alt+S` | Increase Scanline Size | Make scanlines thicker (+Shift = faster) |
+| `Ctrl+Shift+S` | Decrease Scanline Size | Make scanlines thinner (+Shift = faster) |
 
 ### Dithering & Scaling
 | Key | Action | Description |
