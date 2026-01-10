@@ -35,12 +35,37 @@ TYPE IMAGE
     zoom      AS SINGLE
 END TYPE
 
+TYPE ConversionSettings
+    srcPath     AS STRING
+    palettePath AS STRING
+    outputDir   AS STRING
+    outputFile  AS STRING
+    cols        AS INTEGER
+    rows        AS INTEGER
+    cellW       AS INTEGER
+    cellH       AS INTEGER
+    useHalf     AS _BYTE
+    useICE      AS _BYTE
+    includeSauce AS _BYTE
+    sauceTitle  AS STRING
+    sauceAuthor AS STRING
+    sauceGroup  AS STRING
+END TYPE
+
+CONST DEFAULT_COLS% = 80
+CONST DEFAULT_ROWS% = 25
+CONST FONT_HEIGHT_8% = 8
+CONST FONT_HEIGHT_16% = 16
+
 DIM SHARED AS IMAGE _
     SourceIMG, _
     DestPalIMG, _
     ResizeCropIMG, _
     PreviewIMG, _
     FinalIMG
+
+DIM SHARED AppSettings AS ConversionSettings
+DIM SHARED CurrentPalettePath$
 
 'KEY CONSTANTS
 CONST KEY_ESCAPE&           = 27
@@ -111,3 +136,11 @@ CONST KEY_INSERT_MODE&      = 200012
 '$INCLUDE:'include/QB64_GJ_LIB/MISC/MISC.BI'
 '$INCLUDE:'include/MOUSE/MOUSE.BI'
 '$INCLUDE:'include/QB64_GJ_LIB/BBX/BBX.BI'
+
+DECLARE SUB InitializeAppState ()
+DECLARE SUB UpdateStatus (msg$, isError AS _BYTE)
+DECLARE SUB SliderToTextbox (sliderID AS LONG, textID AS LONG)
+DECLARE SUB TextboxToSlider (textID AS LONG, sliderID AS LONG, minVal AS INTEGER, maxVal AS INTEGER)
+DECLARE SUB PerformExport ()
+DECLARE FUNCTION BrowseForExportDir$ (initial$)
+DECLARE FUNCTION EnsureTrailingSlash$ (dir$)

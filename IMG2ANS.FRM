@@ -71,7 +71,7 @@ SUB __UI_LoadForm
     Control(__UI_NewID).HasBorder = False
     Control(__UI_NewID).CanHaveFocus = True
 
-    __UI_NewID = __UI_NewControl(__UI_Type_Button, "SI_SourceImgClearButtoNBT", 80, 23, 238, 43, 0)
+    __UI_NewID = __UI_NewControl(__UI_Type_Button, "SI_SourceImgClearButtonBT", 80, 23, 238, 43, 0)
     __UI_RegisterResult = 0
     SetCaption __UI_NewID, "&CLEAR"
     Control(__UI_NewID).HasBorder = False

@@ -13,6 +13,120 @@
 $INCLUDEONCE
 
 ''
+' Update status label with optional error coloring
+' @param STRING msg Message to show
+' @param _BYTE isError Flag indicating error styling
+''
+SUB UpdateStatus(msg$, isError AS _BYTE)
+    SetCaption ST_StatusLB, msg$
+    IF isError THEN
+        Control(ST_StatusLB).ForeColor = _RGB32(240, 120, 120)
+    ELSE
+        Control(ST_StatusLB).ForeColor = _RGB32(120, 210, 150)
+    END IF
+END SUB
+
+
+''
+' Ensure a directory string ends with the current OS slash
+' @param STRING dir input directory
+' @return STRING directory with trailing slash
+''
+FUNCTION EnsureTrailingSlash$(dir$)
+    IF LEN(dir$) = 0 THEN
+        EnsureTrailingSlash$ = ""
+        EXIT FUNCTION
+    END IF
+    DIM last$
+    last$ = RIGHT$(dir$, 1)
+    IF last$ = SLASH$ THEN
+        EnsureTrailingSlash$ = dir$
+    ELSE
+        EnsureTrailingSlash$ = dir$ + SLASH$
+    END IF
+END FUNCTION
+
+
+''
+' Copy slider value into textbox
+''
+SUB SliderToTextbox(sliderID AS LONG, textID AS LONG)
+    Text(textID) = _TRIM$(STR$(Control(sliderID).Value))
+END SUB
+
+
+''
+' Clamp textbox numeric value and push back to slider
+''
+SUB TextboxToSlider(textID AS LONG, sliderID AS LONG, minVal AS INTEGER, maxVal AS INTEGER)
+    DIM v AS INTEGER
+    v = VAL(Text(textID))
+    IF v < minVal THEN v = minVal
+    IF v > maxVal THEN v = maxVal
+    Text(textID) = _TRIM$(STR$(v))
+    Control(sliderID).Value = v
+END SUB
+
+
+''
+' Extract directory component from full path
+''
+FUNCTION ExtractDirectory$(path$)
+    DIM pos AS LONG
+    pos = _INSTRREV(path$, SLASH$)
+    IF pos <= 0 THEN
+        ExtractDirectory$ = ""
+    ELSE
+        ExtractDirectory$ = LEFT$(path$, pos)
+    END IF
+END FUNCTION
+
+
+''
+' Extract filename from full path
+''
+FUNCTION ExtractFileName$(path$)
+    DIM pos AS LONG
+    pos = _INSTRREV(path$, SLASH$)
+    IF pos <= 0 THEN
+        ExtractFileName$ = path$
+    ELSE
+        ExtractFileName$ = MID$(path$, pos + 1)
+    END IF
+END FUNCTION
+
+
+''
+' Remove extension from filename
+''
+FUNCTION StripExtension$(fileName$)
+    DIM pos AS LONG
+    pos = _INSTRREV(fileName$, ".")
+    IF pos <= 0 THEN
+        StripExtension$ = fileName$
+    ELSE
+        StripExtension$ = LEFT$(fileName$, pos - 1)
+    END IF
+END FUNCTION
+
+
+''
+' Set default export directory and filename after image load
+''
+SUB UpdateExportPathFromImage(img AS IMAGE)
+    AppSettings.outputDir$ = ExtractDirectory$(img.file_path$)
+    IF LEN(AppSettings.outputDir$) = 0 THEN AppSettings.outputDir$ = EnsureTrailingSlash$(_STARTDIR$)
+    Text(E_ExportToDirTB) = AppSettings.outputDir$
+    IF LEN(img.file_name$) THEN
+        AppSettings.outputFile$ = StripExtension$(img.file_name$) + ".ans"
+        Text(E_ExportAsFileTB) = AppSettings.outputFile$
+        AppSettings.sauceTitle$ = StripExtension$(img.file_name$)
+        Text(S_SauceTitleTB) = AppSettings.sauceTitle$
+    END IF
+END SUB
+
+
+''
 ' Sets the size of the crop bounding box
 ' @param INTEGER w Width of the box
 ' @param INTEGER h Height of the box
@@ -20,6 +134,8 @@ $INCLUDEONCE
 SUB SetCropSize(w%, h%)
     Text(RC_ResizeCropWTB) = _TRIM$(STR$(w%))
     Text(RC_ResizeCropHTB) = _TRIM$(STR$(h%))
+    AppSettings.cols = w%
+    AppSettings.rows = h%
 END SUB
 
 
@@ -61,6 +177,11 @@ SUB ClearPBs
     ClearImageFromPB ResizeCropIMG, RC_ResizeCropPB
     ClearImageFromPB PreviewIMG, P_PreviewPB
     ClearImgFocus
+    AppSettings.srcPath$ = ""
+    AppSettings.outputDir$ = ""
+    AppSettings.outputFile$ = ""
+    AppSettings.palettePath$ = ""
+    AppSettings.sauceTitle$ = ""
     Text(S_SauceTitleTB) = ""
     Text(S_SauceAuthorTB) = ""
     Text(S_SauceGroupTB) = ""
@@ -80,6 +201,7 @@ SUB ClearPBs
     Control(DP_DestPalCB).Value = FALSE
     Control(RC_ResizeCropCB).Value = FALSE
     Control(DP_DestPalPalleteDL).Value = 1
+    ClearPalettePreview
 END SUB
 
 
@@ -105,13 +227,18 @@ SUB LoadImageIntoPB(img AS IMAGE, pb&, directory$)
     console.info "LoadImageIntoPB(" + img.file_name$ + "," + STR$(pb&) + "," + directory$ + ")"
     DIM AS STRING image_file
     image_file$ = BrowseForImageFile$(directory$)
+    IF LEN(image_file$) = 0 THEN
+        UpdateStatus "Image selection cancelled.", FALSE
+        EXIT SUB
+    END IF
     PutImageIntoPB img, pb&, image_file$
     PutImageIntoPB DestPalIMG, DP_DestPalPB, image_file$
     PutImageIntoPB ResizeCropIMG, RC_ResizeCropPB, image_file$
     PutImageIntoPB PreviewIMG, P_PreviewPB, image_file$
-    Text(S_SauceTitleTB) = img.file_name$
-    Text(E_ExportAsFileTB) = img.file_name$ + ".ans"
-    Text(E_ExportToDirTB) = MID$(img.file_path$, 0, _INSTRREV(img.file_path$, SLASH$) + 1)
+    AppSettings.srcPath$ = image_file$
+    UpdateExportPathFromImage img
+    Control(E_ExportToImgSrcDirRB).Value = TRUE
+    UpdateStatus "Loaded image " + img.file_name$, FALSE
 END SUB
 
 
@@ -174,11 +301,97 @@ END SUB
 
 
 ''
+' Clear palette preview picture box
+''
+SUB ClearPalettePreview
+    DIM canvas&: canvas& = Control(DP_DestPalPaletteColorsPB).HelperCanvas&
+    DIM oldDest&: oldDest& = _DEST
+    _DEST canvas&
+    LINE (0, 0)-(_WIDTH(canvas&) - 1, _HEIGHT(canvas&) - 1), _RGB32(30, 30, 30), BF
+    _DEST oldDest&
+    Control(DP_DestPalPaletteColorsPB).Redraw = TRUE
+END SUB
+
+
+''
+' Render currently loaded palette as swatches
+''
+SUB RenderPalettePreview
+    IF PalCount <= 0 THEN
+        ClearPalettePreview
+        EXIT SUB
+    END IF
+    DIM canvas&: canvas& = Control(DP_DestPalPaletteColorsPB).HelperCanvas&
+    DIM oldDest&: oldDest& = _DEST
+    _DEST canvas&
+    LINE (0, 0)-(_WIDTH(canvas&) - 1, _HEIGHT(canvas&) - 1), _RGB32(20, 20, 20), BF
+    DIM cols AS INTEGER: cols = 1
+    IF PalCount > 1 THEN cols = INT(SQR(PalCount - 1)) + 1
+    DIM rows AS INTEGER: rows = ((PalCount - 1) \ cols) + 1
+    DIM cellW AS SINGLE: cellW = _WIDTH(canvas&) / cols
+    DIM cellH AS SINGLE: cellH = _HEIGHT(canvas&) / rows
+    DIM i AS INTEGER
+    FOR i = 0 TO PalCount - 1
+        DIM cx AS INTEGER, cy AS INTEGER
+        cx = i MOD cols
+        cy = i \ cols
+        DIM x1 AS SINGLE, y1 AS SINGLE, x2 AS SINGLE, y2 AS SINGLE
+        x1 = cx * cellW
+        y1 = cy * cellH
+        x2 = (cx + 1) * cellW - 1
+        y2 = (cy + 1) * cellH - 1
+        LINE (x1, y1)-(x2, y2), _RGB32(PalR(i), PalG(i), PalB(i)), BF
+    NEXT
+    _DEST oldDest&
+    Control(DP_DestPalPaletteColorsPB).Redraw = TRUE
+END SUB
+
+
+''
 ' Load a GPL GIMP Palette file from disk
 ' @param STRING file_path of palette
 '
 SUB LoadGPLFile(file_path$)
     console.info "LoadGPLFile(" + file_path$ + ")"
+    IF LEN(file_path$) = 0 THEN
+        UpdateStatus "No palette selected.", TRUE
+        EXIT SUB
+    END IF
+    DIM loaded%%
+    loaded%% = LoadGimpPalette(file_path$)
+    IF loaded%% = 0 THEN
+        PalCount = 0
+        ClearPalettePreview
+        UpdateStatus "Failed to load palette.", TRUE
+        EXIT SUB
+    END IF
+    AppSettings.palettePath$ = file_path$
+    CurrentPalettePath$ = file_path$
+    RenderPalettePreview
+    DIM palLabel$
+    IF LEN(PalName$) THEN
+        palLabel$ = PalName$
+    ELSE
+        palLabel$ = file_path$
+    END IF
+    UpdateStatus "Loaded palette " + palLabel$ + " (" + _TRIM$(STR$(PalCount)) + " colors)", FALSE
+END SUB
+
+
+''
+' Initialize default control state
+''
+SUB InitializeAppState
+    ClearPBs
+    SetCropSize DEFAULT_COLS, DEFAULT_ROWS
+    AppSettings.includeSauce = -1
+    AppSettings.useICE = -1
+    Control(S_SauceFontSize8pxRB).Value = TRUE
+    Control(S_SauceiCEColorsRB).Value = TRUE
+    Control(DP_DestPalCB).Value = TRUE
+    Control(DP_DestPalPalleteDL).Value = 2 ' default to EGA
+    ChangeDestPal
+    UpdateStatus "Ready. Load an image to begin.", FALSE
 END SUB
 
 
@@ -216,6 +429,177 @@ END FUNCTION
 
 
 ''
+' Browse for export directory
+''
+FUNCTION BrowseForExportDir$(initial$)
+    DIM start$ : start$ = initial$
+    IF LEN(start$) = 0 THEN start$ = _STARTDIR$
+    BrowseForExportDir$ = _SELECTFOLDERDIALOG$("Choose export directory", start$)
+END FUNCTION
+
+
+FUNCTION EnsureOutputDirectory% (dir$)
+    DIM safe$ : safe$ = dir$
+    IF LEN(safe$) = 0 THEN EnsureOutputDirectory% = 0: EXIT FUNCTION
+    IF RIGHT$(safe$, 1) = SLASH$ THEN safe$ = LEFT$(safe$, LEN(safe$) - 1)
+    IF LEN(safe$) = 0 THEN safe$ = SLASH$
+    IF _DIREXISTS(safe$) THEN
+        EnsureOutputDirectory% = -1
+        EXIT FUNCTION
+    END IF
+    ON ERROR GOTO MkFail
+    MKDIR safe$
+    EnsureOutputDirectory% = -1
+    EXIT FUNCTION
+MkFail:
+    EnsureOutputDirectory% = 0
+END FUNCTION
+
+
+FUNCTION BuildConversionSettings% (BYREF settings AS ConversionSettings)
+    settings.srcPath$ = AppSettings.srcPath$
+    IF LEN(settings.srcPath$) = 0 THEN
+        UpdateStatus "Load an image before exporting.", TRUE
+        EXIT FUNCTION
+    END IF
+
+    IF Control(S_SauceRGBColorsRB).Value THEN
+        UpdateStatus "RGB export is not implemented yet. Use iCE colors.", TRUE
+        EXIT FUNCTION
+    END IF
+
+    IF Control(DP_DestPalCB).Value = 0 THEN
+        UpdateStatus "Destination palette must be enabled for ANSI export.", TRUE
+        EXIT FUNCTION
+    END IF
+
+    IF LEN(AppSettings.palettePath$) = 0 OR PalCount = 0 THEN
+        UpdateStatus "Please choose a palette to continue.", TRUE
+        EXIT FUNCTION
+    END IF
+    settings.palettePath$ = AppSettings.palettePath$
+
+    settings.cols = VAL(Text(RC_ResizeCropWTB))
+    IF settings.cols <= 0 THEN settings.cols = DEFAULT_COLS
+    settings.rows = VAL(Text(RC_ResizeCropHTB))
+    IF settings.rows <= 0 THEN settings.rows = DEFAULT_ROWS
+
+    IF Control(S_SauceFontSize16pxRB).Value THEN
+        settings.cellW = 8
+        settings.cellH = FONT_HEIGHT_16
+        settings.useHalf = -1
+    ELSE
+        settings.cellW = 8
+        settings.cellH = FONT_HEIGHT_8
+        settings.useHalf = 0
+    END IF
+
+    settings.useICE = Control(S_SauceiCEColorsRB).Value
+    settings.includeSauce = -1
+    settings.sauceTitle$ = Text(S_SauceTitleTB)
+    settings.sauceAuthor$ = Text(S_SauceAuthorTB)
+    settings.sauceGroup$ = Text(S_SauceGroupTB)
+
+    settings.outputFile$ = _TRIM$(Text(E_ExportAsFileTB))
+    IF LEN(settings.outputFile$) = 0 THEN
+        settings.outputFile$ = StripExtension$(ExtractFileName$(settings.srcPath$)) + ".ans"
+        Text(E_ExportAsFileTB) = settings.outputFile$
+    END IF
+    IF UCASE$(RIGHT$(settings.outputFile$, 4)) <> ".ANS" THEN
+        settings.outputFile$ = settings.outputFile$ + ".ans"
+        Text(E_ExportAsFileTB) = settings.outputFile$
+    END IF
+
+    IF Control(E_ExportToImgSrcDirRB).Value THEN
+        settings.outputDir$ = ExtractDirectory$(settings.srcPath$)
+        IF LEN(settings.outputDir$) = 0 THEN settings.outputDir$ = EnsureTrailingSlash$(_STARTDIR$)
+    ELSE
+        settings.outputDir$ = _TRIM$(Text(E_ExportToDirTB))
+    END IF
+
+    IF LEN(settings.outputDir$) = 0 THEN
+        UpdateStatus "Choose an export directory.", TRUE
+        EXIT FUNCTION
+    END IF
+
+    BuildConversionSettings% = -1
+END FUNCTION
+
+
+FUNCTION SaveAnsiToDisk% (outPath$, ansi$)
+    ON ERROR GOTO WriteFail
+    DIM h AS LONG
+    h = FREEFILE
+    OPEN outPath$ FOR OUTPUT AS #h
+    PRINT #h, ansi$;
+    CLOSE #h
+    h = FREEFILE
+    OPEN outPath$ FOR APPEND AS #h
+    PRINT #h, CHR$(&H1A);
+    CLOSE #h
+    SaveAnsiToDisk% = -1
+    EXIT FUNCTION
+WriteFail:
+    SaveAnsiToDisk% = 0
+END FUNCTION
+
+
+SUB PerformExport
+    DIM settings AS ConversionSettings
+    IF BuildConversionSettings%(settings) = 0 THEN EXIT SUB
+
+    DIM cleanDir$ : cleanDir$ = EnsureTrailingSlash$(settings.outputDir$)
+    IF EnsureOutputDirectory%(cleanDir$) = 0 THEN
+        UpdateStatus "Unable to create export directory.", TRUE
+        EXIT SUB
+    END IF
+
+    DIM src&, scaled&
+    src& = _LOADIMAGE(settings.srcPath$, 32)
+    IF src& = 0 THEN
+        UpdateStatus "Could not load source image for conversion.", TRUE
+        EXIT SUB
+    END IF
+
+    DIM targetW AS INTEGER, targetH AS INTEGER
+    targetW = settings.cols * settings.cellW
+    targetH = settings.rows * settings.cellH
+    scaled& = _NEWIMAGE(targetW, targetH, 32)
+    IF scaled& = 0 THEN
+        _FREEIMAGE src&
+        UpdateStatus "Unable to allocate working image buffer.", TRUE
+        EXIT SUB
+    END IF
+    _PUTIMAGE , src&, scaled&
+    _FREEIMAGE src&
+
+    DIM ansi$ : ansi$ = ConvertImageToAnsi$(scaled&, settings.cols, settings.rows, settings.cellW, settings.cellH, settings.useHalf, settings.useICE)
+    _FREEIMAGE scaled&
+
+    IF LEN(ansi$) = 0 THEN
+        UpdateStatus "Conversion failed. Ensure a palette is loaded.", TRUE
+        EXIT SUB
+    END IF
+
+    DIM outPath$ : outPath$ = cleanDir$ + settings.outputFile$
+    IF SaveAnsiToDisk%(outPath$, ansi$) = 0 THEN
+        UpdateStatus "Unable to write ANSI file.", TRUE
+        EXIT SUB
+    END IF
+
+    IF settings.includeSauce THEN
+        WriteSauceForAnsi outPath$, settings.sauceTitle$, settings.sauceAuthor$, settings.sauceGroup$, settings.cols, settings.rows
+    END IF
+
+    AppSettings.outputDir$ = cleanDir$
+    AppSettings.outputFile$ = settings.outputFile$
+    Text(E_ExportToDirTB) = cleanDir$
+    Text(E_ExportAsFileTB) = settings.outputFile$
+    UpdateStatus "Exported ANSI to " + outPath$, FALSE
+END SUB
+
+
+''
 ' Applies GPL palette to image in picturebox
 ' @param STRING pal Palette to apply
 ' @param LONG img Image to apply palette to
@@ -223,6 +607,8 @@ END FUNCTION
 '
 SUB ApplyPalToImg(pal$, img&, dithering%%)
     console.info "ApplyPalToImg(" + pal$ + "," + STR$(img&) + "," + STR$(dithering%%) + ")"
+    IF LEN(pal$) = 0 THEN EXIT SUB
+    LoadGPLFile pal$
 END SUB
 
 
@@ -241,13 +627,31 @@ SUB ChangeDestPal
             pal_sel$ = pal_2$
             Control(DP_DestPalPalleteDL).Value = 2
         END IF
-        ApplyPalToImg _STARTDIR$ + "/resources/palettes/" + pal_sel$ + ".GPL", _
-            Control(DP_DestPalPB).HelperCanvas&, _
-            TRUE
+        DIM palPath$
+        palPath$ = PaletteLabelToPath$(pal_sel$)
+        IF LEN(palPath$) THEN
+            LoadGPLFile palPath$
+        ELSE
+            UpdateStatus "Unable to resolve palette path.", TRUE
+        END IF
     ELSE
         Control(DP_DestPalPalleteDL).Value = 1
+        AppSettings.palettePath$ = ""
+        CurrentPalettePath$ = ""
+        PalCount = 0
+        ClearPalettePreview
+        UpdateStatus "Destination palette disabled.", FALSE
     END IF
 END SUB
+
+
+FUNCTION PaletteLabelToPath$(label$)
+    IF LEN(label$) = 0 THEN
+        PaletteLabelToPath$ = ""
+    ELSE
+        PaletteLabelToPath$ = _STARTDIR$ + "/resources/palettes/" + label$ + ".GPL"
+    END IF
+END FUNCTION
 
 
 ''

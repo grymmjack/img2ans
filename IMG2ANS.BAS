@@ -93,6 +93,12 @@ DIM SHARED ST_StatusLB AS LONG
 
 ': External modules: ---------------------------------------------------------------
 '$INCLUDE:'IMG2ANS.BI'
+'$INCLUDE:'include/SAUCE/SAUCE.BI'
+'$INCLUDE:'core/palette.bi'
+'$INCLUDE:'core/cellmap.bi'
+'$INCLUDE:'core/ansi_writer.bi'
+'$INCLUDE:'core/convert.bi'
+'$INCLUDE:'core/sauce_wrap.bi'
 '$INCLUDE:'include/InForm-PE/InForm/InForm.bi'
 '$INCLUDE:'include/InForm-PE/InForm/xp.uitheme'
 '$INCLUDE:'IMG2ANS.FRM'
@@ -104,6 +110,7 @@ END SUB
 
 SUB __UI_OnLoad
     __UI_DefaultButtonID = SI_SourceImgBrowseButtonBT
+    InitializeAppState
 END SUB
 
 SUB __UI_BeforeUpdateDisplay
@@ -211,6 +218,8 @@ SUB __UI_BeforeUnload
 END SUB
 
 SUB __UI_Click (id AS LONG)
+    DIM pal$ AS STRING
+    DIM exportDir$ AS STRING
     SELECT CASE id
         'H:HEADER
         CASE H_IMG2ANSLB
@@ -230,7 +239,7 @@ SUB __UI_Click (id AS LONG)
                 _STARTDIR$ + "/resources/images/tests-external/" _
             )
         CASE SI_SourceImgClearButtonBT
-            ClearPBs
+            InitializeAppState
         CASE SI_SourceImgPB
             SetImgFocus SI_SourceImgPB
         CASE SI_SourceImgBrightnessLB
@@ -245,11 +254,14 @@ SUB __UI_Click (id AS LONG)
 
         'DP:DESTINATION PALETTE
         CASE DP_DestPalCB
+            ChangeDestPal
         CASE DP_DestPalPB
             SetImgFocus DP_DestPalPB
         CASE DP_DestPalPalleteDL
+            ChangeDestPal
         CASE DP_DestPalPalleteBrowseBT
-            LoadGPLFile BrowseForGPLFile$(_STARTDIR$ + "/resources/palettes/")
+            pal$ = BrowseForGPLFile$(_STARTDIR$ + "/resources/palettes/")
+            IF LEN(pal$) THEN LoadGPLFile pal$
         CASE DP_DestPalPaletteColorsPB
 
         'RC:RESIZE / CROP
@@ -298,9 +310,16 @@ SUB __UI_Click (id AS LONG)
         CASE E_ExportToDirRB
         CASE E_ExportToDirTB
         CASE E_ExportToDirBrowseButtonBT
+            exportDir$ = BrowseForExportDir$(Text(E_ExportToDirTB))
+            IF LEN(exportDir$) THEN
+                Text(E_ExportToDirTB) = EnsureTrailingSlash$(exportDir$)
+                AppSettings.outputDir$ = EnsureTrailingSlash$(exportDir$)
+                Control(E_ExportToDirRB).Value = TRUE
+            END IF
         CASE E_ExportAsFileLB
         CASE E_ExportAsFileTB
         CASE E_ExportBT
+            PerformExport
 
         'ST:STATUS
         CASE ST_StatusFrame
@@ -781,17 +800,28 @@ SUB __UI_KeyPress (id AS LONG)
 END SUB
 
 SUB __UI_TextChanged (id AS LONG)
+    DIM newCols AS INTEGER
+    DIM newRows AS INTEGER
     SELECT CASE id
         'SI:SOURCE IMAGE
         CASE SI_SourceImgBrightnessTB
+            TextboxToSlider SI_SourceImgBrightnessTB, SI_SourceImgBrightnessSlider, 0, 100
         CASE SI_SourceImgContrastTB
+            TextboxToSlider SI_SourceImgContrastTB, SI_SourceImgContrastSlider, 0, 100
         CASE SI_SourceImgPosterizeTB
+            TextboxToSlider SI_SourceImgPosterizeTB, SI_SourceImgPosterizeSlider, 0, 100
 
         'RC:RESIZE / CROP
         CASE RC_ResizeCropXTB
         CASE RC_ResizeCropYTB
         CASE RC_ResizeCropWTB
+            newCols = VAL(Text(RC_ResizeCropWTB))
+            IF newCols <= 0 THEN newCols = 1
+            AppSettings.cols = newCols
         CASE RC_ResizeCropHTB
+            newRows = VAL(Text(RC_ResizeCropHTB))
+            IF newRows <= 0 THEN newRows = 1
+            AppSettings.rows = newRows
 
         'S:SAUCE
         CASE S_SauceTitleTB
@@ -801,7 +831,9 @@ SUB __UI_TextChanged (id AS LONG)
 
         'E:EXPORT
         CASE E_ExportToDirTB
+            AppSettings.outputDir$ = Text(E_ExportToDirTB)
         CASE E_ExportAsFileTB
+            AppSettings.outputFile$ = Text(E_ExportAsFileTB)
 
     END SELECT
 END SUB
@@ -810,11 +842,11 @@ SUB __UI_ValueChanged (id AS LONG)
     SELECT CASE id
         'SI:SOURCE IMAGE
         CASE SI_SourceImgBrightnessSlider
-            Text(SI_SourceImgBrightnessTB) = _TRIM$(STR$(Control(id).Value))
+            SliderToTextbox SI_SourceImgBrightnessSlider, SI_SourceImgBrightnessTB
         CASE SI_SourceImgContrastSlider
-            Text(SI_SourceImgContrastTB) = _TRIM$(STR$(Control(id).Value))
+            SliderToTextbox SI_SourceImgContrastSlider, SI_SourceImgContrastTB
         CASE SI_SourceImgPosterizeSlider
-            Text(SI_SourceImgPosterizeTB) = _TRIM$(STR$(Control(id).Value))
+            SliderToTextbox SI_SourceImgPosterizeSlider, SI_SourceImgPosterizeTB
 
         'DP:DESTINATION PALETTE
         CASE DP_DestPalCB
@@ -846,5 +878,11 @@ SUB __UI_FormResized
 
 END SUB
 
+'$INCLUDE:'include/SAUCE/SAUCE.BAS'
+'$INCLUDE:'core/palette.bas'
+'$INCLUDE:'core/cellmap.bas'
+'$INCLUDE:'core/ansi_writer.bas'
+'$INCLUDE:'core/convert.bas'
+'$INCLUDE:'core/sauce_wrap.bas'
 '$INCLUDE:'include/InForm-PE/InForm/InForm.ui'
 '$INCLUDE:'IMG2ANS.BM'
