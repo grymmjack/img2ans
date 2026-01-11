@@ -22,12 +22,23 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 
 ## 🚀 Quick Start
 
+### For New Users
 1. **Launch IMG2PAL** - Run `IMG2PAL.exe`
 2. **Load an Image** - Press `L` to browse for an image file
 3. **Load a Palette** - Press `P` to browse for a .GPL palette file  
 4. **Apply Adjustments** - Use letter keys to modify the image (see controls below)
 5. **Explore Variations** - Use `` ` `` (random image), `~` (random palette), or `?` (random everything)
 6. **Save Result** - Press `S` to save the palette-converted image
+
+### Starting Fresh
+- **New Preset**: Press `Ctrl+N` to create a new preset with a placeholder image and default settings
+- **Reset Settings**: Press `Ctrl+Shift+I` to reset all parameters while keeping your current image and palette
+
+### Working with Presets
+- **Save Preset**: Press `W` to save your current configuration as a named preset
+- **Quick Save**: Press `Ctrl+S` to overwrite the current preset
+- **Navigate Presets**: Use `Ctrl+Up`/`Ctrl+Down` or `Alt+Up`/`Alt+Down` to browse saved presets
+- **Random Preset**: Press `Space` to load a random saved preset
 
 ---
 
@@ -44,6 +55,17 @@ IMG2PAL is a specialized image processing application that converts any QB64-sup
 | `H` | Help | Display keyboard shortcuts and controls |
 | `A` | About | Show version information |
 | `ESC` | Exit | Quit the application |
+
+### Preset Management
+| Key | Action | Description |
+|-----|--------|-------------|
+| `W` | Save Preset | Save current settings as a named preset |
+| `Ctrl+S` | Quick Save Preset | Overwrite the current preset with current settings |
+| `Ctrl+Up` / `Alt+Up` | Previous Preset | Load previous preset from presets folder |
+| `Ctrl+Down` / `Alt+Down` | Next Preset | Load next preset from presets folder |
+| `Ctrl+N` | New Preset | Create new preset with placeholder image and default settings |
+| `Ctrl+Shift+I` | Initialize Settings | Reset all parameters to defaults (preserves image and palette) |
+| `Space` | Random Preset | Load a random saved preset with all its settings |
 
 ### Navigation
 | Key | Action | Description |
@@ -299,6 +321,17 @@ When dithering is disabled, these scaling algorithms are available:
 2. **For pixel art**: Use pixelate effect + ordered dithering
 3. **For photos**: Try Floyd-Steinberg + film grain
 4. **For artistic effects**: Combine posterize + colorize + invert
+5. **Save presets** of favorite settings with `W` for quick reuse
+6. **Use Ctrl+N** to start fresh with a clean slate and placeholder image
+7. **Use Ctrl+Shift+I** to reset all effects while keeping your current image/palette
+
+### Preset Management Tips
+- **Organize presets**: Name them descriptively (e.g., "vintage-sepia", "pixel-art-bright")
+- **Iterate quickly**: Use `Ctrl+Up`/`Ctrl+Down` to browse through saved presets
+- **External resources**: Presets using images/palettes outside the project folder are marked with "external-" prefix
+- **Quick save**: Press `Ctrl+S` to update the current preset without retyping the name
+- **Start fresh**: `Ctrl+N` creates a placeholder image reminding you to load an image
+- **Clean slate**: `Ctrl+Shift+I` resets all adjustments but keeps your loaded image and palette intact
 
 ### Performance Notes
 - **Large images** may take time to process with complex adjustments
@@ -339,12 +372,13 @@ When dithering is disabled, these scaling algorithms are available:
 - ✅ Interactive keyboard controls
 - ✅ **Randomization system** (Random Image, Random Palette, Random Everything)
 - ✅ **Creative exploration tools** for discovering unexpected combinations
+- ✅ **Preset management system** (Save, load, and navigate presets)
+- ✅ **Quick initialization** (Ctrl+N for new preset, Ctrl+Shift+I to reset settings)
 
 ### Planned Features
 - **Additional palette formats** (ACO, PAL, etc.)
 - **Batch processing mode**
 - **Custom dithering patterns**
-- **Adjustment presets**
 - **Command-line interface**
 
 ---

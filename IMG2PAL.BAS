@@ -40,9 +40,14 @@ CONST KEY_RIGHT&       = 19712
 CONST KEY_S&           = 83
 CONST KEY_B&           = 66
 CONST KEY_W&           = 87
+CONST KEY_N&           = 78
+CONST KEY_I&           = 73
 CONST IMG_PAL_SPACING& = 2
 CONST PROG_VERSION$    = "1.0"
 CONST STATUS_HEIGHT    = 9
+
+' Default palette file (can be changed to use a different default palette)
+CONST DEFAULT_PALETTE_FILE$ = "EGA (16).GPL"
 
 ' Toast message system constants
 CONST INFO_MSG_TIMEOUT  = 3.0       ' Auto-clear delay in seconds
@@ -273,7 +278,7 @@ IF cur_img% < 0 AND UBOUND(img_files_sorted$) >= 0 THEN cur_img% = 0
 
 ' Try to find the default palette in the sorted list, otherwise use first available
 DIM default_pal_path AS STRING
-default_pal_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$ + "EGA (16).GPL"
+default_pal_path = _STARTDIR$ + SLASH$ + "resources" + SLASH$ + "palettes" + SLASH$ + DEFAULT_PALETTE_FILE$
 cur_pal% = ARR_STR.find%(pal_files_sorted$(), default_pal_path)
 IF cur_pal% < 0 AND UBOUND(pal_files_sorted$) >= 0 THEN cur_pal% = 0
 
@@ -410,6 +415,44 @@ DO
                 adj_needs_update = _TRUE
                 draw_output
             END IF
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
+    ' CTRL + N: Create new preset with placeholder image
+    IF _KEYDOWN(KEY_N&) AND ((_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            create_new_preset
+            show_info_msg "New preset created with placeholder image. Press L to load an image."
+            last_key_time = TIMER
+        END IF
+        GOTO continue_loop
+    END IF
+    
+    ' CTRL + SHIFT + I: Initialize/reset all parameters (keep image and palette)
+    IF _KEYDOWN(KEY_I&) AND ((_KEYDOWN(KEY_LCTRL&) OR _KEYDOWN(KEY_RCTRL&))) AND ((_KEYDOWN(KEY_LSHIFT&) OR _KEYDOWN(KEY_RSHIFT&))) THEN
+        IF TIMER - last_key_time >= key_repeat_delay THEN
+            ' Reset all adjustments and settings
+            reset_adjustments
+            
+            ' Reset dithering
+            dithering_enabled = 0
+            dither_method = 4
+            dither_amount = 0.5
+            
+            ' Reset pattern
+            current_pattern = 0
+            custom_pattern_file = ""
+            
+            ' Reset zoom
+            zoom = 1.0
+            
+            ' Reset scaler
+            cur_scaler = 0
+            
+            show_info_msg "All parameters initialized to defaults (image and palette preserved)."
+            draw_output
             last_key_time = TIMER
         END IF
         GOTO continue_loop
@@ -2081,8 +2124,18 @@ SUB display_status_lines(show_dither_details AS INTEGER, include_debug AS INTEGE
     END IF
     
     ' Common status lines
-    PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
-    PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+    IF cur_img% >= 0 AND cur_img% <= UBOUND(img_files_sorted$) THEN
+        PRINT "IMAGE:" + img_files_sorted$(cur_img%) + "(" + _TRIM$(STR$(cur_img%)) + ")"
+    ELSE
+        PRINT "IMAGE: [No image loaded - press L to load]"
+    END IF
+    
+    IF cur_pal% >= 0 AND cur_pal% <= UBOUND(pal_files_sorted$) THEN
+        PRINT "PAL:" + pal_files_sorted$(cur_pal%) + "(" + _TRIM$(STR$(cur_pal%)) + ")"
+    ELSE
+        PRINT "PAL: [Default: " + DEFAULT_PALETTE_FILE$ + "]"
+    END IF
+    
     PRINT "ADJ: [R]ESET [B]RIGHTNESS [C]ONTRAST PI[X]ELATE H[U]E SHIFT COLORI[Z]E [T]HRESHOLD P[O]STERIZE [G]AMMA [F]ILM GRAIN [I]NVERT LE[V]ELS  COL BALA[N]CE"
     
     IF show_dither_details THEN
@@ -4295,6 +4348,132 @@ SUB random_preset
     ELSE
         show_info_msg "No presets available for randomization! Save some presets first (W key)."
     END IF
+END SUB
+
+
+''
+' Create a placeholder image with instructions to load an image
+' Image is 640x480 with white border, X through it, and centered text
+'
+FUNCTION create_placeholder_image&
+    DIM AS LONG placeholder_img, old_dest
+    DIM AS INTEGER img_width, img_height
+    DIM AS INTEGER center_x, center_y
+    
+    img_width = 640
+    img_height = 480
+    center_x = img_width \ 2
+    center_y = img_height \ 2
+    
+    ' Create 32-bit image for the placeholder
+    placeholder_img = _NEWIMAGE(img_width, img_height, 32)
+    old_dest = _DEST
+    _DEST placeholder_img
+    
+    ' Fill with black background
+    CLS , _RGB32(0, 0, 0)
+    
+    ' Draw white border
+    LINE (0, 0)-(img_width - 1, img_height - 1), _RGB32(255, 255, 255), B
+    LINE (1, 1)-(img_width - 2, img_height - 2), _RGB32(255, 255, 255), B
+    LINE (2, 2)-(img_width - 3, img_height - 3), _RGB32(255, 255, 255), B
+    
+    ' Draw X from corner to corner
+    LINE (10, 10)-(img_width - 10, img_height - 10), _RGB32(255, 255, 255)
+    LINE (img_width - 10, 10)-(10, img_height - 10), _RGB32(255, 255, 255)
+    
+    ' Draw text in center using the current font
+    DIM AS STRING message
+    message = "PRESS L TO LOAD AN IMAGE"
+    
+    ' Try to load a larger font
+    DIM AS LONG msg_font
+    msg_font = _LOADFONT(FONT_FILE$, 64, "MONOSPACE")
+    IF msg_font > 0 THEN
+        _FONT msg_font
+    END IF
+    
+    ' Center the text
+    DIM AS INTEGER text_width, text_height, tx, ty
+    text_width = _PRINTWIDTH(message)
+    text_height = _FONTHEIGHT
+    tx = center_x - text_width \ 2
+    ty = center_y - text_height \ 2
+    
+    ' Draw text (white on black, default colors)
+    _PRINTSTRING (tx, ty), message
+    
+    ' Reset to default font before freeing custom font
+    IF msg_font > 0 THEN
+        _FONT 16  ' Reset to default font
+        _FREEFONT msg_font
+    END IF
+    
+    ' Restore old destination
+    _DEST old_dest
+    
+    create_placeholder_image& = placeholder_img
+END FUNCTION
+
+
+''
+' Create a new preset with all parameters initialized to defaults
+' Creates a placeholder image and resets all settings
+'
+SUB create_new_preset
+    ' Free existing images
+    IF img_orig <> 0 THEN
+        _FREEIMAGE img_orig
+        img_orig = 0
+    END IF
+    
+    IF img_pal <> 0 THEN
+        _FREEIMAGE img_pal
+        img_pal = 0
+    END IF
+    
+    IF img_adjusted <> 0 THEN
+        img_adjusted = 0
+    END IF
+    
+    ' Create placeholder image
+    img_orig = create_placeholder_image&
+    
+    ' Create palette image
+    img_pal = _NEWIMAGE(_WIDTH(img_orig), _HEIGHT(img_orig), 256)
+    
+    ' Load default EGA palette
+    load_default_ega_palette img_pal
+    
+    ' Reset all adjustments and settings
+    reset_adjustments
+    
+    ' Reset dithering
+    dithering_enabled = 0
+    dither_method = 4
+    dither_amount = 0.5
+    
+    ' Reset pattern
+    current_pattern = 0
+    custom_pattern_file = ""
+    
+    ' Reset zoom
+    zoom = 1.0
+    
+    ' Reset scaler
+    cur_scaler = 0
+    
+    ' Reset preset tracking
+    cur_preset = -1
+    preset_includes_external = 0
+    
+    ' Clear file arrays since we're using a generated image
+    REDIM img_files(0) AS STRING
+    REDIM img_files_sorted(0) AS STRING
+    cur_img = -1
+    
+    ' Update display
+    draw_output
 END SUB
 
 
